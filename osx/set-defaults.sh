@@ -15,6 +15,3 @@ defaults write com.apple.NetworkBrowser BrowseAllInterfaces 1
 
 # Always open everything in Finder's list view. This is important.
 defaults write com.apple.Finder FXPreferredViewStyle Nlsv
-
-# Show the ~/Library folder
-chflags nohidden ~/Library
