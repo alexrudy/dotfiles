@@ -1,0 +1,16 @@
+#==================================
+# STARTUP COMMANDS
+#==================================
+echo -e "${LIGHTBLUE}This is BASH ${RED}${BASH_VERSION%.*}${LIGHTBLUE} - ${GREEN}ALEX RUDY ${LIGHTBLUE}2010-10-24${NC}"
+date
+
+if [ -z ${DISPLAY:=""} ]; then
+    get_xserver
+    if [[ -z ${XSERVER}  || ${XSERVER} == $(hostname) || \
+      ${XSERVER} == "unix" ]]; then 
+        DISPLAY=":0.0"          # Display on local host.
+    else
+        DISPLAY=${XSERVER}:0.0  # Display on remote host.
+    fi
+fi
+export DISPLAY

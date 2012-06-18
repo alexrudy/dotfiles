@@ -1,0 +1,38 @@
+# Alex Rudy's Bash RC File
+# This file contains shell variables and universal aliases to executables etc that might be necessary.
+# v2.0.0
+# Updated: 2012-06-18
+# 
+# Version History
+# 2.0.0 - 2012-06-18 - Switching to DotFilesSetup
+#
+
+export ORIGPATH=$PATH #So we can put it back later...
+
+export BASH=$HOME/.dotfiles
+
+
+# load every completion after autocomplete loads
+for config_file in $BASH/**/*.bash
+do 
+	source $config_file
+done
+
+# use .localrc for SUPER SECRET CRAP that you don't
+# want in your public, versioned repo.
+if [[ -a ~/.localrc ]]
+then
+  source ~/.localrc
+fi
+
+
+# load every completion after autocomplete loads
+for config_file in $BASH/**/completion.sh
+do 
+	source $config_file
+done
+
+
+
+
+
