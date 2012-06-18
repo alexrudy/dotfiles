@@ -1,0 +1,1 @@
+alias sls='svn status'

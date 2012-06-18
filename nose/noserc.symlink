@@ -1,0 +1,4 @@
+[nosetests]
+verbosity=2
+with-spec=1
+detailed-errors=1
