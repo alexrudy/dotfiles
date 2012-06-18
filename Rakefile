@@ -63,9 +63,7 @@ task :dirs do
       FileUtils.rm_rf(target) if overwrite || overwrite_all
       `mv "$HOME/.#{file}" "$HOME/.#{file}.backup"` if backup || backup_all
     end
-    `ln -s "$PWD/#{directory}" "#{target}"`
-    puts "Linked #{ENV["PWD"]}/#{directory} to #{target}"
-    
+    `ln -s "$PWD/#{directory}" "#{target}"`    
   end
 end
 
