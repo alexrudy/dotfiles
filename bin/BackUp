@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+CMD=$0
+DEST=$1
+# BCKUP="/Volumes/Drobo"
+BCKUP="/Volumes/Big Orange Disk"
+RSYNC='rsync'
+RSYNCV=`rsync --version | head -n1`
+EXE=${CMD##*/}
+
+USAGE="
+BackUp - A simple Backup Utility using $RSYNC
+
+Usage:
+	$EXE [command]
+	$EXE -h
+
+BackUp uses $RSYNC to copy from a target to a backup destination.
+	The version of $RSYNC used is $RSYNCV
+
+The backup destination is currently:
+BKCUP: $BCKUP
+
+All targets are in the Home Directory:
+HOME: $HOME
+
+The targets are
+
+	media:			iTunes Music Folder
+	dropbox:		Dropbox Folder
+	documents: 		Documents Folder
+	library: 		Library Folder
+	development:		Development Folder
+	pictures:		Pictures Folder
+	home:			The entire home folder
+
+"
+
+case $DEST in
+    media )
+        NAME="media"
+        MASTER="$HOME/Music/iTunes/iTunes Music/"
+        DESTINATION="$BCKUP/Home/Music/iTunes/iTunes Music"
+        ARGS=""
+        ;;
+    dropbox )
+        NAME="dropbox"
+        MASTER="$HOME/Dropbox/"
+        DESTINATION="$BCKUP/Home/Dropbox"
+        ARGS=""
+        ;;
+    documents )
+        NAME="documents"
+        MASTER="$HOME/Documents/"
+        DESTINATION="$BCKUP/Home/Documents"
+        ARGS=""
+        ;;
+    library )
+        NAME="library"
+        MASTER="$HOME/Library/"
+        DESTINATION="$BCKUP/Home/Library"
+        ARGS=""
+        ;;
+    development )
+        NAME="development"
+        MASTER="$HOME/Development/"
+        DESTINATION="$BCKUP/Home/Development"
+        ARGS=""
+        ;;
+    pictures )
+        NAME="pictures"
+        MASTER="$HOME/Pictures/"
+        DESTINATION="/Volumes/Drobo/Home/Pictures"
+        ARGS=""
+        ;;
+    home )
+        NAME="home"
+        MASTER="$HOME/"
+        DESTINATION="$BCKUP/Home"
+        ARGS=""
+        ;;
+    apps )
+        NAME="apps"
+        MASTER="$HOME/Music/iTunes/iTunes Music/Mobile Applications"
+        DESTINATION="$BCKUP/Home/Music/iTunes/iTunes Music/Mobile Applications"
+        ARGS="--del"
+        ;;
+	*)
+		echo -e "$USAGE"
+		exit
+		;;
+esac
+
+mkdir -p "$DESTINATION"
+echo "Backing up $NAME"
+echo "DRY RUN from $MASTER to $DESTINATION"
+$RSYNC -avn $ARGS "$MASTER" "$DESTINATION"
+echo "Continue with $NAME $RSYNC from $MASTER to $DESTINATION? (y/n)"
+read cont
+if [ $cont != "y" ]
+then
+    echo "Cancelling backup from $MASTER to $DESTINATION"
+	exit
+fi
+$RSYNC -av $ARGS "$MASTER" "$DESTINATION"
+echo ""
+echo "Backed Up from $MASTER to $DESTINATION"
+echo "Thanks for backing up your $NAME!"

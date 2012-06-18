@@ -1,0 +1,34 @@
+#!/bin/bash
+# Small IRAF command to start CL in the current directory
+
+dir=`pwd` #Current Directory
+irafhome=~/.iraf #iraf Home Directory
+scriptname="startup.cl"
+
+red='\033[0;31m'
+RED='\033[1;31m'
+blue='\033[0;34m'
+BLUE='\033[1;34m'
+cyan='\033[0;36m'
+CYAN='\033[1;36m'
+NC='\033[0m'
+
+if [ -z "$SCISOFT_VERSION" ]
+then
+  if [ -z "$iraf" ]
+  then
+	  echo -e "${RED}UH-OH${cyan} SciSoft${NC} doesn't appear to have started."
+	  echo -e "${BLUE}You might want to start it!${NC}"
+	  exit
+  else
+	  echo -e "Using ${cyan}root iraf${NC} installed in ${BLUE}$iraf${NC}"
+  fi
+fi
+
+cd $irafhome
+
+echo "cd ${dir}" > $scriptname
+echo "!cd ${dir}" >> $scriptname
+echo "" >> $scriptname
+
+cl

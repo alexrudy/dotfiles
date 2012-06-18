@@ -1,0 +1,70 @@
+#!/bin/sh
+# © Alex Rudy - Pomona College
+# June 11 2008
+
+USAGE='
+	georgian.sh - Simple Julian Date Conversion Tool
+	(c) Alexander Rudy - Pomona College
+	
+SYNTAX: georgian datefile
+Where datefile is a text file containing the date to be converted in FITS header format.
+SYNTAX: georgian date
+Where date is the georgian date to be converted, in FITS header format.
+
+The FITS header format is equivalent to %Y-%m-%dT%H:%M:%S in standard UNIX date.
+'
+
+
+if [ $# -eq 0 ]
+then
+	echo "$USAGE"
+	exit
+fi
+
+directory=`pwd`
+
+datefile=$1
+
+if [ -e $datefile ]
+then
+jdate=`cat $datefile`
+else
+jdate=$1
+fi
+
+scale=10
+iscale=0
+
+J=`echo "scale=$iscale; $jdate/1"  | bc`
+j=`echo "scale=$iscale; $J + 32044" | bc`
+g=`echo "scale=$iscale; $j/146097" | bc`
+dg=`echo "scale=$iscale; $j%146097" | bc`
+c=`echo "scale=$iscale; ($dg/36524+1)*3/4" | bc`
+dc=`echo "scale=$iscale; $dg-$c*36524" | bc`
+b=`echo "scale=$iscale; $dc/1461" | bc`
+db=`echo "scale=$iscale; $dc%1461" | bc`
+a=`echo "scale=$iscale; ($db/365+1)*3/4" | bc`
+da=`echo "scale=$iscale; $db-$a*365" | bc`
+y=`echo "scale=$iscale; $g*400+$c*100+$b*4+$a"  | bc`
+m=`echo "scale=$iscale; ($da * 5 + 308)/153-2"  | bc`
+d=`echo "scale=$iscale; $da - ($m+4)*153/5+122" | bc`
+Y=`echo "scale=$iscale; $y-4800 + ($m+2)/12" | bc`
+M=`echo "scale=$iscale; ($m+2)%12+1" | bc`
+Da=`echo "scale=$iscale; ($d+1.5)/1" | bc`
+
+rdec=`echo "scale=$scale; $jdate-$J" | bc`
+idec=`echo "scale=$iscale; ($rdec*10)/1" | bc`
+if [ $idec -gt 5 ]
+then
+D=`echo "scale=$scale; $Da + 1" | bc`
+dec=$rdec
+else
+D=$Da
+dec=$rdec
+fi
+
+HRS=`echo "scale=$iscale; ($dec*24-12)/1" | bc`
+MIN=`echo "scale=$iscale; ($dec*1440-($HRS+12)*60)/1" | bc`
+SEC=`echo "scale=$scale; $dec*86400-(($HRS+12)*60+$MIN)*60" | bc`
+
+echo $Y"-"$M"-"$D"T"$HRS":"$MIN":"$SEC

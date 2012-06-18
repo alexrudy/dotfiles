@@ -1,0 +1,185 @@
+# .bashrc - Philip Choi - Feel free to use any part of this.
+
+source /scisoft/all/bin/Setup.bash
+
+# The almighty $PATH
+PATH="$HOME/bin:/usr/local/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/games:/usr/X11R6/bin:/scisoft/iraf/iraf/unix/hlib:/usr/local/include:/scisoft/all/bin:/scisoft/i386/bin:/usr/texbin"
+LDFLAGS=-flat_namespace
+CPPFLAGS=-no-cpp-precomp
+GNUTERMAPP=/Applications/AquaTerm.app
+GNUTERM=aqua
+PATH=${HOME}/bin:/opt/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/sw/bin:/usr/local/teTeX/bin/powerpc-apple-darwin-current:/sw/LessTif/Motif2.0/bin:/usr/X11R6/bin:/Developer/Tools:/scisoft/iraf/iraf/unix/hlib:/usr/local/include:/scisoft/all/bin:/scisoft/i386/bin:/usr/texbin
+LD_LIBRARY_PATH=/sw/lib:/usr/lib:/sw/lib/X11:/opt/lib:/usr/local/lib:/usr/X11R6/lib:$HOME/lib
+# Commented out Sept 05
+# DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+MANPATH=/usr/share/man:/usr/X11R6/man:/sw/share/man:/opt/man:/usr/local/man:/usr/local/share/man:$HOME/usr/local/man:/$HOME/man
+
+
+# export PATH LDFLAGS CPPFLAGS GNUTERMAPP GNUTERM LD_LIBRARY_PATH DYLD_LIBRARY_PATH MANPATH DISPLAY EDITOR VISUAL
+export PATH LDFLAGS CPPFLAGS GNUTERMAPP GNUTERM LD_LIBRARY_PATH MANPATH DISPLAY EDITOR VISUAL
+
+# Setup for ls to support color
+if [ -f "$HOME/.dircolors" ] ; then
+  eval $(/opt/bin/dircolors -b $HOME/.dircolors)
+fi
+
+# Set our environment variables
+export MAILCHECK=0
+export EDITOR=emacs
+export VISUAL=$EDITOR
+export PAGER=less
+export LESS='-iMn'
+export PRINTER=lp
+export CVS_RSH=ssh
+#export dimsum=/Users/pchoi/Software/dimsum/
+#export LM_LICENSE_FILE=/usr/local/rsi/license/license.dat
+
+set -o emacs                                    # Emacs key bindings
+bind 'C-u:kill-whole-line'                      # Ctrl-U kills whole line
+bind 'set bell-style visible'                   # No beeping
+#bind 'set horizontal-scroll-mode on'           # Don't wrap
+bind 'set show-all-if-ambiguous on'             # Tab once for complete
+bind 'set visible-stats on'                     # Show file info in complete
+
+#-----------------------
+# Greeting, motd etc...
+#-----------------------
+
+# Define some colors first:
+red='\e[0;31m'
+RED='\e[1;31m'
+blue='\e[0;34m'
+BLUE='\e[1;34m'
+cyan='\e[0;36m'
+CYAN='\e[1;36m'
+NC='\e[0m'              # No Color
+
+# Looks best on a black background.....
+echo -e "${CYAN}This is BASH ${RED}${BASH_VERSION%.*}${CYAN} \
+- DISPLAY on ${RED}$DISPLAY${NC}\n"
+date
+
+function _exit()        # function to run upon exit of shell
+{
+    echo -e "${RED}Bye Bye${NC}"
+}
+trap _exit 0
+
+#---------------
+# Shell prompt
+#---------------
+function promptt
+{
+  case $TERM in
+    *term | xterm-color |rxvt| gnome* | vt100)
+      # Set the working directory as the title
+      local TITLEBAR='\[\033]0;\w\007\]'
+      local PROMPT=" \[\w\] \$ "
+      ;;
+    *)
+      # Otherwise there is no title
+      local TITLEBAR=''
+      local PROMPT=" \[\w\] \$ "
+      ;;
+  esac
+
+  PS1="${TITLEBAR}${PROMPT}"
+}
+
+# Execute the function
+promptt
+
+# Prompt - special prompt for Xterms to set the window title.
+#case $TERM in
+#    xterm*)
+#        PS1='\[\033]0;\h\007\][\@] \h:\w\$ '
+#        ;;
+#    *)
+#        PS1='[\@] \h:\w\$ '
+#        ;;
+#esac
+
+case $TERM in
+    xterm*)
+#        PS1="\[\033]0;\u@\h: \w\007\]bash\\$ "
+        PS1="\[\033]0;\u@\h: \w\007\]bash\\$ \h:\w\$ "
+        ;;
+    *)
+        PS1='[\@] \h:\w\$ '
+        ;;
+esac
+
+# Aliases
+#alias ls='ls --color=auto'
+alias ll='ls -ltrh'
+#alias chl='awk -f ~/HINTS/AWK/check_lines.awk '
+alias pg='ps aux | grep'
+alias ds9='/Applications/ds9'
+alias gvim='gvim -fn 6x10'
+alias bc='bc -ql'
+#alias ssh2='ssh -2 -X'
+alias ssh2='ssh -Y'
+alias aci50='ssh2  aci50.astro.pomona.edu'     # ssh 
+#alias sm='/scisoft/sm/sm2_4_26/sm'
+alias smwin='xterm -name "SM" -geometry 80x20+0+480 -vb -sl 1000 -bg black -fg red -fn "10x18"&'
+alias irafwin='xgterm -name "IRAF" -geometry 66x59+60+0 -vb -sbr -sl 1000 -bg ivory -fg black -fn "10x20"&'
+alias pu='pushd .'
+alias po='popd'
+alias tidy='\rm *~'
+alias emacs='/Applications/Aquamacs_Emacs.app/Contents/MacOS/Emacs'
+alias mem='emacs -nw' 
+#alias em='emacs' 
+alias dir='ls' 
+alias gawk='awk'
+alias nawk='awk'
+alias columns='pr -mt -s" " -w 10000'
+alias iraf='cd ~/iraf; cl'
+alias rm='rm -i '
+alias cp='cp -p '
+alias pv='/Applications/Preview.app/Contents/MacOS/Preview'
+
+# Functions
+
+function set_title ()
+{
+    case $TERM in
+        *term | xterm-color |rxvt | vt100 | gnome* )
+            echo -n -e "\033]0;$*\007" ;;
+        *)  ;;
+    esac
+}
+
+findgrep () {           # find | grep
+        if [ $# -eq 0 ]; then
+                echo "findgrep: No arguments entered."; return 1
+        else
+                # "{.[a-zA-Z],}*" instead of "." makes the output cleaner
+                find {.[a-zA-Z],}* -type f | xargs grep -n $* /dev/null \
+                                2> /dev/null
+        fi
+}
+
+swap () {               # swap 2 filenames around
+        if [ $# -ne 2 ]; then
+                echo "swap: 2 arguments needed"; return 1
+        fi
+
+        if [ ! -e $1 ]; then
+                echo "swap: $1 does not exist"; return 1
+        fi
+
+        if [ ! -e $2 ]; then
+                echo "swap: $2 does not exist"; return 1
+        fi
+
+        local TMPFILE=tmp.$$ ; mv $1 $TMPFILE ; mv $2 $1 ; mv $TMPFILE $2
+}
+
+rot13 () {              # For some reason, rot13 pops up everywhere
+        if [ $# -eq 0 ]; then
+                tr '[a-m][n-z][A-M][N-Z]' '[n-z][a-m][N-Z][A-M]'
+        else
+                echo $* | tr '[a-m][n-z][A-M][N-Z]' '[n-z][a-m][N-Z][A-M]'
+        fi
+}
+

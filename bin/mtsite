@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# 
+#  mtsite
+#  arshellscripts
+#  
+#  Created by Alexander Rudy on 2011-05-23.
+#  Copyright 2011 Alexander Rudy. All rights reserved.
+# 
+
+LOCALSITE="$HOME/Sites/MTSYNC/"
+REMOTESITE="domains/alexrudy.org/html/"
+REMOTEADDR="omegacentauri.org@s101715.gridserver.com"
+MASTERBRANCH="master"
+DEPLOYEDBRANCH="alexrudy.org"
+COMMAND=$0
+
+if [ $# -lt 1 ]
+then
+	echo "Not enough Arguments!"
+	exit
+fi
+
+CHOICE=$1
+
+if [ $CHOICE == "-b" ]
+then
+	echo "Switching to BCR Site"
+	MASTERBRANCH="master"
+	DEPLOYEDBRANCH="brucerudy.org"
+	REMOTESITE="domains/brucerudy.org/html/"
+	LOCALSITE="$HOME/Sites/BCRSITE/"
+	shift
+	CHOICE=$1
+fi
+
+DIR=`pwd`
+
+cd $LOCALSITE
+
+case $CHOICE in
+	login)
+		ssh $REMOTEADDR
+		;;
+	deploy)
+		ssh $REMOTEADDR "cd $REMOTESITE && git co $DEPLOYEDBRANCH && git merge $MASTERBRANCH"
+		;;
+	push)
+		git push
+		ssh $REMOTEADDR "cd $REMOTESITE && git co $MASTERBRANCH"
+		;;
+	revert)
+		ssh $REMOTEADDR "cd $REMOTESITE && git co $DEPLOYEDBRANCH"
+		;;
+	fetch)
+		git fetch
+		;;
+	?*)
+		echo "Command NOT Found"
+		cd $DIR
+		exit
+		;;
+esac
+
+cd $DIR

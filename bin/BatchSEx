@@ -1,0 +1,1214 @@
+#!/bin/bash
+# © Alexander Rudy - Pomona College
+# Batch Process FITS images in SExtractor
+# Last Update July 24 2008
+
+# -- SCRIPTWIDE VARIABLES --
+
+#Variables controlled here will effect the entire script and the output files.
+
+# -- SCRIPT DEFAULTS --
+#The variables below are just the default variables for the script. You may change them on your own whim.
+
+extension="fits" #This is the default file extension for the FITS files you are looking for.
+datetype="JUL" #This is the default date method used.
+type="POSS" #This is the default output method used.
+offset="365" #This is the default offset for relative julian dating. Always set from today.
+cset="false" #This variable controls whether the configuration file should be written from the script or supplied
+dset="false" #This controls whether the directory is set. If false, the current directory is used
+pset="false" #This controls whether the parameter file should be written from the script or supplied.
+debug="false" #This variable prevents the script from deleting temporary files.
+custom="false" #This determines whether the custom star default has already worked.
+directory=`pwd` #This sets the directory to the curent directory.
+filter="none" #This is the default results filter used.
+
+# -- CONFIGURATION FILES --
+#Names can be parsed manually if a custom configuration file is set.
+#Names changed here will be reflected throughout the script
+configfile="BatchSEx.sex"
+catfile="results.cat"
+paramfile="BatchSEx.param"
+logfile="BatchSEx.log"
+mext="sm" #extension for macro files
+
+# -- OUTPUT FILE FORMAT --
+# Files names are constructed using the following variables.
+
+resultext=".res" #appended to the end of the file.
+errs="e" #appended if the file contains all images results regardless of number of sources found.
+nerrs="ne" #appended if the file only contians images with the correct number of sources.
+objfname="star" #begins the filename for files listing objects
+spacer="_" #separates elements of file names
+datefname="date" #begins date files
+
+# -- DOCUMENTATION --
+# Last Updated June 19 2008
+# (c) Alexander Rudy
+USAGE="
+
+			BatchSEx.sh by Alexander Rudy
+			(c) Alexander Rudy - Pomona College 2008
+
+This script is an extensible batch processor
+for fits images and the sextractor program by Emmanuel Bertin
+
+SYNOPSYS 
+
+	BatchSEx.sh [-C configfile] [-D directory] [-P parameterfile] ...
+		[-e extension] [-g | -j | -r] [-t] -s stars -o outputtype
+		
+	BatchSEx.sh [-C configfile] [-D directory] [-P parameterfile] ...
+		[-e extension] [-g | -j | -r] [-t] -d | -f [e] | -p -s stars
+
+HELP
+
+	Type BatchSEx.sh -h for extended help file
+
+OPTIONS
+
+	-D <directory> 	Operate script on directory other than current directory
+	-C <configfile> Use a pre-formed configuration file.
+	-d	Run the script looking for DIMM stars
+			(2 stars, finding separation between them)
+	-e	Change the extension for fits images from "fits"
+	-f [e]	Run the script looking for FWHM
+			(generally for 1 star) [optional: extended output]
+	-g 	Output Goergian Dates instead of Julian Dates
+	-h 	Print the help file
+	-j 	Output Julian Dates
+	-P 	Use a user created parameter file
+	-o 	Use a custum output setup (see -o help for instructions)
+	-p 	Find the positions of examined stars
+	-r <n> 	Use relative julian dates, i.e. julian date-n.
+	-s <n>	Set the number of stars the program should look for in extraction
+	-t 	filter results if they are greater than the set number of stars
+			(see -t help for instructions)
+	-x 	print verbose operating results
+	
+OUTPUT CODES
+	
+	All the below are set by option -o
+	DIMM - Differential Image Motion Monitor
+	FWHM - Full Width at Half Maximum
+	FWEX - FWHM extended output
+	POSS - Position Data
+	EXTN - Extended Output
+	help - Print Detailed Output Help Filed
+
+
+	"
+
+DOCUMENTATION='
+
+		BatchSEx.sh by Alexander Rudy
+		Based on SExtractor by Emmanuel Bertin
+		(c) Alexander Rudy - Pomona College 2008
+		
+NAME
+	
+	BatchSEx.sh
+
+SYNOPSYS 
+
+	BatchSEx.sh [-C configfile] [-D directory] [-P parameterfile] ...
+		[-e extension] [-g | -j | -r] [-t] -s stars -o outputtype
+		
+	BatchSEx.sh [-C configfile] [-D directory] [-P parameterfile] ...
+		[-e extension] [-g | -j | -r] [-t] -d | -f [e] | -p -s stars
+		
+NOTICE
+	
+	This script relies on a FITS header timestamp to Julian Date converter called julian.sh
+	This script will be made avalible.
+
+SUMMARY OF OPTIONS
+
+	-D <directory> 	Operate script on directory other than current directory
+	-C <configfile> Use a pre-formed configuration file.
+	-d	Run the script looking for DIMM stars
+			(2 stars, finding separation between them)
+	-e	Change the extension for fits images from "fits"
+	-f [e]	Run the script looking for FWHM
+			(generally for 1 star) [optional: extended output]
+	-g 	Output Goergian Dates instead of Julian Dates
+	-h 	Print the help file
+	-j 	Output Julian Dates
+	-P 	Use a user created parameter file
+	-o CODE	Use a custum output setup (see -o help for instructions)
+	-p 	Find the positions of examined stars
+	-r <n> 	Use relative julian dates, i.e. julian date-n.
+	-s <n>	Set the number of stars the program should look for in extraction
+	-t 	filter results if they are greater than the set number of stars
+			(see -t help for instructions)
+	-x 	print verbose operating results
+
+OUTPUT CODES
+	
+	All the below are set by option -o
+	DIMM - Differential Image Motion Monitor
+		Included Parameters: X_IMAGE, Y_IMAGE
+	FWHM - Full Width at Half Maximum
+		Included Parametes: FWHM_IMAGE
+	FWEX - FWHM extended output
+		Included Parameters: FWHM_IMAGE, A_IMAGE, B_IMAGE, ELONGATION, ELLIPTICITY
+	POSS - Position Data
+		Included Parameters: X_IMAGE, Y_IMAGE
+	EXTN - Extended Output
+		Included Parameters:
+	
+DESCRIPTION
+
+	The first synopsis method will run sextractor, puting out results based on 
+	the argument specified by the -o option (see below). The second synopsis 
+	method will run sextractor outuputing data based on the d,f or p tags, which 
+	all contain standard output as described below.
+
+	-C configfile
+		Set a custom configuration file for sextractor. To get a default 
+		configuration file for sextractor, use the comand "sex -d". Be sure to 
+		match the correct $catfile and $paramfile variables. (The defaults are 
+		"results.cat" and "BatchSEx.param" respectively)
+	-D direcotry
+		Set the operating directory for the fits files being examined. Note that 
+		if you use the -C or -P options, the specified files must either be in 
+		the given directory, or contain complete file paths.
+	-P paramfile
+		Set a custom parameter file for output from SExtractor.
+	-d
+		Output measurements appropriate to DIMM. Should not be used with the f,p 
+		or o options. This option will print X_IMAGE and Y_IMAGE to the results 
+		file.
+	-e extension
+		Set a custom extension other than "fits" to use for the sextractor 
+		processing. Useful if your program puts out "fit" files or if the files 
+		have some other extension.
+	-f
+		Output the FWHM for all stars found. SImple and fast running. Append an 
+		e (i.e. -f e) to get extended FWHM results including a, b, and 
+		ellipticity and elongation.
+	-g
+		Convert all dates to the georgian calendar system. Output dates appear 
+		in the fits file headder format: %Y-%m-%dT%H:%M:%S
+	-h
+		Print this help file
+	-j
+		Convert all dates to their Julian Date. This requires julian.sh, a 
+		simple julian date conversion script for dates in the FITS file header 
+		format %Y-%m-%dT%H:%M:%S. You can download this script at:
+		URL
+	-o output type
+		Specifiy a custom output type for the script. Output types are listed 
+		below in more detail, as well as instructions for building custom output 
+		types.
+	-p
+		Output the x and y positions of all stars using X_IMAGE and Y_IMAGE
+	-r n
+		Use a relative julian date, with day 0 at noon <n> days ago.
+	-s n
+		Set the number of stars to examine. This is a REQUIRED argument.
+	-t n
+		OPTION NOT AVALIBLE YET
+		sort results by position accomidating for tracking and seeing errors, 
+		where n is some number 
+	-u parameter
+		OPTION NOT AVALIBLE YET
+		Sort results to find specific stars. Parameter is the parameter to sort 
+		by.
+	-x 
+		Print results in verbose mode. Sets the -x opt on the BASH shell scipt. 
+		Place this option first to see verbose results for the option processing 
+		part of the script.
+
+		The script carries out the following actions. First, the script 
+	initializes the main variables. You can edit and adjust these main variables 
+	in the top of the BatchSEx.sh file. Next the script parses all of the 
+	options. For certain options, the script will parse errors and try to 
+	recover (such as the r and s options). The script will then ensure that you 
+	have specified the number of sources to be found. A future version will 
+	allow you to leave the number of sources unspecified and to find every 
+	source visible in all images. Then the the script will establish the date 
+	variables, according to the set date option, and then establish the 
+	necessary configuration files. The script will always overwrite old 
+	configuration files. This includes custom configuration files, so be sure to 
+	back up your files, or ensure you always have the C,D, and P options set. 
+	The script then puts headers into the output files. These headers are 
+	commented out. The script then begins processing the files in the set 
+	directory (by cding to the appropriate directory, the script avoids find 
+	errors).
+		For each file, the script works by extracting the fits header, and then 
+	from the fits header, the script extracts the date and time, and then 
+	converts this date and time to the appropriate format. Next, the script runs 
+	sextractor on the current file. This may produce warnings, there is no good 
+	way to silence SExtractor as of yet. From here, the script divides to handle 
+	specified numbers of sources, and unspecified numbers of sources
+		For specified numbers of sources, the script will create two types of 
+	output files. The first type are the error free files (file names suffixed 
+	by the $nerrs variable) and files which contain all the information 
+	SExtractor finds (suffixed by variable $errs). The script will only print 
+	sources to the error-free file if it finds only the correct number of 
+	sources. The script will also create a log file, detailing the results of 
+	each source extraction.
+		In the future, this application will also include the ability to 
+	determine and filter sources resulting from extraction, in order to 
+	eliminate other stars which appear in the source field.
+	
+EXAMPLES
+
+To extract simple positions to results files of 3 stars, type
+	BatchSEx.sh -s3 -p
+To examine DIMM measurements in relative Julian Dates for 2 stars
+	BatchSEx.sh -s2 -d -r5
+To use custom configuration files
+	BatchSEx.sh -C BatchSEx.sex -P BatchSEx.param
+	
+CUSTOMIZATION
+	
+		This script is extensible. It will handle many customizations. Simplest 
+	of which are controlling the output parameter. This only requires adding 
+	your customized parameteres to the parameter file setup area, and then also 
+	adding the default number of stars to expect for your parameter extension. 
+	You will have to give your type a name (the existing ones all have four 
+	letter codes)
+		First, add the default number of stars. To do this, place another switch 
+	of the form below into the "Expansion Function" section.
+	
+	In the first if-statement put the default number of stars
+	"NEWTYPE")
+		stars="1"
+		;;
+	
+		And in the second part of the if-statment, put the parameter changes
+		
+	"NEWTYPE")
+		echo "PARAMETER" >> `echo "$directory"/$paramfile`
+		;;
+	
+		This will make your new outputs avalible through the -o option.
+	
+HISTORY
+	
+		This is version 1.1 of the BatchSEx.sh script. 
+			Improvements include output handeling and function divisions of script.
+			
+		Developed by Alexander Rudy.
+
+LEGAL
+		All script copyright Alexander Rudy - Pomona College 2008. SExtractor
+		remains the property of Emmanuel Bertin. Many thanks to his development
+		of a very interesting software package.
+		
+		'
+
+OUTPUTHELP='
+OUTPUT CODES
+	
+	All the below are set by option -o
+	DIMM - Differential Image Motion Monitor
+		Included Parameters: X_IMAGE, Y_IMAGE
+	FWHM - Full Width at Half Maximum
+		Included Parametes: FWHM_IMAGE
+	FWEX - FWHM extended output
+		Included Parameters: FWHM_IMAGE, A_IMAGE, B_IMAGE, ELONGATION, ELLIPTICITY
+	POSS - Position Data
+		Included Parameters: X_IMAGE, Y_IMAGE
+	EXTN - Extended Output
+		Included Parameters:
+		
+BatchSEx.sh Version 1.1
+(c) Alexander Rudy - Pomona College 2008
+
+
+'
+
+# -- FUNCTIONS --
+
+# --- Expand output options here --- #
+expansionfunction () {
+	if [ $custom ]
+	then
+		case $type in
+		*)
+			stars="1";;
+		esac
+		custom="true"
+	else
+		case $type in
+		*)
+			echo "$type not a valid type. See BatchSEx.sh with no options for correct usage";;
+		esac	
+	fi
+	return
+}
+
+# - Get Fits Header -
+getFitsHeader () {
+	head -n1 $1 | fold -w80 > header.t
+	return 0
+}
+
+# - Extract Fits Date from Header
+extractFitsDate () {
+	length=`grep TIME-OBS $1 | wc -l | sed "s/.*\([0-9]\).*/\1/"`
+	if [ $length -ne 0 ]
+	then
+		grep DATE-OBS $1 > date_line.t
+		grep TIME-OBS $1 > time_line.t
+		sed "s/.*'\([0-9].*\)'.*/\1/" date_line.t > date.t #Extract just the date from the date line
+		sed "s/.*'\([0-9].*\)'.*/\1/" time_line.t > time.t
+		tdate=`cat date.t`
+		ttime=`cat time.t`
+		echo $tdate"T"$ttime > fulldate.t
+		if [ $debug == "false" ]
+		then
+			rm date_line.t
+			rm time_line.t
+			rm date.t
+			rm time.t
+		fi
+	else
+		grep DATE-OBS $1 > date_line.t
+		sed "s/.*'\([0-9].*\)'.*/\1/" date_line.t > fulldate.t 
+		if [ $debug == "false" ]
+		then
+			rm date_line.t
+		fi
+	fi
+	return 0
+}
+
+# - Process FITS format Date
+fitsDateProcess () {
+	case $datetype in
+		"GEG")
+			jdate=`cat $1`;;
+		"REL")
+			julian.sh $1 > jdate.t
+			tdate=`cat jdate.t`
+			jdate=`echo "scale=10; $tdate - ($jtoday - $offset)" | bc`;;
+		"JUL")
+			#convert the date to Julian Date using julian.sh
+			julian.sh $1 > jdate.t
+			jdate=`cat jdate.t`;;
+	esac
+	if [ $debug == "false" ]
+	then
+	rm jdate.t
+	fi
+	return 0
+}
+
+# - Break Up Sextractor Results
+
+breakSExResults () {
+	if [ $1 -gt 0 ]
+	then
+	for ((i=1 ; i<=$1 ; i++))
+	
+	do
+		head -n$i $2 > temp1.t
+		tail -n1 temp1.t > `echo "pos"$i".t"`
+		if [ $debug == "false" ]
+		then
+		rm temp1.t
+		fi
+	done
+	fi
+	return 0
+}
+
+# - First LIne of Macro
+#Using Macroname, set up the first line of the macro
+macrofirstline () {
+mfilename=`echo $1'.'$mext`
+macroname=$1
+echo "$macroname      	" > `echo $mfilename`
+}
+
+# - Establish Object Files -  no Erros
+Object_No_Errors_File () {
+for ((i=1 ; i<=$stars ; i++));
+do
+	cnfile=`echo $objfname$spacer$i$spacer$nerrs$resultext`
+	echo "#BatchSEx Results for star $i" > `echo $cnfile`
+	echo "# Errors Removed" >> `echo $cnfile`
+	echo "# $ldate" >> `echo $cnfile`
+done
+return 0
+}
+# - Establish Object Files -  with Erros
+Object_Errors_File () {
+for ((i=1 ; i<=$stars ; i++));
+do
+	cefile=`echo $objfname$spacer$i$spacer$errs$resultext`
+ 	echo "#BatchSEx Results for star $i" > `echo $cefile`
+	echo "# Errors marked by !!" >> `echo $cefile`
+	echo "# $ldate" >> `echo $cefile`
+done
+}
+# - Post Process for a fixed number of stars
+fixedNumPostP () {
+if [ $numresults -lt $stars ] && [ $numresults -gt 0 ]
+	then
+	for ((i=1 ; i<=$numresults ; i++ ))
+	do
+		cefile=`echo $objfname$spacer$i$spacer$errs$resultext`
+		sed "s/' '/\!\!/" `echo "pos"$i".t"` >> `echo $cefile`		#add warning symbol and append to full results
+	done
+	
+	for ((i=$numresults+1 ; i<=$stars ; i++ ))
+	do
+		cefile=`echo $objfname$spacer$i$spacer$errs$resultext`
+		echo "!!   -- FEWER THAN $stars STARS FOUND -- " >> `echo $cefile` 
+	done
+	
+	echo "ERROR -- ONLY "$numresults" SOURCE(s) FOUND\!" >> `echo $logfile`
+	echo "ERROR -- ONLY "$numresults" SOURCE(s) FOUND\!"
+	echo $jdate >> `echo $datefilee`
+fi
+	
+	# process if results are equal to expected stars
+if [ $numresults -eq $stars ]
+then
+	for ((i=1 ; i<=$numresults ; i++ ))
+	do
+		cefile=`echo $objfname$spacer$i$spacer$errs$resultext`
+		cnfile=`echo $objfname$spacer$i$spacer$nerrs$resultext`
+		cat `echo "pos"$i".t"` >> `echo $cefile`
+		cat `echo "pos"$i".t"` >> `echo $cnfile`
+	done
+	echo $stars" objects found" >> `echo $logfile`
+	echo $stars" objects found"
+	echo $jdate >> `echo $datefilee`
+	echo $jdate >> `echo $datefilene`
+fi
+	
+	#process if stars are greater than expected number of stars	
+if [ $numresults -gt $stars ]
+then
+	for ((i=1 ; i<=$stars ; i++ ))
+	do
+		cefile=`echo $objfname$spacer$i$spacer$errs$resultext`
+		sed 's/\ \ /\!\!/' `echo "pos"$i".t"` >> `echo $cefile`		#add warning symbol and append to full results
+	done
+	echo "ERROR --"$numresults" SOURCES FOUND!" >> `echo $logfile`
+	echo "ERROR --"$numresults" SOURCES FOUND!"
+	echo $jdate >> `echo $datefilee`
+fi
+	
+	#process if no stars are found.
+if [ $numresults -eq 0 ]
+then
+	for ((i=$numresults+1 ; i<=$stars ; i++ ))
+	do
+		cefile=`echo $objfname$spacer$i$spacer$errs$resultext`
+		echo "!!   -- FEWER THAN $stars STARS FOUND -- " >> `echo $cefile` 
+	done
+	
+	echo "ERROR -- NO SOURCES FOUND!" >> `echo $logfile`
+	echo "ERROR -- NO SOURCES FOUND!"
+	echo $jdate >> `echo $datefilee`
+fi		
+return 0
+}
+
+# --- Returns the maximum of two arguments in varibale $high --- #
+maximum () {
+if [ $1 -gt $2 ]
+then
+	high=$1
+elif [ $1 -lt $2 ]
+then
+	high=$2
+	counthigh=$3
+elif [ $1 -eq $2 ]
+then
+	high=$1
+else
+	echo "ERROR in $0"
+fi
+return
+}
+
+# --- 
+splitvariables () {
+	try=$1
+	cparam=${params[$2]}
+	lparam[$2]=`echo $cparam | tr "[:upper:]" "[:lower:]"`
+	declare -a ${lparam[$2]}
+	echo "${lparam[$2]}"
+	cparam=${lparam[$2]}
+	k=$2
+	echo $k
+	value=`awk '{print $'$k'}' pos$1.t`
+	eval $cparam[$try]=$value
+	echo "${lparam[$2][$try]}"
+return
+}
+
+singlepp () {
+
+	i=1
+	j=$counthigh
+
+		cefile=`echo $objfname$spacer$i$spacer$errs$resultext`
+		cnfile=`echo $objfname$spacer$i$spacer$nerrs$resultext`
+		cat `echo "pos"$j".t"` >> `echo $cefile`
+		cat `echo "pos"$j".t"` >> `echo $cnfile`
+	echo $stars" objects found" >> `echo $logfile`
+	echo $stars" objects found"
+	echo $jdate >> `echo $datefilee`
+	echo $jdate >> `echo $datefilene`
+
+return
+}
+
+getHeaders () {
+headers=`grep ^[A-Z].* $paramfile`
+numparams=`echo "$headers" | wc -l  | sed 's/.*\([0-9][0-9]*\).*/\1/'`
+
+for ((i=1 ; i<=$numparams ; i++ ))
+do
+	params[$i]=`echo "$headers" | sed $i'q;d'`
+done
+return 0
+}
+		
+#parseposfile
+	
+# -- SCRIPT OPTIONS --
+# This section parses all of the scripts options
+
+while getopts D:C:de:fg:hjP:o:pr:s:tx option
+do
+	case $option in
+		D)
+			dset="true"
+			directory=$OPTARG;;
+		C)
+			cset="true"
+			mancfile=$OPTARG;;
+		d)
+			type="DIMM";;
+		e)
+			extension=$OPTARG;;
+		f)
+			case $OPTARG in
+			"1")
+				type="FWEX";;
+			"*")
+				type="FWHM";;
+			esac;;
+		g)
+			dateteype="GEG";;
+		h)
+			#Print Help
+			echo "$DOCUMENTATION" | less
+			exit;;
+		j) 
+			datetype="JUL";;
+		P)
+			pset="true"
+			type="MANP"
+			manparamfile=$OPTARG;;
+		o)
+			type=$OPTARG
+			if [ $type == "help" ]
+			then
+				echo "$OUTPUTHELP" | less
+				exit
+			fi;;
+		p)
+			type="POSS";;
+		r)
+			datetype="REL"
+			offset=$OPTARG
+			if [ ! "$offset" ]
+			then
+				echo "Default Offset set to 365"
+			fi;;
+		s)
+			stars=$OPTARG
+			if [ ! "$stars" ]
+			then
+				echo "Number of Stars Not Set"
+				exit
+			fi;;
+		t)
+			filter="FLUX"
+			#filter=$OPTARG
+			;;
+		x)
+			set -vx
+			debug="true"
+			;;
+		[?])
+			echo "$USAGE" | less
+			exit;;
+	esac
+done
+
+#cd '"'"$directory"'"'
+
+# -- RETURN DOCUMENTATION --
+# This returns the USAGE document if nothing is specified with the command.
+# To avoid the USAGE document, but run with the default commands, append option -p
+if [ $# -eq 0 ]
+then
+    # ps
+	thiscomm=`which BashSEx`
+	echo "$USAGE" | less
+	exit
+fi
+
+# -- SOURCE ERROR CHECKING --
+# Sets the number of stars to the default for a given parameter if not already set.
+if [ ! "$stars" ]
+	then
+	case $type in
+		"DIMM")
+			stars="2";;
+		"FWHM")
+			stars="1";;
+		"POSS")
+			stars="1";;
+		"FWEX")
+			stars="1";;
+		"MANP")
+			stars="1";;
+		*)
+			expansionfunction ;;
+	esac
+	echo "Number of stars set to default: "$stars" Stars"
+	echo "Continue to process? y or n"
+	read cont
+	if [ $cont != "y" ]
+	then
+		exit
+	fi
+fi
+
+
+# --SCRIPTWIDE DATE VARIABLES --
+# Establishs ldate, sdate and today in specified date format.
+
+case $datetype in
+	"GEG")
+		sdate=`date +%Y-%m-%d`
+		ldate=`date +%Y-%m-%dT%H:%M:%S`
+		today=`echo $ldate`;;
+	"REL")
+		sdate=`date +%Y-%m-%d`
+		ldate=`date +%Y-%m-%dT%H:%M:%S`
+		date +%Y-%m-%dT%H:%M:%S > date.t
+		jtoday=`julian.sh date.t`
+		rm date.t
+		today=`echo $offset`;;
+	"JUL")
+		date +%Y-%m-%dT%H:%M:%S > date.t
+		jtoday=`julian.sh date.t`
+		rm date.t
+		today=`echo $jtoday`
+		ldate=`echo $jtoday`
+		sdate=`echo "$jtoday / 1" | bc`;;
+esac
+
+
+if [ $pset == "true" ]
+then
+ 	paramfile=$manparamfile
+else
+	echo "# Parameter file for SExtractor 2.5.0" > `echo "$directory"/$paramfile`
+	echo "# © Alexander Rudy - Pomona College $sdate" >> `echo "$directory"/$paramfile`
+	echo "# For Use With BatchSEx.sh Batch SExtractor Processing" >> `echo "$directory"/$paramfile`
+	echo " " >> `echo $paramfile`
+	case $filter in
+		"FLUX")
+		echo "FLUX_MAX" >> `echo $paramfile`;;
+		"none")
+		;;
+	esac
+	case $type in
+		'DIMM')
+			echo "X_IMAGE" >> `echo $paramfile`
+			echo "Y_IMAGE" >> `echo $paramfile`;;
+		'FWHM')
+			echo "FWHM_IMAGE" >> `echo $paramfile`;;
+		'FWEX')
+			echo "FWHM_IMAGE" >> `echo $paramfile`
+			echo "A_IMAGE" >> `echo $paramfile`
+			echo "B_IMAGE" >> `echo $paramfile`
+			echo "ELONGATION" >> `echo $paramfile`
+			echo "ELLIPTICITY" >> `echo $paramfile`;;
+		'POSS')
+			echo "X_IMAGE" >> `echo "$directory"/$paramfile`
+			echo "Y_IMAGE" >> `echo "$directory"/$paramfile`;;
+		'MANP')
+			echo "ERROR, the script does not appear to have set the parameter file correctly"
+			exit;;
+		*)
+			expansionfunction ;;
+	esac
+fi
+
+		
+# -- SExtractor CONFIGURATION FILE --
+# Establishes configuration file for script.
+# Also parses variables out of manual configuration files
+
+if [ $cset == "true" ]
+then
+	configfile=$mancfile
+else
+	sex -dd > temp1.t
+	sed 's/"# Default configuration file for SExtractor 2.5.0"/# Configuration File for BATCHSEx.sh/' temp1.t > temp2.t
+	sed "s/# EB 2008-05-21/# © Alexander Rudy - Pomona College $sdate/" temp2.t > temp1.t
+	sed "s/PARAMETERS_NAME  default.param/PARAMETERS_NAME	$paramfile/" temp1.t > temp2.t
+	sed "s/CATALOG_NAME     test.cat/CATALOG_NAME     $catfile/" temp2.t > temp1.t
+	sed 's/FILTER           Y/FILTER           N/' temp1.t > temp2.t
+	sed 's/VERBOSE_TYPE     NORMAL/VERBOSE_TYPE     QUIET/' temp2.t > temp1.t
+	sed "s/CATALOG_TYPE     ASCII_HEAD/CATALOG_TYPE     ASCII/" temp1.t > temp2.t
+
+	cat temp2.t > `echo "$directory"/$configfile`
+	rm temp1.t
+	rm temp2.t
+fi
+
+
+# -- SCRIPT OUTPUT FILES --
+#This section creates all of the output files and gives them useful headers.
+#All output files have three commented header lines at the beginning.
+
+# -- OBJECT FILES --
+
+Object_No_Errors_File
+Object_Errors_File
+
+# -- LOG FILE --
+echo "#BatchSEx log file" > `echo $logfile`
+echo "# $ldate" >> `echo $logfile`
+echo "# " >> `echo $logfile`
+
+#-- DATE FILES --
+datefilee=`echo $datefname$spacer$errs$resultext`
+echo "#Date list for BatchSEx results" > `echo $datefilee`
+echo "# Errors marked by !!" >> `echo $datefilee`
+echo "# $ldate" >> `echo $datefilee`
+
+datefilene=`echo $datefname$spacer$nerrs$resultext`
+echo "#Date list for BatchSEx results" > `echo $datefilene`
+echo "# Errors removed" >> `echo $datefilene`
+echo "# $ldate" >> `echo $datefilene`
+
+#Establish the correct directory for operation.
+
+#Set the file-list for SExtraction
+filelist=`find *.$extension`
+
+#Act on each file
+for file in $filelist
+do
+	# -- FITS HEADER EXAMINATION and Extraction --
+	echo $file
+	getFitsHeader $file
+	extractFitsDate header.t
+	fitsDateProcess fulldate.t
+	
+	# -- CLEAN FITS HEADER TEMPORARY FILES --
+	rm header.t
+	rm fulldate.t
+	# Note, date now outputs to variable $jdate
+	
+	
+	# -- PERFORM THE SExtraction --
+	sex $file -c $directory/$configfile
+	
+	# -- ESTABLISH the number of results --
+	numresults=`wc -l $catfile | sed 's/\ *\([1-9][0-9]*\) .*$/\1/'`
+	
+	# -- Process and separate each result --
+	breakSExResults $numresults $catfile
+	getHeaders
+	if [ $filter == "none" ]
+	then
+		fixedNumPostP
+	else
+		##This appears to just sort before fixed num post processing. Really it should sort across prefered parameters to find the best matches.
+		sort -r $catfile > temp.t
+		cat temp.t > `echo $catfile`
+		echo "Found "$numresults" Stars before filter" >> `echo $logfile`
+		numresults=$stars
+		fixedNumPostP
+	fi
+	# Process if results are less than expected stars
+	#rm $catfile
+done
+
+if [ $debug == "false" ]
+then
+rm *.t
+fi
+
+# -- EXTRACT PARAMETER HEADINGS ---#
+# Make SM Macro with correct read settings.
+
+getHeaders
+
+macro="BS"
+
+macrofirstline $macro
+
+for ((i=1 ; i<=$stars ; i++ ))
+do
+	cnfile=`echo $objfname$spacer$i$spacer$nerrs$resultext`
+	cnlength=`wc -l $cnfile | sed 's/\ *\([1-9][0-9]*\) .*$/\1/'` # FIX THIS EXPRESSION
+	DATA="		data $cnfile
+		lines 4 $cnlength"
+	echo "$DATA" >> $mfilename
+for ((j=1 ; j<=$numparams ; j++ ))
+do
+READ="		read { ${params[j]} $j }"
+	echo "$READ" >> $mfilename
+done
+done 
+READ="		data date_ne.res
+		lines 3 10000
+		read {JDATE 1}"
+echo "$READ" >> $mfilename
+
+
+# --- Full Width Extended Output SM Script --- #
+
+if [ $type = "FWEX" ]
+then
+MACRO="
+reread
+		macro read "dimm.sm"
+		variables
+		initialops
+		settings
+		constants
+		
+newread
+		macro read "dimm.sm"
+		
+DIMMmath
+		erase
+		newread
+		readdata
+		variables
+		initialops
+		settings
+		constants
+		chunk
+		domath
+		chop
+		smoothdata
+		plotgraph
+		
+recalc
+	
+		newread
+		initialops
+		settings
+		variables
+		constants
+		chunk
+		domath
+		chop
+		smoothdata
+		
+norcalc
+		erase
+		newread
+		initialops
+		settings
+		variables
+		constants
+		chunknor
+		domath
+		chop
+		smoothdata
+		plotgraph
+		
+oldcalc
+		newread
+		initialops
+		oldinitial
+		settings
+		variables
+		constants
+		chunkold
+		domath
+		chop
+		smoothdata
+		
+roldcalc
+		newread
+		initialops
+		oldinitial
+		settings
+		variables
+		constants
+		chunkold
+		domatholdway
+		chop
+		smoothdata
+		
+refinish
+		newread
+		settings
+		variables
+		domath
+		chop
+		smoothdata
+		
+variables
+		define len dimen(X1)
+		define block 10
+		define blocks ( INT($len/$block) )
+		define chop 2
+		define smoothlen 1
+		define scale 1
+		define jump 1000
+		define djump 1000
+		define offset 0
+
+
+initialops
+		#if ($?min_jd == 0) {
+		#} ELSE {
+		define min_jd (JDate[0])
+		#}
+		set Date=(JDate-min_jd)
+		set X1_j=X1*$jump
+		set X2_j=X2*$jump
+		set Y1_j=Y1*$jump
+		set Y2_j=Y2*$jump
+		define length (dimen(JDate))
+		set dimen(Airmass)=$length
+		do i=0,$length-1 {
+			set Airmass[$i]=1
+		}
+
+oldinitial
+		set dX=ABS(X1_j-X2_j)
+		set dY=ABS(Y1_j-Y2_j)
+chop
+		set seeing_c=seeing if(seeing<$chop)
+		set JDate_sigc=JDate_sig if(seeing<$chop)
+plotgraph
+		ctype default
+		limits JDate_sigc seeing_cs
+		box
+		xlabel Julian Date
+		ylabel Seeing (arcseconds)
+		plotnolim
+		
+smoothdata
+		smooth seeing_c seeing_csa $smoothlen
+		set seeing_csb=seeing_csa*$scale
+		set seeing_cs=seeing_csb+$offset
+		
+plotnolim
+		ctype blue
+		connect JDate_sigc seeing_cs
+		#points JDate_sigc seeing_c
+		ctype default
+		
+plotfwhm
+		ctype default
+		limits JDate_sig fwhm_para
+		box
+		ctype red
+		points JDate_sig fwhm_para
+		ctype green
+		points JDate_sig fwhm_perp
+		ctype default
+		xlabel Julian Date
+		ylabel FWHM (rad)
+plotsigm
+		ctype default
+		limits JDate_sig Xsig
+		box
+		ctype red
+		points JDate_sig Xsig
+		ctype green
+		points JDate_sig Ysig
+		ctype default
+		xlabel Julian Date
+		ylabel FWHM (rad)
+chunk
+		set DIMEN(t_X1)=$block
+		set DIMEN(t_Y1)=$block
+		set DIMEN(t_X2)=$block
+		set DIMEN(t_Y2)=$block
+		set DIMEN(Xsig)=$blocks
+		set DIMEN(Ysig)=$blocks
+		set DIMEN(JDate_sig)=$blocks
+		set DIMEN(JDate_siga)=$blocks
+		set DIMEN(t_airmass)=$block
+		set DIMEN(airmass)=$blocks
+		do i=1,$blocks {
+			do j=1.000,$block {
+				define index ($j+(($i-1)*$block)-1)
+				set t_X1[($j-1)]=X1_j[$index]
+				set t_Y1[($j-1)]=Y1_j[$index]
+				set t_X2[($j-1)]=X2_j[$index]
+				set t_Y2[($j-1)]=Y2_j[$index]
+				set t_airmass[($j-1)]=Airmass[$index]
+			}
+			define mairmass (SUM(t_airmass)/($block))
+			set ta_X1=(t_X1/$jump)
+			set ta_Y1=(t_Y1/$jump)
+			set ta_X2=(t_X2/$jump)
+			set ta_Y2=(t_Y2/$jump)
+			set ta_dX=ABS(ta_X1-ta_X2)
+			set ta_dY=ABS(ta_Y1-ta_Y2)
+			
+			stats ta_dX t_Xm null null
+			stats ta_dY t_Ym null null
+			
+			define theta (ATAN($t_Ym/$t_Xm))
+			
+			set t_X1r=(ta_X1)*COS($theta) + (ta_Y1)*SIN($theta)
+			set t_Y1r=(ta_Y1)*COS($theta) - (ta_X1)*SIN($theta)
+			set t_Y2r=(ta_Y2)*COS($theta) - (ta_X2)*SIN($theta)
+			set t_X2r=(ta_X2)*COS($theta) + (ta_Y2)*SIN($theta)
+			
+			set t_dXr=ABS(t_X1r-t_X2r)
+			set t_dYr=ABS(t_Y1r-t_Y2r)
+			
+			stats t_dXr null t_Xsig null
+			stats t_dYr null t_Ysig null
+			
+			set JDate_siga[$i-1]=Date[$index]
+			set JDate_sig=JDate_siga
+			
+			set Xsig[$i-1]=$t_Xsig
+			set Ysig[$i-1]=$t_Ysig
+			
+			set airmass[$i-1]=$mairmass
+		}
+				
+chunknor
+		set DIMEN(t_X1)=$block
+		set DIMEN(t_Y1)=$block
+		set DIMEN(t_X2)=$block
+		set DIMEN(t_Y2)=$block
+		set DIMEN(Xsig)=$blocks
+		set DIMEN(Ysig)=$blocks
+		set DIMEN(JDate_sig)=$blocks
+		set DIMEN(JDate_siga)=$blocks
+		set DIMEN(t_airmass)=$block
+		set DIMEN(airmass)=$blocks
+		do i=1,$blocks {
+			do j=1.000,$block {
+				define index ($j+(($i-1)*$block)-1)
+				set t_X1[($j-1)]=X1_j[$index]
+				set t_Y1[($j-1)]=Y1_j[$index]
+				set t_X2[($j-1)]=X2_j[$index]
+				set t_Y2[($j-1)]=Y2_j[$index]
+				set t_airmass[($j-1)]=Airmass[$index]
+			}
+			define mairmass (SUM(t_airmass)/($block))
+			set ta_X1=(t_X1/$jump)
+			set ta_Y1=(t_Y1/$jump)
+			set ta_X2=(t_X2/$jump)
+			set ta_Y2=(t_Y2/$jump)
+			set ta_dX=ABS(ta_X1-ta_X2)
+			set ta_dY=ABS(ta_Y1-ta_Y2)
+			
+			stats ta_dX t_Xm null null
+			stats ta_dY t_Ym null null
+			
+			define theta (ATAN($t_Ym/$t_Xm))
+			
+			set t_dXr=ABS(ta_X1-ta_X2)
+			set t_dYr=ABS(ta_Y1-ta_Y2)
+			
+			stats t_dXr null t_Xsig null
+			stats t_dYr null t_Ysig null
+			
+			set JDate_siga[$i-1]=Date[$index]
+			set JDate_sig=JDate_siga
+			
+			set Xsig[$i-1]=$t_Xsig
+			set Ysig[$i-1]=$t_Ysig
+			
+			set airmass[$i-1]=$mairmass
+		}
+chunkold
+		set DIMEN(t_dX)=$block
+		set DIMEN(t_dY)=$block
+		set DIMEN(Xsig)=$blocks
+		set DIMEN(Ysig)=$blocks
+		set DIMEN(JDate_sig)=$blocks
+		set DIMEN(JDate_siga)=$blocks
+		set DIMEN(t_airmass)=$block
+		set DIMEN(airmass)=$blocks
+		do i=1,$blocks {
+			do j=1,$block {
+				define index ($j+(($i-1)*$block)-1)
+				set t_dX[($j-1)]=dX[$index]
+				set t_dY[($j-1)]=dY[$index]
+				set t_airmass[($j-1)]=Airmass[$index]
+			}
+			define mairmass (SUM(t_airmass)/($block))
+			set ta_dX=(t_dX/$jump)
+			set ta_dY=(t_dY/$jump)
+			
+			stats ta_dX null t_Xsig null
+			stats ta_dY null t_Ysig null
+			
+			set JDate_siga[$i-1]=Date[$index]
+			set JDate_sig=JDate_siga
+			
+			set Xsig[$i-1]=$t_Xsig
+			set Ysig[$i-1]=$t_Ysig
+			
+			set airmass[$i-1]=$mairmass
+		}
+
+settings
+		define focallen 2800.0 #(mm)
+		define holediam 52.5 #(mm)
+		define holedist 210.0 #(mm)
+		define pixelsize 5.6 #(µm)
+		define wavelength 0.5 #(µm)
+		define RA 0 #(rad)
+		define DEC 0 #(rad)
+		define noise 0.0 #(px)
+
+constants
+		if ( $holedist>=($holediam*2) ) {
+			define Kpara (2*(0.18*($holediam**(-1/3))-0.097*($holedist**(-1/3))))
+			define Kperp (2*(0.18*($holediam**(-1/3))-0.145*($holedist**(-1/3))))
+		} else {
+		echo "Check Settings"
+		return
+		}
+		define echellerad (atan($pixelsize/(1000*$focallen)))
+
+domath
+		set Xsd=Xsig**2
+		set Ysd=Ysig**2
+		set spara=Xsd*$echellerad
+		set sperp=Ysd*$echellerad
+		set fwhm_perp=(($wavelength*(10**(-3)))**(-1/5)*((sperp**2-$noise**2)/($Kperp*airmass))**(3/5))
+		set fwhm_para=(($wavelength*(10**(-3)))**(-1/5)*((spara**2-$noise**2)/($Kpara*airmass))**(3/5))
+		set seeing=(((fwhm_perp+fwhm_para)/2)*180*3600/PI)
+
+domatholdway
+		set Xsd=Xsig**2
+		set Ysd=Ysig**2
+		set spara=Xsd*$echellerad
+		set sperp=Ysd*$echellerad
+		set fwhm_perp=(($wavelength*(10**(3)))**(-1/5)*((sperp**2-$noise**2)/($Kperp*airmass))**(3/5))
+		set fwhm_para=(($wavelength*(10**(3)))**(-1/5)*((spara**2-$noise**2)/($Kpara*airmass))**(3/5))
+		set seeing=(((fwhm_perp+fwhm_para)/2)*180*3600/PI)
+		define scale 6
+			
+"
+echo "$MACRO" >> $mfilename
+
+##Some NEW edit
