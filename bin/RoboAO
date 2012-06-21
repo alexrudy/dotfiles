@@ -1,5 +1,0 @@
-#!/bin/bash
-#Startup Script for ROBO-AO project
-
-echo "Welcome to ROBO-AO $LOGNAME"
-cd ~/Dropbox/Astronomy/ROBOAO

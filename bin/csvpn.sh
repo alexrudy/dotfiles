@@ -1,1 +1,0 @@
-ssh -X arudy@vpn.cs.pomona.edu

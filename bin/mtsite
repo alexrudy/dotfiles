@@ -7,11 +7,7 @@
 #  Copyright 2011 Alexander Rudy. All rights reserved.
 # 
 
-LOCALSITE="$HOME/Sites/MTSYNC/"
-REMOTESITE="domains/alexrudy.org/html/"
-REMOTEADDR="omegacentauri.org@s101715.gridserver.com"
-MASTERBRANCH="master"
-DEPLOYEDBRANCH="alexrudy.org"
+source ~/.secret_rc
 COMMAND=$0
 
 if [ $# -lt 1 ]

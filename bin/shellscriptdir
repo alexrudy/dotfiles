@@ -1,6 +1,0 @@
-#!/bin/bash
-#Startup Script for AR Shell Scripts
-
-echo "Welcome to AR Shell Scripts Development Area"
-echo "Run update.sh to update the operating copy of these shell scripts"
-cd ~/Development/arshellscripts

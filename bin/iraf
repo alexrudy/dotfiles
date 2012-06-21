@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Small IRAF command to start CL in the current directory
 
 dir=`pwd` #Current Directory

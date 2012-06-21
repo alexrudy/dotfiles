@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Yay for Comments!
 echo "System Status Report"
 date
