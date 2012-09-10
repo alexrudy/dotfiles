@@ -1,3 +1,8 @@
 git/gitconfig.symlink
 matplotlib/matplotlib.dir/tex.*
 matplotlib/matplotlib.dir/fontList.cache
+python/ipython.dir/*/db
+python/ipython.dir/*/log
+python/ipython.dir/*/pid
+python/ipython.dir/*/security
+python/ipython.dir/*/history.sqlite
