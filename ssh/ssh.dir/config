@@ -1,0 +1,39 @@
+# This default .ssh/config file was created with your home directory.
+# You can customize it as you like; it will not be overwritten again.
+#
+# ssh configuration data is parsed as follows:
+#  1. command line options
+#  2. this file
+#  3. system-wide file
+# Any configuration value is only changed the first time it is set.
+# Thus, host-specific definitions should be at the beginning of the
+# configuration file, and defaults at the end.
+#
+# For more information about ssh options, see `man ssh`.
+#
+# 2010-10-24
+
+
+
+Host mediatemple
+   HostName s101715.gridserver.com
+   User omegacentauri.org
+
+Host sedmachine
+   HostName tango1.astro.ncu.edu.tw
+   User alexrudy
+   Port 25000
+   ForwardX11 yes
+   RemoteForward 52698 127.0.0.1:52698
+
+Host *ucolick.org
+	User alexrudy
+
+Host ucolick
+    HostName ssh.ucolick.org
+	ForwardX11 yes
+
+Host *cs.pomona.edu
+   ForwardX11 yes
+
+Host *

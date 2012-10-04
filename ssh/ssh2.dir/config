@@ -1,0 +1,17 @@
+# This default .ssh/config file was created with your home directory.
+# You can customize it as you like; it will not be overwritten again.
+#
+# ssh configuration data is parsed as follows:
+#  1. command line options
+#  2. this file
+#  3. system-wide file
+# Any configuration value is only changed the first time it is set.
+# Thus, host-specific definitions should be at the beginning of the
+# configuration file, and defaults at the end.
+#
+# For more information about ssh options, see `man ssh`.
+#
+# - 15 Jan 05 MAD
+
+Host *
+   ForwardX11 yes

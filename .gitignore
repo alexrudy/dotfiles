@@ -6,3 +6,5 @@ python/ipython.dir/*/log
 python/ipython.dir/*/pid
 python/ipython.dir/*/security
 python/ipython.dir/*/history.sqlite
+ssh/ssh.dir/*
+ssh/ssh2.dir/*
