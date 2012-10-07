@@ -44,3 +44,7 @@ function extract()      # Handy Extract Program.
          echo "'$1' is not a valid file"
      fi
 }
+
+command_exists () {
+    type "$1" &> /dev/null ;
+}
