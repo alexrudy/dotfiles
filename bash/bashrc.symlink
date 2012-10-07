@@ -11,6 +11,9 @@ export ORIGPATH=$PATH #So we can put it back later...
 
 export BASH=$HOME/.dotfiles
 
+command_exists () {
+    type "$1" &> /dev/null ;
+}
 
 # load every completion after autocomplete loads
 for config_file in $BASH/**/*.bash
