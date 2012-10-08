@@ -11,6 +11,16 @@ if [ -f "$HOME/.bashrc" ] ; then
 	. $HOME/.bashrc
 fi
 
+# Source our profile only stuff!
+if [[ "$-" == *i* ]]; then
+for config_file in $BASH/**/*.pbash
+do 
+	source $config_file
+done
+fi
+
 if [ -f "$HOME/.dircolors" ] ; then
   eval $(/opt/bin/dircolors -b $HOME/.dircolors)
 fi
+
+
