@@ -36,4 +36,6 @@ function port_python_alias () {
 	export PATH=$PATH:/opt/local/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/
 }
 
-port_python_alias
+if [ -f /opt/local/bin/port ]; then
+	port_python_alias
+fi

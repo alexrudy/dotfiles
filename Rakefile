@@ -4,8 +4,9 @@ require 'pathname'
 desc "Hook our dotfiles into system-standard positions."
 task :install => [:dirs] do
   linkables = Dir.glob('*/**{.symlink}')
-  home = Pathname.new("#{ENV['HOME']}").relative_path_from(Pathname.new("#{ENV['PWD']}"))
-  dotfilesdir = Pathname.new("#{ENV['PWD']}").relative_path_from(Pathname.new("#{ENV['HOME']}"))
+  dotfiles = Pathname.new("#{ENV["PWD"]}").relative_path_from(Pathname.new("#{ENV["HOME"]}"))
+  homedir  = Pathname.new("#{ENV["HOME"]}").relative_path_from(Pathname.new("#{ENV["PWD"]}"))
+
   skip_all = false
   overwrite_all = false
   backup_all = false
@@ -15,7 +16,7 @@ task :install => [:dirs] do
     backup = false
 
     file = linkable.split('/').last.split('.symlink').last
-    target = "#{home}/.#{file}"
+    target = "#{homedir}/.#{file}"
 
     if File.exists?(target) || File.symlink?(target)
       unless skip_all || overwrite_all || backup_all
@@ -32,26 +33,27 @@ task :install => [:dirs] do
       FileUtils.rm_rf(target) if overwrite || overwrite_all
       `mv "$HOME/.#{file}" "$HOME/.#{file}.backup"` if backup || backup_all
     end
-    `ln -s "#{dotfilesdir}/#{linkable}" "#{target}"`
+    `ln -s "#{dotfiles}/#{linkable}" "#{target}"`
   end    
 end
 
 desc "Hook our dotfile directories into system-standard positions."
 task :dirs do
 
-  home = Pathname.new("#{ENV['HOME']}").relative_path_from(Pathname.new("#{ENV['PWD']}"))
-  dotfilesdir = Pathname.new("#{ENV['PWD']}").relative_path_from(Pathname.new("#{ENV['HOME']}"))
   skip_all = false
   overwrite_all = false
   backup_all = false
   
+  dotfiles = Pathname.new("#{ENV["PWD"]}").relative_path_from(Pathname.new("#{ENV["HOME"]}"))
+  homedir  = Pathname.new("#{ENV["HOME"]}").relative_path_from(Pathname.new("#{ENV["PWD"]}"))
   directories = Dir.glob('*/**{.dir}/')
+  
   directories.each do |directory|
     overwrite = false
     backup = false
     
     linkable = directory.split('/').last.split('.dir').last
-    target = "#{home}/.#{linkable}"
+    target = "#{homedir}/.#{linkable}"
     
     if Dir.exists?(target) || File.symlink?(target)
       unless skip_all || overwrite_all || backup_all
@@ -68,7 +70,7 @@ task :dirs do
       FileUtils.rm_rf(target) if overwrite || overwrite_all
       `mv "$HOME/.#{linkable}" "$HOME/.#{linkable}.backup"` if backup || backup_all
     end
-    `ln -s "#{dotfilesdir}/#{directory}" "#{target}"`    
+    `ln -s "#{dotfiles}/#{directory}" "#{target}"`    
   end
 end
 

@@ -1,6 +1,11 @@
-# Alex Rudy's Bash Profile
-# 2010-09-10
-# This file contains cool stuff for the terminal area, but not useful without a terminal window open.
+# 
+#  bash_profile.symlink
+#  .dotfiles
+#  Profile contains things that should appear in visual terminals only
+#  
+#  Created by Alexander Rudy on 2012-10-07.
+#  Copyright 2012 Alexander Rudy. All rights reserved.
+# 
 
 if [ -f "$HOME/.bashrc" ] ; then
 	. $HOME/.bashrc
@@ -9,7 +14,3 @@ fi
 if [ -f "$HOME/.dircolors" ] ; then
   eval $(/opt/bin/dircolors -b $HOME/.dircolors)
 fi
-
-
-PATH="${PATH}:/Library/Frameworks/Python.framework/Versions/2.6/bin"
-export PATH
