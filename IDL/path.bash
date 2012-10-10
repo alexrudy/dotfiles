@@ -7,6 +7,10 @@
 # 
 IDL="/Applications/itt/idl/idl/bin/"
 if [ -d $IDL ]; then
-	export PATH=$PATH:/Applications/itt/idl/idl/bin/                            #IDL
+	export PATH="$PATH:$IDL"                            #IDL
 	export IDL_PATH=$HOME/Development/Astronomy/IDL/astron/
+fi
+IDL="/Applications/itt/idl/idl81/bin/"
+if [ -d $IDL ]; then
+	export PATH="$PATH:$IDL"
 fi
