@@ -13,12 +13,11 @@
 #
 # 2010-10-24
 
-
-
 Host mediatemple
    HostName s101715.gridserver.com
    User omegacentauri.org
 
+# Tango software
 Host sedmachine
    HostName tango1.astro.ncu.edu.tw
    User alexrudy
@@ -26,19 +25,26 @@ Host sedmachine
    ForwardX11 yes
    RemoteForward 52698 127.0.0.1:52698
 
-Host hyperion
-	HostName hyperion.ucsc.edu
-	User alexrudy
+# astro Network
+Host hyperion hades
 	ForwardX11 yes
+	RemoteForward 52698 127.0.0.1:52698
 
-Host *ucolick.org
+Host hyperion
+	User alexrudy
+	HostName hyperion.ucsc.edu
+
+Host hades
+	User jaberwocky
+	HostName hades.ucsc.edu
+
+# UCO Lick NICS
+Host ucolick aolab
+	ForwardX11 yes
 	User alexrudy
 
 Host ucolick
     HostName ssh.ucolick.org
-	ForwardX11 yes
-
-Host *cs.pomona.edu
-   ForwardX11 yes
-
-Host *
+	
+Host aolab
+	HostName aolab.ucolick.org
