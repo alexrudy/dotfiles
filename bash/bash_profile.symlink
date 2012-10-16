@@ -7,6 +7,9 @@
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
 
+# MPPREFIX="$HOME/.macports"
+MPPREFIX="/opt/local"
+
 if [ -f "$HOME/.bashrc" ] ; then
 	. $HOME/.bashrc
 fi
