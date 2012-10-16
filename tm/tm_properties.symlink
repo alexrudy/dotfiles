@@ -1,7 +1,8 @@
-
 TM_ORGANIZATION   = "Alexander Rudy"
 TM_GIT		      = /opt/local/bin/git
 PATH              = "$PATH"
+windowTitle       = "$TM_DISPLAYNAME $windowTitleSCM"
+projectDirectory  = "$CWD"
 
 [ python ]
 softTabs          = true

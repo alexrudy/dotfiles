@@ -13,4 +13,6 @@ fi
 IDL="/Applications/itt/idl/idl81/bin/"
 if [ -d $IDL ]; then
 	export PATH="$PATH:$IDL"
+	export IDL_PATH=$HOME/Development/Astronomy/IDL/astron/
+	
 fi
