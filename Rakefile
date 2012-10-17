@@ -6,6 +6,7 @@ task :install => [:dirs] do
   linkables = Dir.glob('*/**{.symlink}')
   dotfiles = Pathname.new("#{ENV["PWD"]}").relative_path_from(Pathname.new("#{ENV["HOME"]}"))
   homedir  = Pathname.new("#{ENV["HOME"]}").relative_path_from(Pathname.new("#{ENV["PWD"]}"))
+
   skip_all = false
   overwrite_all = false
   backup_all = false
@@ -38,6 +39,7 @@ end
 
 desc "Hook our dotfile directories into system-standard positions."
 task :dirs do
+
   skip_all = false
   overwrite_all = false
   backup_all = false
