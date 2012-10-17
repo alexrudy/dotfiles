@@ -8,5 +8,5 @@
 IDL="/Applications/itt/idl/idl/bin/"
 if [ -d $IDL ]; then
 	export PATH=$PATH:/Applications/itt/idl/idl/bin/                            #IDL
-	export IDL_PATH=$HOME/Development/Astronomy/IDL/astron/
+	export IDL_STARTUP="$HOME/.idl.pro"
 fi
