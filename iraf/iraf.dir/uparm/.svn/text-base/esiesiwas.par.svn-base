@@ -1,8 +1,0 @@
-wlist,s,h,"wave.list",,,"List of apertures for calibration"
-clist,s,h,"const.list",,,"List of ref pixel, crval, and crdel for each order"
-linelist,s,h,"CuArLines.list",,,"List of line lists (in order)"
-norders,i,h,6,,,"Number of apertures per order to examine"
-nimgs,i,h,4,,,"Number of spectra images"
-listpt,*struct,h,"wave.list",,,
-list2pt,*struct,h,"CuArLines.list",,,
-mode,s,h,"q",,,

@@ -1,9 +1,0 @@
-inlist,s,h,"flats.list",,,"List of seperate flat fields"
-flatname,s,h,"flatsf.list",,,"Output name for flat fields"
-dark,s,h,"esi0112.fits",,,"Dark frame name"
-apers,s,h,"esi0031.fits",,,"Reference aperatures"
-exptime,r,h,1000.,,,"Exp time to scale dark frame"
-rm_im,b,h,no,,,"Remove intermediate steps?"
-listpt,*struct,h,"flats.list",,,
-list2pt,*struct,h,"",,,
-mode,s,h,"ql",,,

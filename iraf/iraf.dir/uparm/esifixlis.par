@@ -1,6 +1,0 @@
-imgsA,s,h,"A.list",,,
-imgsB,s,h,"B.list",,,
-imgsC,s,h,"C.list",,,
-exp_lists,b,h,no,,,"Do lists contain exposure times?"
-imagelist,*struct,h,"",,,
-mode,s,h,"q",,,
