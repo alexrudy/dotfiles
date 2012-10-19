@@ -1,0 +1,3 @@
+!path=!path+":"+expand_path(".")
+!path=!path+":"+expand_path("+~/Development/Astronomy/IDL")
+!path=!path+":"+expand_path("+~/Development/Astronomy/NIRC2")

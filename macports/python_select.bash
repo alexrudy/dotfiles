@@ -38,13 +38,14 @@ function port_python_alias () {
 	fi
 	
 	export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
+	export PATH="$PATH:$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/"
 	STSCI="/usr/local/stsci/$PYDIR/lib/python"
 	if [ -d $STSCI ]; then
 		export PYTHONPATH="${PYTHONPATH}:$STSCI" # PUT STSCI at the end
+		export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
 	fi
 	
-	export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
-	export PATH="$PATH:$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/"
+	
 }
 
 if [ -f $MPPREFIX/bin/port ]; then
