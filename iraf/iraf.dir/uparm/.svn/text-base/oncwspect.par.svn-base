@@ -1,0 +1,5 @@
+input,s,a,"W_S_F_M32-06-Spec1.fits.0001.fits",,,"Input list of image spectra"
+output,s,a,"W_S_F_M32-06-Spec1.fits.0001.txt",,,"Output list of text spectra"
+header,b,h,yes,,,"Include header?"
+wformat,s,h,"",,,"Wavelength format"
+mode,s,h,"al",,,

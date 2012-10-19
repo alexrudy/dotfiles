@@ -1,0 +1,17 @@
+qrtzimgs,s,h,"M32-11-Qrtz.list",,,"Flat (Quartz) Images"
+refsimgs,s,h,"M32-11-Qrtz0.fits",,,"Reference Image for Apertures"
+cuarimgs,s,h,"M32-11-CuAr.list",,,"CuAr Images"
+slitimgs,s,h,"M32-11-Slit.list",,,"Slit Images"
+specimgs,s,h,"M32-11-Spec.list",,,"Spectra Images"
+apidtabs,s,h,,,,"Aperture ID Table for apall"
+flatroot,s,h,"M32-11-flat",,,"Root of name for flats"
+darkname,s,h,"dark.fits",,,"Name of Dark Images"
+esilist,s,h,"M32-11-ESI.list",,,"List of images and exposture times to reduce"
+exptm,i,h,1200,,,"Expiration Time"
+aps,i,h,30,,,"Number of apertures to find in the image"
+extract,b,h,yes,,,"Extract Apertures?"
+qlist,*struct,h,"",,,
+clist,*struct,h," ",,,
+slist,*struct,h,"",,,
+plist,*struct,h,"",,,
+mode,s,h,"ql",,,

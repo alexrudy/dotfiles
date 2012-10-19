@@ -1,0 +1,10 @@
+aplist,s,h,"aper.list",,,"List of Apertures to reduce"
+lamplist,s,h,"cuar.list",,,"List of Lamp Apertures to Reduce"
+num_sum,i,h,50,,,"Number of lines to sum for spectra"
+line_num,i,h,1500,,,"Line number to start find/trace"
+norders,i,h,40,,,"Number of apertrues to extract"
+outlist,s,h,,,,"Output list of Spectra to Reduce"
+rm_im,b,h,yes,,,"Remove intermediate steps?"
+listpt,*struct,h,"",,,
+list2pt,*struct,h,"",,,
+mode,s,h,"q",,,

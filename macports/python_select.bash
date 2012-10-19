@@ -26,14 +26,25 @@ function port_python_alias () {
 	
 	PYDIR=py-$PYVERSIONSHORT
 	
-	export PYTHONPATH=~/.python
-	export PYTHONPATH=${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages
-	export PYTHONPATH=${PYTHONPATH}:~/.python/lib/python/site-packages:~/.python/lib/python$PYVERSION/site-packages
-	export PYTHONPATH=${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION
-
-	export PYTHONPATH=${PYTHONPATH}:/usr/local/stsci/$PYDIR/lib/python
-	export PATH=$PATH:/usr/local/stsci/$PYDIR/bin
-	export PATH=$PATH:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/
+	LOCALPY="~/.python"
+	if [ -d $LOCALPY ]; then
+		if [ -z $PYTHONPATH ]; then
+			export PYTHONPATH="$LOCALPY"
+		else
+			export PYTHONPATH="${PYTHONPATH}:$LOCALPY"
+		fi
+		export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python/site-packages:~/.python/lib/python$PYVERSION/site-packages"
+		export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION"
+	fi
+	
+	export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
+	STSCI="/usr/local/stsci/$PYDIR/lib/python"
+	if [ -d $STSCI ]; then
+		export PYTHONPATH="${PYTHONPATH}:$STSCI" # PUT STSCI at the end
+	fi
+	
+	export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
+	export PATH="$PATH:$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/"
 }
 
 if [ -f $MPPREFIX/bin/port ]; then

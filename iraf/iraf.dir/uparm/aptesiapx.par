@@ -1,0 +1,9 @@
+img,s,h,"L",,,"Image to extract"
+outname,s,h,,,,"String to append to output file(s)"
+refaps,s,h,,,,"Reference aperatures"
+flatname,s,h,,,,"Flat field name"
+apex,b,h,yes,,,"Extract aperature strips?"
+flat,b,h,yes,,,"Divide strips by flat field?"
+rm_im,b,h,no,,,"Remove intermediate steps?"
+listpt,*struct,h,"",,,
+mode,s,h,"ql",,,

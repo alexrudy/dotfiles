@@ -1,0 +1,5 @@
+   weighting & constant   &     Photometric weighting scheme for wphot
+   apertures & 4.5       &     List of aperture radii in scale units
+         zmag & 0      &      Zero point of magnitude scale
+     mkapert & no      &      Draw apertures on the display
+        mode & ql    &       

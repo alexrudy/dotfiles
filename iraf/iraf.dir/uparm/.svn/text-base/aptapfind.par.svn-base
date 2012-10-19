@@ -1,0 +1,17 @@
+input,s,a,"test.fits",,,"List of input images"
+apertures,s,h,"",,,"Apertures"
+references,s,h," ",,,"Reference images
+"
+interactive,b,h,no,,,"Run task interactively?"
+find,b,h,yes,,,"Find apertures?"
+recenter,b,h,no,,,"Recenter apertures?"
+resize,b,h,no,,,"Resize apertures?"
+edit,b,h,no,,,"Edit apertures?
+"
+line,i,h,1000,1,,"Dispersion line"
+nsum,i,h,20,,,"Number of dispersion lines to sum or median"
+nfind,i,q,1,,,"Number of apertures to be found automatically"
+minsep,r,h,10.,1.,,"Minimum separation between spectra"
+maxsep,r,h,20.,1.,,"Maximum separation between spectra"
+order,s,h,"decreasing",increasing|decreasing,,"Order of apertures"
+mode,s,h,"ql",,,

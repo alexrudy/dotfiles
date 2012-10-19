@@ -1,0 +1,17 @@
+input,s,a,"esi0031.fits",,,"List of input images"
+apertures,s,h," ",,,"Apertures"
+references,s,h,"esi0031.fits",,,"Reference images
+"
+interactive,b,h,yes,,,"Run task interactively?"
+find,b,h,yes,,,"Find apertures?"
+recenter,b,h,yes,,,"Recenter apertures?"
+resize,b,h,yes,,,"Resize apertures?"
+edit,b,h,yes,,,"Edit apertures?
+"
+line,i,h,INDEF,1,,"Dispersion line"
+nsum,i,h,20,,,"Number of dispersion lines to sum or median"
+nfind,i,q,7,,,"Number of apertures to be found automatically"
+minsep,r,h,4.,1.,,"Minimum separation between spectra"
+maxsep,r,h,1000.,1.,,"Maximum separation between spectra"
+order,s,h,"increasing",increasing|decreasing,,"Order of apertures"
+mode,s,h,"ql",,,

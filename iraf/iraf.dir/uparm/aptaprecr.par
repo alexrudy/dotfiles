@@ -1,0 +1,16 @@
+input,s,a,"sbdflat.fits",,,"List of input images"
+apertures,s,h," ",,,"Apertures"
+references,s,h," ",,,"Reference images
+"
+interactive,b,h,no,,,"Run task interactively?"
+find,b,h,no,,,"Find apertures?"
+recenter,b,h,yes,,,"Recenter apertures?"
+resize,b,h,no,,,"Resize apertures?"
+edit,b,h,no,,,"Edit apertures?
+"
+line,i,h,1500,1,,"Dispersion line"
+nsum,i,h,50,,,"Number of dispersion lines to sum or median"
+aprecenter,s,h,"*",,,"Apertures for recentering calculation"
+npeaks,r,h,INDEF,0.,,"Select brightest peaks"
+shift,b,h,no,,,"Use average shift instead of recentering?"
+mode,s,h,"ql",,,

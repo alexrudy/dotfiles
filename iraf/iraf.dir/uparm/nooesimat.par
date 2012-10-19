@@ -1,0 +1,15 @@
+inlist,s,h,"@flats.list",,,"List of seperate flat fields"
+flatname,s,h,"@flatsf.list",,,"Output name for flat fields"
+dark,s,h,"esi0112.fits",,,"Dark frame name"
+bias,s,h,,,,"Bias frame name"
+apers,s,h,"esi0031.fits",,,"Reference aperatures"
+exptime,r,h,1000.,,,"Exp time for dark frame"
+fexptime,r,h,,,,"Exp time for flat frame"
+do_dark,b,h,,,,"Do dark subtraction?"
+do_bias,b,h,,,,"Do flat subtraction?"
+rm_im,b,h,no,,,"Remove intermediate steps?"
+x_imgs,b,h,yes,,,"Extract images along pipeline?"
+aps,i,h,7,,,"Number of apertures to export"
+listpt,*struct,h,"M32-11-Qrtz.list",,,
+list2pt,*struct,h,"",,,
+mode,s,h,"ql",,,

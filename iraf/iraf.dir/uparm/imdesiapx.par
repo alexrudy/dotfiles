@@ -1,0 +1,9 @@
+img,s,h,"esi0028.fits",,,"Image to extract"
+outname,s,h,"testme",,,"String to append to output file(s)"
+refaps,s,h,"esi0031.fits",,,"Reference aperatures"
+flatname,s,h,"esi0031.fits",,,"Flat field name"
+apex,b,h,no,,,"Extract aperature strips?"
+flat,b,h,yes,,,"Divide strips by flat field?"
+rm_im,b,h,no,,,"Remove intermediate steps?"
+listpt,*struct,h,"",,,
+mode,s,h,"ql",,,

@@ -1,0 +1,5 @@
+s1,s,h,"blah",,,
+s2,s,h,"booh",,,
+s3,s,h,"bah",,,
+imagelist,*struct,h,"Structure.lis",,,
+mode,s,h,"q",,,

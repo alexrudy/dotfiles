@@ -1,0 +1,4 @@
+input,s,a,"esi0029.fits",,,"Input images"
+output,s,a,"besi0029.fits",,,"Output images or directory"
+verbose,b,h,yes,,,"Print operations performed?"
+mode,s,h,"ql",,,
