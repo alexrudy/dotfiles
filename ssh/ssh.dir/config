@@ -39,7 +39,7 @@ Host hades
 	HostName hades.ucsc.edu
 
 # UCO Lick NICS
-Host ucolick aolab
+Host ucolick aolab ssh.ucolick.org
 	ForwardX11 yes
 	User alexrudy
 

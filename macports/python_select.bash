@@ -33,6 +33,7 @@ function port_python_alias () {
 
 	export PYTHONPATH=${PYTHONPATH}:/usr/local/stsci/$PYDIR/lib/python
 	export PATH=$PATH:/usr/local/stsci/$PYDIR/bin
+	export PATH=$PATH:~/Library/Python/$PYVERSION/bin
 	export PATH=$PATH:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/
 }
 

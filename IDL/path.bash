@@ -7,6 +7,12 @@
 # 
 IDL="/Applications/itt/idl/idl/bin/"
 if [ -d $IDL ]; then
-	export PATH=$PATH:/Applications/itt/idl/idl/bin/                            #IDL
+	export PATH="$PATH:$IDL"                           #IDL
 	export IDL_STARTUP="$HOME/.idl.pro"
 fi
+
+function UCOIDL () {
+	export LM_LICENSE_FILE=1700@localhost
+	ssh -f -N -L1700:license:1700 -L35673:license:35673 ssh.ucolick.org
+}
+
