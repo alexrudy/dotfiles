@@ -5,7 +5,7 @@
 #  Created by Alexander Rudy on 2012-10-07.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
-IDL="/Applications/itt/idl/idl/bin/"
+IDL="/Applications/exelis/idl/bin"
 if [ -d $IDL ]; then
 	export PATH="$PATH:$IDL"                           #IDL
 	export IDL_STARTUP="$HOME/.idl.pro"
