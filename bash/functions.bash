@@ -44,3 +44,15 @@ function extract()      # Handy Extract Program.
          echo "'$1' is not a valid file"
      fi
 }
+
+function get_xserver ()
+{
+    case $TERM in
+       xterm )
+            XSERVER=$(who am i | awk '{print $NF}' | tr -d ')''(' )    
+            XSERVER=${XSERVER%%:*}
+            ;;
+        aterm | rxvt)           
+            ;;
+    esac  
+}
