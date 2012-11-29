@@ -7,6 +7,10 @@
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
 
+if [ -f "$HOME/.ucolick_bash_profile"]; then
+	. $HOME/.bashrc
+fi
+
 # MPPREFIX="$HOME/.macports"
 MPPREFIX="/opt/local"
 
