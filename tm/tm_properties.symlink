@@ -18,3 +18,6 @@ tabSize           = 2
 [ text.html.erb.rails ]
 softTabs         = true
 tabSize          = 2
+
+[ text.markdown ]
+theme            = iPlastic

@@ -70,7 +70,7 @@ task :dirs do
       FileUtils.rm_rf(target) if overwrite || overwrite_all
       `mv "$HOME/.#{linkable}" "$HOME/.#{linkable}.backup"` if backup || backup_all
     end
-    `ln -s "#{dotfiles}/#{directory}" "#{target}"`    
+    `ln -s "#{dotfiles}/#{directory}" "#{target}"`
   end
 end
 
