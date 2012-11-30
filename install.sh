@@ -15,7 +15,7 @@ for file in $files
 do
 	dest=${file%%.symlink}
 	dest="."${dest##*/}
-	if [ -e $HOME/$dest ]; then
+	if [[ -e $HOME/$dest ]]; then
 		echo "File $dest already exists. Skipping"
 	else
 		echo "Linking $cwd/$file to $dest"

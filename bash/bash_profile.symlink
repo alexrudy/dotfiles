@@ -7,7 +7,7 @@
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
 
-if [ -f "$HOME/.ucolick_bash_profile"]; then
+if [ -f "$HOME/.ucolick_bash_profile" ]; then
 	. $HOME/.ucolick_bash_profile
 fi
 
