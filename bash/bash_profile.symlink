@@ -8,7 +8,7 @@
 # 
 
 if [ -f "$HOME/.ucolick_bash_profile"]; then
-	. $HOME/.bashrc
+	. $HOME/.ucolick_bash_profile
 fi
 
 # MPPREFIX="$HOME/.macports"
