@@ -9,6 +9,7 @@
 
 
 files=`find */*.symlink`
+cwd=`pwd`
 
 for file in $files
 do
@@ -17,8 +18,8 @@ do
 	if [ -e $HOME/$dest ]; then
 		echo "File $dest already exists. Skipping"
 	else
-		echo "Linking $file to $dest"
-		ln -s $file $HOME/$dest
+		echo "Linking $cwd/$file to $dest"
+		ln -s $cwd/$file $HOME/$dest
 	fi
 done
 
@@ -34,6 +35,6 @@ do
 		echo "Directory $dest already exists. Skipping"
 	else
 		echo "Linking $directory to $dest"
-		ln -s $directory $HOME/$dest
+		ln -s $cwd/$directory $HOME/$dest
 	fi
 done
