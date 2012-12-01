@@ -10,16 +10,21 @@
 
 files=`find */*.symlink`
 cwd=`pwd`
+update=false
 
 for file in $files
 do
 	dest=${file%%.symlink}
 	dest="."${dest##*/}
-	if [[ -e $HOME/$dest ]]; then
+	if [[ -L "$HOME/$dest" ]]; then
+		echo "Updating link to $file"
+		rm "$HOME/$dest"
+		ln -s "$cwd/$file" "$HOME/$dest"
+	elif [[ -e $HOME/$dest ]]; then
 		echo "File $dest already exists. Skipping"
 	else
 		echo "Linking $cwd/$file to $dest"
-		ln -s $cwd/$file $HOME/$dest
+		ln -s "$cwd/$file" "$HOME/$dest"
 	fi
 done
 
@@ -31,6 +36,10 @@ do
 	dest="."${dest##*/}
 	if [ ! -d $directory ]; then
 		echo "$directory is not a directory"
+	elif [[ -L "$HOME/$dest" ]]; then
+		echo "Updating link to $directory"
+		rm "$HOME/$dest"
+		ln -s "$cwd/$file" "$HOME/$dest"	
 	elif [ -e $HOME/$dest ]; then
 		echo "Directory $dest already exists. Skipping"
 	else
