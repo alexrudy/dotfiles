@@ -28,7 +28,7 @@ do
 	fi
 done
 
-directories=`find ./*/*.dir -type d -maxdepth 0`
+directories=`find */*.dir -type d -maxdepth 0`
 
 for directory in $directories
 do
@@ -39,11 +39,11 @@ do
 	elif [[ -L "$HOME/$dest" ]]; then
 		echo "Updating link to $directory"
 		rm "$HOME/$dest"
-		ln -s "$cwd/$file" "$HOME/$dest"	
+		ln -s "$cwd/$directory" "$HOME/$dest"	
 	elif [ -e $HOME/$dest ]; then
 		echo "Directory $dest already exists. Skipping"
 	else
 		echo "Linking $directory to $dest"
-		ln -s $cwd/$directory $HOME/$dest
+		ln -s "$cwd/$directory" "$HOME/$dest"
 	fi
 done
