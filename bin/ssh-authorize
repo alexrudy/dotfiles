@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# 
+#  ssh_authorize
+#  .dotfiles
+#  
+#  Created by Alexander Rudy on 2012-12-03.
+#  Copyright 2012 Alexander Rudy. All rights reserved.
+# 
+
+cat ~/.ssh/id_rsa.pub | ssh $1 "cat >> ~/.ssh/authorized_keys"
