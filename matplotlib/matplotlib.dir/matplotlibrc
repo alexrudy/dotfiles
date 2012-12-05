@@ -9,3 +9,4 @@ font.monospace     : Courier, Computer Modern Typewriter
 
 text.usetex        : true
 figure.figsize     : 10, 10
+axes.formatter.limits : -3, 3
