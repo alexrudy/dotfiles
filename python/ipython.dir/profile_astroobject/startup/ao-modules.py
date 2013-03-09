@@ -6,10 +6,10 @@
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
 import AstroObject as AO
-import AstroObject.AstroImage as AImg
-import AstroObject.AstroSimulator as ASim
-import AstroObject.AstroCache as ACac
-import AstroObject.AstroConfig as ACfg
-import AstroObject.AstroSpectra as ASpec
-import AstroObject.AnalyticSpectra as AASpec
+import AstroObject.image as AImg
+import AstroObject.config as ACfg
+import AstroObject.spectra as ASpec
+import AstroObject.spectra as AASpec
 import AstroObject.util as AUtil
+from AstroObject.iraftools import UseIRAFTools
+ImageStack = UseIRAFTools(AImg.ImageStack)

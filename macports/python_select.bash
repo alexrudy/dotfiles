@@ -16,7 +16,7 @@ function port_python_alias () {
 	for file in $files
 	do
 		rootname=${file##*/}
-		program=${rootname%%-*}
+		program=${rootname##*-}
 		alias $program=$file
 	done
 	

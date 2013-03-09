@@ -56,4 +56,9 @@ Host aolab
 Host lightwave
     HostName lightwave.ucolick.org
 
+# Keck
+
+Host keck
+        HostName xserver2.keck.hawaii.edu
+
 

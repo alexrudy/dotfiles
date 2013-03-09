@@ -7,5 +7,5 @@
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
 if [ -d /usr/local/wcstools/ ]; then
-	export PATH=$PATH:/usr/local/wcstools/
+	export PATH=$PATH:/usr/local/wcstools/:/usr/local/wcstools/bin
 fi
