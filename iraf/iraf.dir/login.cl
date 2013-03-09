@@ -4,10 +4,10 @@
 if (defpar ("logver"))
     logver = "IRAF V2.14EXPORT November 2007"
 
-set	home		= "/Users/alexanderrudy/.iraf/"
+set	home		= "/Users/jaberwocky/iraf/"
 set	imdir		= "HDR$/"
 set	uparm		= "home$uparm/"
-set	userid		= "alexanderrudy"
+set	userid		= "jaberwocky"
 
 # Set the terminal type.  We assume the user has defined this correctly 
 # when issuing the MKIRAF and no longer key off the unix TERM to set a
@@ -71,7 +71,8 @@ task	$pg = ("$(less -Cqm $*)")
 task	$esi = /Users/alexanderrudy/.bin/ESI/esi.cl
 task	$startup=startup.cl
 
-startup
+
+# startup
 
 if (access ("home$loginuser.cl"))
     cl < "home$loginuser.cl"
