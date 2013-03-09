@@ -39,12 +39,21 @@ Host hades
 	HostName hades.ucsc.edu
 
 # UCO Lick NICS
-Host ucolick aolab ssh.ucolick.org
+Host ucolick aolab ssh.ucolick.org lightwave ucolickmain
 	ForwardX11 yes
 	User alexrudy
 
 Host ucolick
     HostName ssh.ucolick.org
 	
+Host ucolickmain
+    HostName mambo.ucolick.org
+    User alexrudy
+    
 Host aolab
 	HostName aolab.ucolick.org
+    
+Host lightwave
+    HostName lightwave.ucolick.org
+
+

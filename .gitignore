@@ -8,4 +8,6 @@ python/ipython.dir/*/pid
 python/ipython.dir/*/security
 python/ipython.dir/*/history.sqlite
 ssh/ssh.dir/*
-ssh/ssh2.dir/*iraf/iraf.dir/uparm
+ssh/ssh2.dir/*
+iraf/iraf.dir/uparm/*
+iraf/iraf.dir/pyraf/*
