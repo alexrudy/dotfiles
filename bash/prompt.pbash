@@ -1,10 +1,11 @@
 # Custom Prompt Function
-gitprompt="$MPPREFIX/share/doc/git-core/contrib/completion/git-prompt.sh"
+gitprompt="$MPPREFIX/share/git-core/contrib/completion/git-prompt.sh"
 export SYS_PS1=$PS1
 if [ -f "$gitprompt" ]; then
-	PS1='[\[\033[0;36m\]\u@\h \[\033[01;34m\]\W\[\033[00m\]$(__git_ps1 " (%s)")]\$ '
+    source "$gitprompt"
+	PS1='[\[\033[0;36m\]🚀  \[\033[01;34m\]\W\[\033[00m\]$(__git_ps1 " (%s)")]\$ '
 else
-	PS1='[\[\033[0;36m\]\u@\h \[\033[01;34m\]\W\[\033[00m\]]\$ '
+	PS1='[\[\033[0;36m\]🚀  \[\033[01;34m\]\W\[\033[00m\]]\$ '
 fi
 
 # OLD PS1's
