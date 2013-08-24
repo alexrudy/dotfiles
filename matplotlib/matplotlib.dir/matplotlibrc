@@ -1,12 +1,23 @@
 backend : MacOSX
-figure.facecolor : w
 
+# Fonts
 font.family        : serif
 font.serif         : Times, Palatino, New Century Schoolbook, Bookman, Computer Modern Roman
 font.sans-serif    : Helvetica, Avant Garde, Computer Modern Sans serif
 font.cursive       : Zapf Chancery
 font.monospace     : Courier, Computer Modern Typewriter
 
+# Force use of TeX for labels, regarldess of content
+# This makes all the fonts look consistent
 text.usetex        : true
-figure.figsize     : 10, 10
+
+# Fix Figure Properties: High-DPI, fullscreen, all white.
+figure.facecolor   : w
+figure.figsize     : 9, 5
+figure.dpi         : 160
+
+# Scientific axes limits, in log scale
 axes.formatter.limits : -3, 3
+
+# Images should not be interpolated.
+image.interpolation : nearest
