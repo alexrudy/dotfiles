@@ -55,7 +55,7 @@ task :dirs do
     linkable = directory.split('/').last.split('.dir').last
     target = "#{homedir}/.#{linkable}"
     
-    if Dir.exists?(target) || File.symlink?(target)
+    if FileTest.directory?(target) || File.symlink?(target)
       unless skip_all || overwrite_all || backup_all
         puts "Directory already exists: #{target}, what do you want to do? [s]kip, [S]kip all, [o]verwrite, [O]verwrite all, [b]ackup, [B]ackup all"
         case STDIN.gets.chomp
@@ -74,7 +74,35 @@ task :dirs do
   end
 end
 
-task :uninstall do
+task :uninstall_dirs do
+  
+  dotfiles = Pathname.new("#{ENV["PWD"]}").relative_path_from(Pathname.new("#{ENV["HOME"]}"))
+  homedir  = Pathname.new("#{ENV["HOME"]}").relative_path_from(Pathname.new("#{ENV["PWD"]}"))
+  
+  skip_all = false
+  overwrite_all = false
+  backup_all = false
+  
+  Dir.glob('**/**{.dir}/').each do |directory|
+    
+    overwrite = false
+    backup = false
+    
+    linkable = directory.split('/').last.split('.dir').last
+    target = "#{homedir}/.#{linkable}"
+    
+    if File.symlink?(target)
+      FileUtils.rm(target)
+    end
+    
+    if FileTest.directory?("#{homedir}/.#{linkable}.backup")
+      `mv "$HOME/.#{linkable}.backup" "$HOME/.#{linkable}"`
+    end
+    
+  end
+end
+
+task :uninstall => [ :uninstall_dirs ] do
 
   Dir.glob('**/*.symlink').each do |linkable|
 
