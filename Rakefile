@@ -33,7 +33,7 @@ task :install => [:dirs] do
       FileUtils.rm_rf(target) if overwrite || overwrite_all
       `mv "$HOME/.#{file}" "$HOME/.#{file}.backup"` if backup || backup_all
     end
-    `ln -s "#{dotfiles}/#{linkable}" "#{target}"`
+    `ln -s "#{dotfiles}/#{linkable}" "#{target}"` unless skip_all
   end    
 end
 
@@ -70,7 +70,7 @@ task :dirs do
       FileUtils.rm_rf(target) if overwrite || overwrite_all
       `mv "$HOME/.#{linkable}" "$HOME/.#{linkable}.backup"` if backup || backup_all
     end
-    `ln -s "#{dotfiles}/#{directory}" "#{target}"`
+    `ln -s "#{dotfiles}/#{directory}" "#{target}"`  unless skip_all
   end
 end
 
