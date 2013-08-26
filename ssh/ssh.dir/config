@@ -38,6 +38,10 @@ Host hades
 	User jaberwocky
 	HostName hades.ucsc.edu
 
+Host nirc2hades
+    User nirc2
+    HostName hades.ucsc.edu
+
 # UCO Lick NICS
 Host ucolick aolab ssh.ucolick.org lightwave ucolickmain
 	ForwardX11 yes
