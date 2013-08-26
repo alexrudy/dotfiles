@@ -1,9 +1,9 @@
 # 
 #  .gitignore
-#  .dotfiles
+#  ssh
 #  
 #  Created by Jaberwocky on 2013-08-26.
 #  Copyright 2013 Jaberwocky. All rights reserved.
 # 
-._*
-git/gitconfig.symlink
+ssh.dir/*
+ssh2.dir/*

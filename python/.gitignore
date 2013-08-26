@@ -1,9 +1,12 @@
 # 
 #  .gitignore
-#  .dotfiles
+#  python
 #  
 #  Created by Jaberwocky on 2013-08-26.
 #  Copyright 2013 Jaberwocky. All rights reserved.
 # 
-._*
-git/gitconfig.symlink
+ipython.dir/*/db
+ipython.dir/*/log
+ipython.dir/*/pid
+ipython.dir/*/security
+ipython.dir/*/history.sqlite
