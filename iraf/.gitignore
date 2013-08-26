@@ -1,3 +1,4 @@
 iraf.dir/uparm/*
 iraf.dir/pyraf/*
 iraf.dir/*.OLD
+iraf.dir/startup.cl

@@ -4,18 +4,18 @@
 if (defpar ("logver"))
     logver = "IRAF V2.16 March 2012"
 
-set	home		= "/Users/alexrudy/.iraf/"
-set	imdir		= "/usr/local/imdirs/alexrudy/"
-set	cache		= "/iraf/cache/alexrudy/"
+set	home		= "/Users/jaberwocky/iraf/"
+set	imdir		= "/usr/local/imdirs/jaberwocky/"
+set	cache		= "/iraf/cache/jaberwocky/"
 set	uparm		= "home$uparm/"
-set	userid		= "alexrudy"
+set	userid		= "jaberwocky"
 
 # Set the terminal type.  We assume the user has defined this correctly 
 # when issuing the MKIRAF and no longer key off the unix TERM to set a
 # default.
 if (access (".hushiraf") == no)
-    print "setting terminal type to xgterm..."
-stty xgterm
+    print "setting terminal type to xterm..."
+stty xterm
 
 
 # Uncomment and edit to change the defaults.
@@ -65,8 +65,6 @@ task	$cls = "$clear;ls"
 task	$clw = "$clear;w"
 task	$pg = ("$(less -Cqm $*)")
 
-
-
 if (access ("home$loginuser.cl"))
     cl < "home$loginuser.cl"
 ;
@@ -76,8 +74,6 @@ keep
 # paths and load personalized packages from our loginuser.cl. 
 clpackage
 
-task   $startup=startup.cl
-#startup
 
 # List any packages you want loaded at login time, ONE PER LINE.
 images          # general image operators
@@ -127,6 +123,10 @@ if (deftask ("mtclean"))
     mtclean
 else
     delete uparm$mt?.lok,uparm$*.wcs verify-
+
+if (access ("startup.cl"))
+    cl < startup.cl
+;
 
 keep
 
