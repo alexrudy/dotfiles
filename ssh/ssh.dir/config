@@ -59,6 +59,7 @@ Host lightwave
 # Keck
 
 Host keck
-        HostName xserver2.keck.hawaii.edu
+    HostName xserver2.keck.hawaii.edu
+
 
 
