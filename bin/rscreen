@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 dest=$1
 shift
-ssh -t $dest screen -dRR $@
+ssh -t $dest '[[ -f $MPPREFIX/bin/port ]] && $MPPREFIX/bin/screen -dRR $@ || screen -dRR $@'
+
