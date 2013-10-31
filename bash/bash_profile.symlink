@@ -12,7 +12,7 @@ if [ -f "$HOME/.ucolick_bash_profile" ]; then
 fi
 
 # MPPREFIX="$HOME/.macports"
-MPPREFIX="/opt/local"
+export MPPREFIX="/opt/local"
 
 if [ -f "$HOME/.bashrc" ] ; then
 	. $HOME/.bashrc
