@@ -10,6 +10,7 @@
 export ORIGPATH=$PATH #So we can put it back later...
 
 export BASH=$HOME/.dotfiles
+export MPPREFIX="/opt/local"
 
 command_exists () {
     type "$1" &> /dev/null ;
