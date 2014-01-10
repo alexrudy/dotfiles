@@ -21,5 +21,9 @@ axes.formatter.limits : -3, 3
 
 # Images should not be interpolated.
 image.interpolation : nearest
+<<<<<<< Updated upstream
 
 savefig.dpi         : 100
+=======
+image.origin : lower
+>>>>>>> Stashed changes
