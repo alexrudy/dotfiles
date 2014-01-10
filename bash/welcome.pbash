@@ -11,6 +11,7 @@ if [ -z ${DISPLAY:=""} ]; then
         #DISPLAY=":0.0"          # Display on local host.
         :
     else
-        export DISPLAY=${XSERVER}:0.0  # Display on remote host.
+        # export DISPLAY=${XSERVER}:0.0  # Display on remote host.
+        :
     fi
 fi
