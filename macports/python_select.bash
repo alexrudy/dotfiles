@@ -16,12 +16,15 @@ function port_python_alias () {
     
     files=`find $PORT_BIN/*-$PYVERSION`
     
+    
+    
     for file in $files
     do
         dirname=${file%/*}
         rootname=${file##*/}
         program=${rootname%-*}
         if [ ! -e "$dirname/$program" ]; then
+            echo "Linking $file to $program"
             sudo ln -s "$file" "$dirname/$program"
         fi
     done
@@ -60,7 +63,7 @@ function port_python_alias () {
     #     export PYTHONPATH="$MPPREFIX/Library/Python/$PYVERSION/site-packages"
     # fi
     # export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
-    export PATH="$PATH:$COMMAND_PATH:$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/"
+    export PATH="$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/:$PATH"
     STSCI="/usr/local/stsci/$PYDIR/lib/python"
     if [ -d $STSCI ]; then
         export PYTHONPATH="${PYTHONPATH}:$STSCI" # PUT STSCI at the end
