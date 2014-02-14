@@ -23,3 +23,4 @@ axes.formatter.limits : -3, 3
 image.interpolation : nearest
 
 savefig.dpi         : 100
+image.origin : lower

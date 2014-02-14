@@ -1,0 +1,130 @@
+#!/usr/bin/env python3.3
+
+import subprocess
+import os.path
+import re
+import itertools
+
+def check_filename(filename):
+    """Check that this file belongs to a port"""
+    false_output = "is not provided by a MacPorts port.$"
+    true_output =  "is provided by: ([\w\-_]+)"
+    
+    
+    port_args = ['port', 'provides', os.path.abspath(filename)]
+    provided_by = subprocess.check_output(port_args, universal_newlines=True)
+    
+    false_match = re.search(false_output, provided_by)
+    true_match = re.search(true_output, provided_by)
+    if false_match:
+        return (False, "") # (provided, portname)
+    elif true_match:
+        port_name = true_match.group(1)
+        return (True, port_name)
+    else:
+        raise ValueError("Expression could not match '{:s}'".format(provided_by))
+    
+
+def found_callback(filename, found, port_name):
+    """Callback for what to do with found items/."""
+    if not found:
+        print("{} is an orphaned file.".format(os.path.relpath(filename)))
+    
+def has_nonorphans(results):
+    """Check for non-orphans in a given result"""
+    return any(found for filename, found, port_name in results)
+    
+def remove_subdirs(orphans):
+    """Remove any subdirectories of parents."""
+    
+    duplicates = set()
+    for parent in orphans.keys():
+        if parent in duplicates:
+            continue
+        parent_has_nonorphans = has_nonorphans(orphans[parent])
+        children = [ directory for directory in orphans.keys() if (parent in directory and parent != directory) ]
+        children_have_nonorphans = any( has_nonorphans(orphans[child]) for child in children)
+        if not (parent_has_nonorphans or children_have_nonorphans):
+            duplicates.update(children)
+    
+    for dup in duplicates:
+        del orphans[dup]
+    
+    no_nonorphans = set()
+    for directory in orphans:
+        if not has_nonorphans(orphans[directory]):
+            no_nonorphans.add(directory)
+    no_nonorphans = list(no_nonorphans)
+    no_nonorphans.sort()
+    
+    files = set()
+    for directory in orphans:
+        if directory not in no_nonorphans:
+            for filename, found, port_name in orphaned_files[directory]:
+                if not found:
+                    files.add(filename)
+    files = list(files)
+    files.sort()
+    return orphans, no_nonorphans, files
+    
+def get_state(statefile, base):
+    """Try to get the state from a statefile."""
+    if os.path.exists(statefile):
+        print("Loading progress from {}".format(statefile))
+        import pickle
+        try:
+            with open(statefile, "rb") as stream:
+                orphaned_files = pickle.load(stream)
+                old_base = pickle.load(stream)
+        except:
+            print("Removing broken statefile.")
+            os.remove(statefile)
+        if old_base != base:
+            print("Removing old statefile.")
+            os.remove(statefile)
+        else:
+            print("Loaded progress on {:d} directories.".format(len(orphaned_files)))
+            return orphaned_files
+    
+    print("Starting from scratch")
+    return dict()
+
+def save_state(statefile, base, orphaned_files):
+    """Pickle the current state to a statefile"""
+    print("\nSaving progress to {}".format(statefile))
+    import pickle
+    with open(statefile, "wb") as stream:
+        pickle.dump(orphaned_files, stream)
+        pickle.dump(base, stream)
+
+if __name__ == '__main__':
+    statefile = os.path.expanduser("~/.port-orphans-progress")
+    
+    base = os.getcwd()
+    
+    # Save the statespace
+    orphaned_files = get_state(statefile, base)
+    
+    try:
+        for root, dirs, files in os.walk(base):
+            if root in orphaned_files:
+                continue
+            print(".", end="", flush=True)
+            all_results = [ (os.path.join(root, filename),) + check_filename(os.path.join(root, filename)) for filename in files ]
+            orphaned_files[root] = all_results
+    except KeyboardInterrupt:
+        print("\nKeyboardInetrrupt: Finishing anyways.")
+        pass
+    finally:
+        save_state(statefile, base, orphaned_files)
+    
+    orphaned_files, no_nonorphans, files = remove_subdirs(orphaned_files)
+    print("Directories which have no port files:")
+    for directory in no_nonorphans:
+        print(directory)
+    print("Files which are orphened:")
+    for filename in files:
+        print(filename)
+
+
+

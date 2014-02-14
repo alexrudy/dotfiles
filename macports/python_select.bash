@@ -70,6 +70,9 @@ function port_python_alias () {
         export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
     fi
     
+    if [ -f $MPPREFIX/bin/python3.3 ]; then
+        alias python3=python3.3
+    fi
 }
 
 if [ -f $MPPREFIX/bin/port ]; then
