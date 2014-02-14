@@ -7,3 +7,4 @@
 # 
 ._*
 git/gitconfig.symlink
+python/ipython.dir/*
