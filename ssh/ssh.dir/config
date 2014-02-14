@@ -23,12 +23,12 @@ Host sedmachine
    User alexrudy
    Port 25000
    ForwardX11 yes
-   RemoteForward 52698 127.0.0.1:52698
+   RemoteForward :52698 localhost:52698
 
 # astro Network
 Host hyperion hades
 	ForwardX11 yes
-	RemoteForward 52698 127.0.0.1:52698
+	RemoteForward :52698 localhost:52698
 
 Host hyperion
 	User alexrudy
@@ -37,6 +37,7 @@ Host hyperion
 Host hades
 	User jaberwocky
 	HostName hades.ucsc.edu
+    RemoteForward :52699 localhost:52699
 
 Host nirc2hades
     User nirc2
