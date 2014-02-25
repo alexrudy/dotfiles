@@ -17,10 +17,10 @@ def check_filename(filename):
     false_match = re.search(false_output, provided_by)
     true_match = re.search(true_output, provided_by)
     if false_match:
-        return (False, "") # (provided, portname)
+        return (filename, False, "") # (provided, portname)
     elif true_match:
         port_name = true_match.group(1)
-        return (True, port_name)
+        return (filename, True, port_name)
     else:
         raise ValueError("Expression could not match '{:s}'".format(provided_by))
     
@@ -34,26 +34,27 @@ def has_nonorphans(results):
     """Check for non-orphans in a given result"""
     return any(found for filename, found, port_name in results)
     
-def remove_subdirs(orphans):
+def remove_subdirs(orphans, base=None):
     """Remove any subdirectories of parents."""
     
     duplicates = set()
+    no_nonorphans = set()
     for parent in orphans.keys():
         if parent in duplicates:
             continue
         parent_has_nonorphans = has_nonorphans(orphans[parent])
         children = [ directory for directory in orphans.keys() if (parent in directory and parent != directory) ]
         children_have_nonorphans = any( has_nonorphans(orphans[child]) for child in children)
-        if not (parent_has_nonorphans or children_have_nonorphans):
+        if not (children_have_nonorphans or parent_has_nonorphans):
+            if (base is not None) and (parent == base):
+                continue
             duplicates.update(children)
+            no_nonorphans.difference_update(children)
+            no_nonorphans.add(parent)
     
     for dup in duplicates:
         del orphans[dup]
     
-    no_nonorphans = set()
-    for directory in orphans:
-        if not has_nonorphans(orphans[directory]):
-            no_nonorphans.add(directory)
     no_nonorphans = list(no_nonorphans)
     no_nonorphans.sort()
     
@@ -98,7 +99,15 @@ def save_state(statefile, base, orphaned_files):
         pickle.dump(base, stream)
 
 if __name__ == '__main__':
-    statefile = os.path.expanduser("~/.port-orphans-progress")
+    import sys
+    
+    if len(sys.argv) == 2:
+        statefile = os.path.expanduser(sys.argv[1])
+    elif len(sys.argv) == 1:
+        statefile = os.path.expanduser("~/.port-orphans-progress")
+    else:
+        print("Usage: {} [statefile]".format(sys.argv[0]))
+        sys.exit(1)
     
     base = os.getcwd()
     
@@ -110,15 +119,14 @@ if __name__ == '__main__':
             if root in orphaned_files:
                 continue
             print(".", end="", flush=True)
-            all_results = [ (os.path.join(root, filename),) + check_filename(os.path.join(root, filename)) for filename in files ]
-            orphaned_files[root] = all_results
+            orphaned_files[root] = [ check_filename(os.path.join(root, filename)) for filename in files ]
     except KeyboardInterrupt:
         print("\nKeyboardInetrrupt: Finishing anyways.")
         pass
     finally:
         save_state(statefile, base, orphaned_files)
     
-    orphaned_files, no_nonorphans, files = remove_subdirs(orphaned_files)
+    orphaned_files, no_nonorphans, files = remove_subdirs(orphaned_files, base)
     print("Directories which have no port files:")
     for directory in no_nonorphans:
         print(directory)
