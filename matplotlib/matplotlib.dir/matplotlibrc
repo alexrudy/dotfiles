@@ -24,3 +24,4 @@ image.interpolation : nearest
 
 savefig.dpi         : 100
 image.origin : lower
+# verbose.level  : debug
