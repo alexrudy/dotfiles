@@ -5,8 +5,8 @@
 #  Created by Alexander Rudy on 2012-10-07.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
-IDL82="/Applications/exelis/idl/bin/"
-IDL81="/Applications/itt/idl/idl/bin/"
+IDL82="/Applications/exelis/idl/bin"
+IDL81="/Applications/itt/idl/idl/bin"
 if [ -d $IDL82 ]; then
 	export PATH="$PATH:$IDL82"                           #IDL
 	# export IDL_STARTUP="$HOME/.idl.pro"
