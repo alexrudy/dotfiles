@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+
+import os, os.path
+import glob
+
+import stat
+
+python = '/opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/python'
+
+if "VIRTUAL_ENV" not in os.environ:
+    raise ValueError("This must be run from an active virtual environment!")
+
+bin_path = os.path.join(os.environ["VIRTUAL_ENV"], 'bin')
+
+script_header = """#!{python}
+
+# If we are in a virtual environment, let's activate it.
+import os, os.path
+if "VIRTUAL_ENV" in os.environ:
+    activate_this = os.path.join(os.environ["VIRTUAL_ENV"],'bin/activate_this.py')
+    execfile(activate_this, dict(__file__=activate_this))
+    del activate_this
+
+"""
+
+def get_file_lines(path):
+    """docstring for get_file_lines"""
+    with open(path, 'r') as istream:
+        first_line = istream.readline()
+        if first_line[:2] == "#!" and first_line[-7:-1] == 'python' and first_line[2:-1] != python:
+            yield script_header.format(python=python)
+        else:
+            yield first_line
+        for line in istream.readlines():
+            yield line
+    
+
+if __name__ == '__main__':
+    for file in os.listdir(bin_path):
+        path = os.path.join(bin_path, file)
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            with open(path + '.tmp', 'w') as ostream:
+                for line in get_file_lines(path):
+                    ostream.write(line)
+            st = os.stat(path)
+            os.rename(path + '.tmp', path)
+            os.chmod(path, st.st_mode | stat.S_IEXEC)
+
+
