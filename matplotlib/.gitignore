@@ -6,4 +6,4 @@
 #  Copyright 2013 Jaberwocky. All rights reserved.
 # 
 matplotlib.dir/tex.*
-matplotlib.dir/fontList.cache
+matplotlib.dir/*.cache
