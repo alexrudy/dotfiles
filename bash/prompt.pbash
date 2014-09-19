@@ -1,5 +1,5 @@
 # Custom Prompt Function
-gitprompt="$MPPREFIX/share/git-core/contrib/completion/git-prompt.sh"
+gitprompt="$MPPREFIX/share/git/contrib/completion/git-prompt.sh"
 export SYS_PS1=$PS1
 if [ -f "$gitprompt" ]; then
     source "$gitprompt"

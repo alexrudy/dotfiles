@@ -66,5 +66,9 @@ Host lightwave
 Host keck
     HostName xserver2.keck.hawaii.edu
 
+Host spgcvs.ucolick.org
+    ForwardAgent yes
+    ForwardX11 no
+    User cvsr
 
 

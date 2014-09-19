@@ -2,6 +2,7 @@
 
 import os, os.path
 import glob
+import fnmatch
 
 import stat
 
@@ -35,9 +36,13 @@ def get_file_lines(path):
             yield line
     
 
+skip = set(["pip*", "easy_install*"])
+
 if __name__ == '__main__':
     for file in os.listdir(bin_path):
         path = os.path.join(bin_path, file)
+        if any(fnmatch.fnmatch(file, skippable) for skippable in skip):
+            continue
         if os.path.isfile(path) and os.access(path, os.X_OK):
             with open(path + '.tmp', 'w') as ostream:
                 for line in get_file_lines(path):
