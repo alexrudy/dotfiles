@@ -35,6 +35,9 @@ def get_file_lines(path):
         for line in istream.readlines():
             yield line
     
+skippatterns = set([
+ "pip", "pip2", "pip2.7", "easy_install", "easy_install-2.7"   
+])
 
 skip = set(["pip*", "easy_install*"])
 
