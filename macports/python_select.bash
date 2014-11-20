@@ -6,18 +6,17 @@
 
 function port_python_alias () {
     
-    
+    # Get the MacPorts python version number
     GETPYTHONREGEX="s/^.*py[A-Za-z]+([0-9])([0-9]+)-?[A-Za-z]*.*$/\1.\2/"
     COMMAND="port select --show python"
-    
     PYVERSION=`$COMMAND  | sed -E $GETPYTHONREGEX `
+    
+    # Some useful directories
     PORT_BIN="$MPPREFIX/bin"
     PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/2.7/bin"
     
+    # Fix version suffixes in $MPPREFIX/bin
     files=`find $PORT_BIN/*-$PYVERSION`
-    
-    
-    
     for file in $files
     do
         dirname=${file%/*}
@@ -29,8 +28,8 @@ function port_python_alias () {
         fi
     done
     
+    # Fix version suffixes in the Python library folder
     files=`find $PORT_PY_BIN/*-$PYVERSION`
-    
     for file in $files
     do
         dirname=${file%/*}
@@ -44,8 +43,9 @@ function port_python_alias () {
     
     PYVERSIONSHORT=`echo $PYVERSION | sed -E 's/\.//g'`
     
-    PYDIR=py-$PYVERSIONSHORT
+    PYDIR="py-$PYVERSIONSHORT"
     
+    # Add some local directories to the python path.
     LOCALPY="~/.python"
     if [ -d $LOCALPY ]; then
         if [ -z $PYTHONPATH ]; then
@@ -57,12 +57,15 @@ function port_python_alias () {
         export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION"
     fi
     
+    # # Set up the Python path.
     # if [ -z $PYTHONPATH ]; then
     #     export PYTHONPATH="${PYTHONPATH}:$MPPREFIX/Library/Python/$PYVERSION/site-packages"
     # else
     #     export PYTHONPATH="$MPPREFIX/Library/Python/$PYVERSION/site-packages"
     # fi
     # export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
+    
+    # Add python bin/ directories to the shell path.
     export PATH="$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/:$PATH"
     STSCI="/usr/local/stsci/$PYDIR/lib/python"
     if [ -d $STSCI ]; then
@@ -70,6 +73,7 @@ function port_python_alias () {
         export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
     fi
     
+    # Setup python3
     if [ -f $MPPREFIX/bin/python3.3 ]; then
         alias python3=python3.3
     fi
