@@ -4,11 +4,11 @@
 if (defpar ("logver"))
     logver = "IRAF V2.16 March 2012"
 
-set	home		= "/Users/jaberwocky/iraf/"
-set	imdir		= "/usr/local/imdirs/jaberwocky/"
-set	cache		= "/iraf/cache/jaberwocky/"
+set	home		= "/Users/alexrudy/iraf/"
+set	imdir		= "/usr/local/imdirs/alexrudy/"
+set	cache		= "/iraf/cache/alexrudy/"
 set	uparm		= "home$uparm/"
-set	userid		= "jaberwocky"
+set	userid		= "alexrudy"
 
 # Set the terminal type.  We assume the user has defined this correctly 
 # when issuing the MKIRAF and no longer key off the unix TERM to set a

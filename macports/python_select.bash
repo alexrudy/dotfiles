@@ -39,6 +39,7 @@ function port_python_alias () {
     
     PYDIR="py-$PYVERSIONSHORT"
     
+    # Add some local directories to the python path.
     LOCALPY="~/.python"
     if [ -d $LOCALPY ]; then
         if [ -z $PYTHONPATH ]; then
@@ -50,6 +51,15 @@ function port_python_alias () {
         export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION"
     fi
     
+    # # Set up the Python path.
+    # if [ -z $PYTHONPATH ]; then
+    #     export PYTHONPATH="${PYTHONPATH}:$MPPREFIX/Library/Python/$PYVERSION/site-packages"
+    # else
+    #     export PYTHONPATH="$MPPREFIX/Library/Python/$PYVERSION/site-packages"
+    # fi
+    # export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
+    
+    # Add python bin/ directories to the shell path.
     export PATH="$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/:$PATH"
     STSCI="/usr/local/stsci/$PYDIR/lib/python"
     if [ -d $STSCI ]; then
@@ -59,8 +69,8 @@ function port_python_alias () {
     
     py3exe=`find $MPPREFIX/bin -name python3.[0-9]`
     if [ -f $py3exe ]; then
-    if [ ! -e "$MPPREFIX/bin/python3" ]; then
-      echo "Linking $py3exe to python3"
+      if [ ! -e "$MPPREFIX/bin/python3" ]; then
+        echo "Linking $py3exe to python3"
         sudo ln -s "$py3exe" "$MPPREFIX/bin/python3"
       fi
     fi
