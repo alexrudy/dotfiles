@@ -6,10 +6,18 @@
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
 
+function pathadd () {
+    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+        PATH="${PATH:+"$PATH:"}$1"
+    fi
+}
+
+export PATH
 if [ -d $HOME/.bin ]; then
-	export PATH=$PATH:$HOME/.bin
+	pathadd "$HOME/.bin"
 fi
 
 if [ -d $BASH/bin ]; then
-	export PATH=$PATH:$BASH/bin
+	pathadd "$BASH/.bin"
 fi
+
