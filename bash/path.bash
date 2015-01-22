@@ -18,6 +18,6 @@ if [ -d $HOME/.bin ]; then
 fi
 
 if [ -d $BASH/bin ]; then
-	pathadd "$BASH/.bin"
+	pathadd "$BASH/bin"
 fi
 
