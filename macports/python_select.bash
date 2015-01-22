@@ -52,18 +52,7 @@ function port_python_alias () {
         export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION"
     fi
     
-<<<<<<< HEAD
-=======
-    # # Set up the Python path.
-    # if [ -z $PYTHONPATH ]; then
-    #     export PYTHONPATH="${PYTHONPATH}:$MPPREFIX/Library/Python/$PYVERSION/site-packages"
-    # else
-    #     export PYTHONPATH="$MPPREFIX/Library/Python/$PYVERSION/site-packages"
-    # fi
-    # export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
-    
     # Add python bin/ directories to the shell path.
->>>>>>> 2f94d203f6d5e522423e6b1d2f8e2adcb65bf4ab
     export PATH="$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/:$PATH"
     STSCI="/usr/local/stsci/$PYDIR/lib/python"
     if [ -d $STSCI ]; then
