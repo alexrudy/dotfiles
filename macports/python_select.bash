@@ -3,46 +3,44 @@
 #==================================
 #PYTHON Variables
 
+function port_python_version () {
+  if [[ -z $PYVERSION ]]; then
+    local GETPYTHONREGEX="s/^.*py[A-Za-z]+([0-9])([0-9]+)-?[A-Za-z]*.*$/\1.\2/"
+    local COMMAND="port select --show python"
+    PYVERSION=`$COMMAND  | sed -E $GETPYTHONREGEX`
+    PYVERSIONSHORT=`echo $PYVERSION | sed -E 's/\.//g'`
+  fi
+  echo "$PYVERSION"
+}
+
+function link_port_python () {
+  files=`find $1/*-$(port_python_version)`
+  for file in $files
+  do
+      dirname=${file%/*}
+      rootname=${file##*/}
+      program=${rootname%-*}
+      if [ ! -e "$dirname/$program" ]; then
+          echo "Linking $file to $program"
+          sudo ln -s "$file" "$dirname/$program"
+      fi
+  done
+}
 
 function port_python_alias () {
     
-    GETPYTHONREGEX="s/^.*py[A-Za-z]+([0-9])([0-9]+)-?[A-Za-z]*.*$/\1.\2/"
-    COMMAND="port select --show python"
+
+    PYV=$(port_python_version)
     
-    PYVERSION=`$COMMAND  | sed -E $GETPYTHONREGEX `
     PORT_BIN="$MPPREFIX/bin"
-    PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/2.7/bin"
+    PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin"
     
-    files=`find $PORT_BIN/*-$PYVERSION`
-        
-    for file in $files
-    do
-        dirname=${file%/*}
-        rootname=${file##*/}
-        program=${rootname%-*}
-        if [ ! -e "$dirname/$program" ]; then
-            echo "Linking $file to $program"
-            sudo ln -s "$file" "$dirname/$program"
-        fi
-    done
+    link_port_python $PORT_BIN
+    link_port_python $PORT_PY_BIN
     
-    files=`find $PORT_PY_BIN/*-$PYVERSION`
+    PYDIR="py-$PYVERSIONSHORT"
     
-    for file in $files
-    do
-        dirname=${file%/*}
-        rootname=${file##*/}
-        program=${rootname%-*}
-        if [ ! -e "$dirname/$program" ]; then
-            sudo ln -s "$file" "$dirname/$program"
-        fi
-    done
-    
-    
-    PYVERSIONSHORT=`echo $PYVERSION | sed -E 's/\.//g'`
-    
-    PYDIR=py-$PYVERSIONSHORT
-    
+    # Add some local directories to the python path.
     LOCALPY="~/.python"
     if [ -d $LOCALPY ]; then
         if [ -z $PYTHONPATH ]; then
@@ -54,6 +52,18 @@ function port_python_alias () {
         export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION"
     fi
     
+<<<<<<< HEAD
+=======
+    # # Set up the Python path.
+    # if [ -z $PYTHONPATH ]; then
+    #     export PYTHONPATH="${PYTHONPATH}:$MPPREFIX/Library/Python/$PYVERSION/site-packages"
+    # else
+    #     export PYTHONPATH="$MPPREFIX/Library/Python/$PYVERSION/site-packages"
+    # fi
+    # export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
+    
+    # Add python bin/ directories to the shell path.
+>>>>>>> 2f94d203f6d5e522423e6b1d2f8e2adcb65bf4ab
     export PATH="$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/:$PATH"
     STSCI="/usr/local/stsci/$PYDIR/lib/python"
     if [ -d $STSCI ]; then
@@ -61,8 +71,12 @@ function port_python_alias () {
         export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
     fi
     
-    if [ -f $MPPREFIX/bin/python3.3 ]; then
-        alias python3=python3.3
+    py3exe=`find $MPPREFIX/bin -name python3.[0-9]`
+    if [ -f $py3exe ]; then
+      if [ ! -e "$MPPREFIX/bin/python3" ]; then
+        echo "Linking $py3exe to python3"
+        sudo ln -s "$py3exe" "$MPPREFIX/bin/python3"
+      fi
     fi
 }
 

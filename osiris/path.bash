@@ -36,7 +36,7 @@ if [ -d "/usr/local/osiris/drs/scripts/" ]; then
     export OSIRIS_IDL_BASE=$OSIRIS_ROOT
     
     export PATH=${PATH}:${OSIRIS_ROOT}/scripts
-    export IDL_PATH=+${OSIRIS_ROOT}/../ql2:+/Users/alexrudy/Development/Astronomy/IDL/astron/pro:/usr/local/pkg/astron/pro:${IDL_PATH:-<IDL_DEFAULT>}
+    export IDL_PATH=+${OSIRIS_ROOT}/../ql2:/usr/local/pkg/astron/pro:${IDL_PATH:-<IDL_DEFAULT>}
     
     export QL_FILEDIR=/usr/local/osiris/ql2
 fi

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+tmux start-server
+
+if [[ `tmux has -t "MacPorts"` ]]; then
+    tmux new-session -d -s MacPorts
+    tmux rename-window -t 0 "port"
+fi
