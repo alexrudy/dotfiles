@@ -6,7 +6,6 @@
 
 function port_python_alias () {
     
-    
     GETPYTHONREGEX="s/^.*py[A-Za-z]+([0-9])([0-9]+)-?[A-Za-z]*.*$/\1.\2/"
     COMMAND="port select --show python"
     
@@ -15,9 +14,7 @@ function port_python_alias () {
     PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/2.7/bin"
     
     files=`find $PORT_BIN/*-$PYVERSION`
-    
-    
-    
+        
     for file in $files
     do
         dirname=${file%/*}
@@ -57,12 +54,6 @@ function port_python_alias () {
         export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION"
     fi
     
-    # if [ -z $PYTHONPATH ]; then
-    #     export PYTHONPATH="${PYTHONPATH}:$MPPREFIX/Library/Python/$PYVERSION/site-packages"
-    # else
-    #     export PYTHONPATH="$MPPREFIX/Library/Python/$PYVERSION/site-packages"
-    # fi
-    # export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
     export PATH="$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/:$PATH"
     STSCI="/usr/local/stsci/$PYDIR/lib/python"
     if [ -d $STSCI ]; then
@@ -76,5 +67,9 @@ function port_python_alias () {
 }
 
 if [ -f $MPPREFIX/bin/port ]; then
-    port_python_alias
+	
+	port_use_python=$(port select --show python 2>&1 | grep "Error")
+	if [[ -z $port_use_python ]]; then
+	    	port_python_alias
+	fi
 fi
