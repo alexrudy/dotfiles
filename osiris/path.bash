@@ -39,4 +39,7 @@ if [ -d "/usr/local/osiris/drs/scripts/" ]; then
     export IDL_PATH=+${OSIRIS_ROOT}/../ql2:/usr/local/pkg/astron/pro:${IDL_PATH:-<IDL_DEFAULT>}
     
     export QL_FILEDIR=/usr/local/osiris/ql2
+	
+	# Fixes a bug with awt on OSX
+	export JAVA_TOOL_OPTIONS='-Djava.awt.headless=false'
 fi
