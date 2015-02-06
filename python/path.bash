@@ -14,5 +14,5 @@ fi
 activatepy () {
     in_pwd=`pwd`
     workon "$@"
-    cd $in_pwd
+    cd "$in_pwd"
 }
