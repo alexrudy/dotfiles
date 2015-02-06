@@ -4,11 +4,13 @@
 # Virtualenv wrapper
 # Installed via macports, so we only run it here.
 if [ -f $MPPREFIX/bin/port ]; then
-    export WORKON_HOME="$HOME/.virtualenvs/"
-    if [ -d "$HOME/Development/" ]; then
-        export PROJECT_HOME="$HOME/Development/"
-    fi
-    source /opt/local/bin/virtualenvwrapper.sh
+	if [ -f /opt/local/bin/virtualenvwrapper.sh ]; then
+	    export WORKON_HOME="$HOME/.virtualenvs/"
+	    if [ -d "$HOME/Development/" ]; then
+	        export PROJECT_HOME="$HOME/Development/"
+	    fi
+	    source /opt/local/bin/virtualenvwrapper.sh
+	fi
 fi
 
 activatepy () {

@@ -3,45 +3,40 @@
 #==================================
 #PYTHON Variables
 
+function port_python_version () {
+  if [ -z $PYVERSION ]; then
+    local GETPYTHONREGEX="s/^.*py[A-Za-z]+([0-9])([0-9]+)-?[A-Za-z]*.*$/\1.\2/"
+    local COMMAND="port select --show python"
+    PYVERSION=`$COMMAND  | sed -E $GETPYTHONREGEX`
+    PYVERSIONSHORT=`echo $PYVERSION | sed -E 's/\.//g'`
+  fi
+  echo "$PYVERSION"
+}
+
+function link_port_python () {
+  files=`find $1/*-$(port_python_version)`
+  for file in $files
+  do
+      dirname=${file%/*}
+      rootname=${file##*/}
+      program=${rootname%-*}
+      if [ ! -e "$dirname/$program" ]; then
+          echo "Linking $file to $program"
+          sudo ln -s "$file" "$dirname/$program"
+      fi
+  done
+}
 
 function port_python_alias () {
     
-    # Get the MacPorts python version number
-    GETPYTHONREGEX="s/^.*py[A-Za-z]+([0-9])([0-9]+)-?[A-Za-z]*.*$/\1.\2/"
-    COMMAND="port select --show python"
-    PYVERSION=`$COMMAND  | sed -E $GETPYTHONREGEX `
+
+    PYVERSION=$(port_python_version)
     
-    # Some useful directories
     PORT_BIN="$MPPREFIX/bin"
-    PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/2.7/bin"
+    PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin"
     
-    # Fix version suffixes in $MPPREFIX/bin
-    files=`find $PORT_BIN/*-$PYVERSION`
-    for file in $files
-    do
-        dirname=${file%/*}
-        rootname=${file##*/}
-        program=${rootname%-*}
-        if [ ! -e "$dirname/$program" ]; then
-            echo "Linking $file to $program"
-            sudo ln -s "$file" "$dirname/$program"
-        fi
-    done
-    
-    # Fix version suffixes in the Python library folder
-    files=`find $PORT_PY_BIN/*-$PYVERSION`
-    for file in $files
-    do
-        dirname=${file%/*}
-        rootname=${file##*/}
-        program=${rootname%-*}
-        if [ ! -e "$dirname/$program" ]; then
-            sudo ln -s "$file" "$dirname/$program"
-        fi
-    done
-    
-    
-    PYVERSIONSHORT=`echo $PYVERSION | sed -E 's/\.//g'`
+    link_port_python $PORT_BIN
+    link_port_python $PORT_PY_BIN
     
     PYDIR="py-$PYVERSIONSHORT"
     
@@ -56,15 +51,6 @@ function port_python_alias () {
         export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python/site-packages:~/.python/lib/python$PYVERSION/site-packages"
         export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION"
     fi
-    
-    # # Set up the Python path.
-    # if [ -z $PYTHONPATH ]; then
-    #     export PYTHONPATH="${PYTHONPATH}:$MPPREFIX/Library/Python/$PYVERSION/site-packages"
-    # else
-    #     export PYTHONPATH="$MPPREFIX/Library/Python/$PYVERSION/site-packages"
-    # fi
-    # export PYTHONPATH="${PYTHONPATH}:/Library/Python/$PYVERSION/site-packages" #Add back system Library packages
-    
     # Add python bin/ directories to the shell path.
     export PATH="$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/:$PATH"
     STSCI="/usr/local/stsci/$PYDIR/lib/python"
@@ -73,12 +59,21 @@ function port_python_alias () {
         export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
     fi
     
-    # Setup python3 
-    if [ -f $MPPREFIX/bin/python3.3 ]; then
-        alias python3=python3.3
+    py3exe=`find $MPPREFIX/bin -name python3.[0-9]`
+    if [[ -f $py3exe ]]; then
+		
+      if [ ! -e "$MPPREFIX/bin/python3" ]; then
+        echo "Linking $py3exe to python3"
+        sudo ln -s "$py3exe" "$MPPREFIX/bin/python3"
+      fi
     fi
 }
 
 if [ -f $MPPREFIX/bin/port ]; then
-    port_python_alias
+	
+	port_use_python=`port select --show python 2>&1 | grep "Error"`
+	
+	if [[ -z "$port_use_python" ]]; then
+	    	port_python_alias
+	fi
 fi
