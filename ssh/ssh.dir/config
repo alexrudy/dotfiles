@@ -61,7 +61,7 @@ Host aolab
 Host lightwave
     HostName lightwave.ucolick.org
 
-Host R2D2
+Host R2D2 r2d2
     ForwardX11 yes
     HostName r2d2.ucolick.org
     User alexrudy
