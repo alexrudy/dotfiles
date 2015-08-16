@@ -5,8 +5,24 @@ remove=false
 askremove=true
 force=false
 
+USAGE=$(cat <<EOF
+Usage:
+    $0 [-f] path
+    
+Remove Dropbox conflicted copy files.
+
+arguments:
+    path    The path to search recursively for
+            Dropbox conflicts.
+    -f      Force removal, or ask about each conflict.
+
+This program recursively hunts for files with ($USER's conflicted copy ####-##-##)
+
+EOF
+)
+
 if [[ "$1" = "-h" ]]; then
-    echo "Remove dropbox conflicted copy files..."
+    echo "$USAGE"
     exit 0
 fi
 
@@ -24,24 +40,18 @@ do
         echo "Removing $file.."
         rm "$file"
     else
-        echo "Use conflicted? [y/n]"
+        echo -n "Use (original|conflicted|keep both)? [o/c/k]: "
         read answer
-        if [[ "$answer" = "y" ]]; then
+        if [[ "$answer" = "c" ]]; then
             echo "Fixing $file -> $fixed"
             mv "$file" "$fixed"
+        elif [[ "$answer" = "o" ]]; then
+            echo "Removing conflict $file"
+            rm "$file"
+        elif [[ "$answer" = "k" ]]; then
+            echo "Keeping both files."
         else
-            if [[ "$askremove" = true ]]; then
-                echo 'Remove unused conflict files? [y/n]'
-                read answer
-                if [[ "$answer" = "y" ]]; then
-                    remove=true
-                fi
-                askremove=false
-            fi
-            if [[ "$remove" = true ]]; then
-                echo "Removing $file.."
-                rm "$file"
-            fi
+            echo "Don't understand your orders, keeping both..."
         fi
     fi
 done
