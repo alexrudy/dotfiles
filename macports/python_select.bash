@@ -59,9 +59,8 @@ function port_python_alias () {
         export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
     fi
     
-    py3exe=`find $MPPREFIX/bin -name python3.[0-9]`
+    py3exe=`find $MPPREFIX/bin -name python3.[0-9] | sort | tail -n 1`
     if [[ -f $py3exe ]]; then
-		
       if [ ! -e "$MPPREFIX/bin/python3" ]; then
         echo "Linking $py3exe to python3"
         sudo ln -s "$py3exe" "$MPPREFIX/bin/python3"

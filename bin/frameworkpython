@@ -1,0 +1,12 @@
+#!/opt/local/bin/bash
+
+# what real Python executable to use
+PYVER_FULL=`python -V 2>&1`
+PYVER=`python -c "print('.'.join('$PYVER_FULL'[len('Python '):].split('.')[:2]))"`
+PATHTOPYTHON=/opt/local/bin/
+PYTHON=${PATHTOPYTHON}python${PYVER}
+# now run Python with the virtualenv set as Python's HOME
+if [ ! -z "$VIRTUAL_ENV" ]; then
+    export PYTHONHOME=$VIRTUAL_ENV
+fi
+exec $PYTHON "$@"
