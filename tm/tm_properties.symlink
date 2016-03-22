@@ -7,6 +7,7 @@ invisiblesMap     = "~ "
 [ python ]
 softTabs          = true
 tabSize           = 4
+exclude           = {$exclude, build/}
 
 [ text.restructuredtext ]
 softTabs          = true
