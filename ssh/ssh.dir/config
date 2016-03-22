@@ -76,4 +76,7 @@ Host spgcvs.ucolick.org
     ForwardX11 no
     User cvsr
 
-
+Host keckcvs.ucolick.org
+    ForwardAgent yes
+    ForwardX11 no
+    User crates
