@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+NMIN=$1
+shift
+NMAX=$1
+shift
+ARGS="-N -f"
+for (( i = $NMIN; i < $NMAX; i++ )); do
+    let "port=$i+5900"
+    ARGS="$ARGS -L$port:localhost:$port"
+done
+echo "ssh $ARGS $@"
+ssh $ARGS $@
