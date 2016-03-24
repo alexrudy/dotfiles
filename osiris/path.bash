@@ -36,10 +36,17 @@ if [ -d "/usr/local/osiris/drs/scripts/" ]; then
     export OSIRIS_IDL_BASE=$OSIRIS_ROOT
     
     export PATH=${PATH}:${OSIRIS_ROOT}/scripts
-    export IDL_PATH=+${OSIRIS_ROOT}/../ql2:/usr/local/pkg/astron/pro:${IDL_PATH:-<IDL_DEFAULT>}
+    if [[ $IDL_PATH != *"${OSIRIS_ROOT}/../ql2"* ]]; then
+        export IDL_PATH=+${OSIRIS_ROOT}/../ql2:/usr/local/pkg/astron/pro:${IDL_PATH:-<IDL_DEFAULT>}
+    fi
     
     export QL_FILEDIR=/usr/local/osiris/ql2
-	
-	# Fixes a bug with awt on OSX
-	export JAVA_TOOL_OPTIONS='-Djava.awt.headless=false'
+    
+    # Fixes a bug with awt on OSX
+    export JAVA_TOOL_OPTIONS='-Djava.awt.headless=false'
+    
+    function odrp {
+        idl  ${OSIRIS_BACKBONE_DIR}/osiris_drp_backbone_startup.pro
+    }
 fi
+
