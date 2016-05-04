@@ -6,11 +6,10 @@
 #  Copyright 2013 Alexander Rudy. All rights reserved.
 # 
 
-if [ -d "/usr/local/osiris/drs/scripts/" ]; then
-    # Contents of /usr/local/osiris/drs/scripts/
-    export OSIRIS_ROOT=/usr/local/osiris/drs
+function setup_OSIRIS {
+    export OSIRIS_ROOT=$1
     
-    export OSIRIS_WROOT=$OSIRIS_ROOT
+    export OSIRIS_WROOT=${2:-$OSIRIS_ROOT}
     # Location of data files
     export OSIRIS_DRP_DATA_PATH=$OSIRIS_WROOT/data/
 
@@ -48,5 +47,10 @@ if [ -d "/usr/local/osiris/drs/scripts/" ]; then
     function odrp {
         idl  ${OSIRIS_BACKBONE_DIR}/osiris_drp_backbone_startup.pro
     }
+}
+
+if [ -d "/usr/local/osiris/drs/scripts/" ]; then
+    # Contents of /usr/local/osiris/drs/scripts/
+    setup_OSIRIS /usr/local/osiris/drs
 fi
 
