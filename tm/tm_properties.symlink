@@ -3,7 +3,8 @@ TM_GIT		      = /opt/local/bin/git
 PATH              = "$PATH:/Users/alexrudy/.rvm/gems/ruby-1.9.3-p327/bin:/Users/alexrudy/.rvm/gems/ruby-1.9.3-p327@global/bin:/Users/alexrudy/.rvm/rubies/ruby-1.9.3-p327/bin:/Users/alexrudy/.rvm/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/Applications/exelis/idl/bin/:/Users/alexrudy/.dotfiles/bin:/Users/alexrudy/Library/Python/2.7/bin/:/opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/:/Applications/MAMP/bin:/Applications/MAMP/bin/apache2/bin:/Users/alexrudy/.bin/node/bin:/usr/local/osiris/drs/scripts:/usr/local/wcstools/:/usr/local/wcstools/bin"
 windowTitle       = "$TM_DISPLAYNAME $windowTitleSCM"
 invisiblesMap     = "~ "
-fileBrowserGlob  = "{*,.tm_properties,.htaccess,.gitignore,.travis.yml}"
+include           = "{$include,.tm_properties,.htaccess,.gitignore,.travis.yml}"
+exclude           = "{$exclude,__pycache__}"
 
 [ python ]
 softTabs          = true
