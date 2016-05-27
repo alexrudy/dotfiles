@@ -4,5 +4,5 @@ if [ -f "$MPPREFIX/bin/port" ]; then
 fi
 
 tmp () {
-    tmux-start -t MacPorts
+    tmux_new_or_respawn MacPorts
 }

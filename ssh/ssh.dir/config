@@ -71,6 +71,10 @@ Host shard
     HostName shard.ucolick.org
     User user
     
+Host shred
+    HostName shred.ucolick.org
+    User alexrudy
+    
 Host spgcvs.ucolick.org
     IdentityFile ~/.ssh/arrudy@spgcvs
     

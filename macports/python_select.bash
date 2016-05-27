@@ -6,15 +6,15 @@
 function port_python_version () {
   if [ -z $PYVERSION ]; then
     local GETPYTHONREGEX="s/^.*py[A-Za-z]+([0-9])([0-9]+)-?[A-Za-z]*.*$/\1.\2/"
-    local COMMAND="port select --show python"
-    PYVERSION=`$COMMAND  | sed -E $GETPYTHONREGEX`
+    local COMMAND="select"
+    eval "PYVERSION=$(port $COMMAND --show python | sed -E $GETPYTHONREGEX)"
     PYVERSIONSHORT=`echo $PYVERSION | sed -E 's/\.//g'`
   fi
   echo "$PYVERSION"
 }
 
 function link_port_python () {
-  files=`find $1/*-$(port_python_version)`
+  files=(`find $1/*-$(port_python_version)`)
   for file in $files
   do
       dirname=${file%/*}
@@ -29,9 +29,7 @@ function link_port_python () {
 
 function port_python_alias () {
     
-
     PYVERSION=$(port_python_version)
-    
     PORT_BIN="$MPPREFIX/bin"
     PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin"
     
@@ -59,7 +57,7 @@ function port_python_alias () {
         export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
     fi
     
-    py3exe=`find $MPPREFIX/bin -name python3.[0-9] | sort | tail -n 1`
+    py3exe=`find $MPPREFIX/bin -name "python3.[0-9]" | sort | tail -n 1`
     if [[ -f $py3exe ]]; then
       if [ ! -e "$MPPREFIX/bin/python3" ]; then
         echo "Linking $py3exe to python3"
@@ -69,7 +67,6 @@ function port_python_alias () {
 }
 
 if [ -f $MPPREFIX/bin/port ]; then
-	
 	port_use_python=`port select --show python 2>&1 | grep "Error"`
 	
 	if [[ -z "$port_use_python" ]]; then
