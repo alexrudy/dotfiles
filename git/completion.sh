@@ -7,10 +7,17 @@ if [ -f $completion ]; then
 	source $completion
 fi
 
-completion=$MPPREFIX/share/git/contrib/completion/git-completion.bash
-if [ -f $completion ]; then
-	source $completion
+if [ -n $BASH ] && [ -z $ZSH_NAME ]; then
+    completion=$MPPREFIX/share/git/contrib/completion/git-completion.bash
+    if [ -f $completion ]; then
+    	source $completion
+    fi
 fi
+if [ -n $ZSH_NAME ]; then
+    completion=$MPPREFIX/share/git/contrib/completion/git-completion.zsh
+    fpath=($MPPREFIX/share/git/contrib/completion/ $fpath)
+fi
+
 
 
 completion=~/.git-flow-completion

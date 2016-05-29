@@ -6,10 +6,9 @@
 # Version History
 # 2.0.0 - 2012-06-18 - Switching to DotFilesSetup
 #
-
 export ORIGPATH=$PATH #So we can put it back later...
 
-export BASH=$HOME/.dotfiles
+export DOTFILES=$HOME/.dotfiles
 export MPPREFIX="/opt/local"
 
 command_exists () {
@@ -17,7 +16,7 @@ command_exists () {
 }
 
 # load every completion after autocomplete loads
-for config_file in $BASH/**/*.bash
+for config_file in $DOTFILES/**/*.bash
 do 
 	source $config_file
 done
@@ -31,7 +30,7 @@ fi
 
 
 # load every completion after autocomplete loads
-for config_file in $BASH/**/completion.sh
+for config_file in $DOTFILES/**/completion.sh
 do 
 	source $config_file
 done

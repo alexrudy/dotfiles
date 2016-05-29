@@ -67,12 +67,23 @@ todo(){
     echo ""
   fi
 }
-
-directory_name(){
-  echo "%{$fg_bold[cyan]%}%1/%\/%{$reset_color%}"
+function collapse_pwd {
+    echo $(pwd | sed -e "s,^$HOME,~,")
 }
 
-export PROMPT=$'\n$(rb_prompt) in $(directory_name) $(git_dirty)$(need_push)\n› '
+directory_name(){
+  echo "%{$fg_bold[cyan]%}$(collapse_pwd)/%{$reset_color%}"
+}
+user_on_host(){
+  echo "%{$fg[magenta]%}%n%{$reset_color%} on %{$fg[yellow]%}%m%{$reset_color%}"
+}
+
+function virtualenv_info {
+    [ $VIRTUAL_ENV ] && echo '('`basename $VIRTUAL_ENV`') '
+}
+
+
+export PROMPT=$'\n$(rb_prompt) $(user_on_host) in $(directory_name) $(git_dirty)$(need_push)$(virtualenv_info)\n› '
 set_prompt () {
   export RPROMPT="%{$fg_bold[cyan]%}$(todo)%{$reset_color%}"
 }

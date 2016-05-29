@@ -8,6 +8,7 @@
 # Personnal Aliases
 #-------------------
 
+alias dotfiles='$EDITOR ~/.dotfiles'
 alias sudo='sudo '
 alias mkdir='mkdir -p'
 alias h='history'

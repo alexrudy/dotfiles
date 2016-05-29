@@ -1,6 +1,13 @@
 # shortcut to this dotfiles path is $ZSH
 export ZSH=$HOME/.dotfiles
 
+export ORIGPATH=$PATH #So we can put it back later...
+export MPPREFIX="/opt/local"
+
+command_exists () {
+    type "$1" &> /dev/null ;
+}
+
 # your project folder that we can `c [tab]` to
 export PROJECTS=~/Development
 
