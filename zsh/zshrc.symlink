@@ -1,42 +1,22 @@
 # shortcut to this dotfiles path is $ZSH
 export ZSH=$HOME/.dotfiles
+export ORIGPATH=$PATH
 
-export ORIGPATH=$PATH #So we can put it back later...
-export MPPREFIX="/opt/local"
-
-command_exists () {
-    type "$1" &> /dev/null ;
-}
-function pathadd () {
-    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
-        export PATH="${PATH:+"$PATH:"}$1"
-    fi
-}
-
-function pathprepend () {
-    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
-        export PATH="$1${PATH:+":$PATH"}"
-    fi
-}
-
-export PATH
-if [ -d $HOME/.bin ]; then
-	pathadd "$HOME/.bin"
-fi
-
-if [ -d $BASH/bin ]; then
-	pathadd "$HOME/.dotfiles/bin"
-fi
-
-
-# your project folder that we can `c [tab]` to
-export PROJECTS="~/Development"
-
-for config_file ($ZSH/**/*.bash) source $config_file
+source $ZSH/zsh/config.zsh
+# Configure early
 
 # source every .zsh file in this rep
-for config_file ($ZSH/**/*.zsh) source $config_file
+for config_file ($ZSH/**/*.zsh); do
+    source $config_file
+done
+for config_file ($ZSH/**/*.bash); do
+    source $config_file
+done
 
+pathadd "/usr/local/bin"
+pathadd "$HOME/.bin"
+pathadd "$HOME/.dotfiles/bin"
+export PATH
 
 # use .localrc for SUPER SECRET CRAP that you don't
 # want in your public, versioned repo.
@@ -51,4 +31,4 @@ compinit
 
 # load every completion after autocomplete loads
 for config_file ($ZSH/**/completion.sh) source $config_file
-PATH=$PATH:$HOME/.rvm/bin # Add RVM to PATH for scripting
+pathadd "$HOME/.rvm/bin" # Add RVM to PATH for scripting

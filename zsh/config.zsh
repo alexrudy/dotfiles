@@ -1,14 +1,29 @@
-if [[ -n $SSH_CONNECTION ]]; then
-  export PS1='%m:%3~$(git_info_for_prompt)%# '
-else
-  export PS1='%3~$(git_info_for_prompt)%# '
-fi
+# Some basics required for configuraiton
+pathadd () {
+    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="${PATH:+"$PATH:"}$1"
+    fi
+}
 
-export LSCOLORS="exfxcxdxbxegedabagacad"
+pathprepend () {
+    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$1${PATH:+":$PATH"}"
+    fi
+}
+
+command_exists () {
+    type "$1" &> /dev/null ;
+}
+
+# export LSCOLORS="exfxcxdxbxegedabagacad"
 export CLICOLOR=true
 
-fpath=($ZSH/zsh/functions $fpath)
+export MPPREFIX="/opt/local"
+# your project folder that we can `c [tab]` to
+export PROJECTS="$HOME/Development/"
 
+
+fpath=($ZSH/zsh/functions $fpath)
 autoload -U $ZSH/zsh/functions/*(:t)
 
 HISTFILE=~/.zsh_history
