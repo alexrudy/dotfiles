@@ -50,11 +50,12 @@ function port_python_alias () {
         export PYTHONPATH="${PYTHONPATH}:~/.python/lib/python:~/.python/lib/python$PYVERSION"
     fi
     # Add python bin/ directories to the shell path.
-    export PATH="$HOME/Library/Python/$PYVERSION/bin/:$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/:$PATH"
+    pathprepend "$HOME/Library/Python/$PYVERSION/bin/"
+    pathprepend "$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin/"
     STSCI="/usr/local/stsci/$PYDIR/lib/python"
     if [ -d $STSCI ]; then
         export PYTHONPATH="${PYTHONPATH}:$STSCI" # PUT STSCI at the end
-        export PATH="$PATH:/usr/local/stsci/$PYDIR/bin"
+        pathadd "/usr/local/stsci/$PYDIR/bin"
     fi
     
     py3exe=`find $MPPREFIX/bin -name "python3.[0-9]" | sort | tail -n 1`

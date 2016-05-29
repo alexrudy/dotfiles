@@ -9,5 +9,5 @@
 
 UCOGIT="/local/git/bin"
 if [ -d $UCOGIT ]; then
-	export PATH=$PATH:$UCOGIT
+	pathadd $UCOGIT
 fi

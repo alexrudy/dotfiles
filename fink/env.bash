@@ -23,7 +23,7 @@ function finkinit() {
     export CPPFLAGS=$CXXFLAGS 
     export ACLOCAL_FLAGS="-I /sw/share/aclocal"
     export PKG_CONFIG_PATH="/sw/lib/pkgconfig"
-    export PATH=/sw/var/lib/fink/path-prefix-10.6:$PATH
+    pathprepend "/sw/var/lib/fink/path-prefix-10.6"
     export MACOSX_DEPLOYMENT_TARGET=10.6
     export PYTHONPATH=$PYTHONPATH:/sw/lib/python2.6/site-packages
     echo -e "Set ${RED}fink${NC} variables."

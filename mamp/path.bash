@@ -1,3 +1,4 @@
 if [ -d "/Applications/MAMP/bin" ]; then
-    export PATH=$PATH:/Applications/MAMP/bin:/Applications/MAMP/bin/apache2/bin #MAMP Tools
+    pathadd "/Applications/MAMP/bin"
+    pathadd "/Applications/MAMP/bin/apache2/bin" #MAMP Tools
 fi

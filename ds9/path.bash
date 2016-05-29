@@ -7,5 +7,5 @@
 # 
 DS9SI="/usr/local/si"
 if [ -d $DS9SI ]; then
-	export PATH="$PATH:$DS9SI"
+	pathadd "$DS9SI"
 fi

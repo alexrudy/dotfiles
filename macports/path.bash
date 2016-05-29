@@ -1,6 +1,7 @@
 if [ -f "$MPPREFIX/bin/port" ]; then
-    export PATH="$MPPREFIX/bin:$MPPREFIX/sbin:$PATH"                            #Macports Path Prefix
-    export PATH="$PATH:$MPPREFIX/libexec/perl5.12/sitebin"
+    pathprepend "$MPPREFIX/bin"
+    pathprepend "$MPPREFIX/sbin"                            #Macports Path Prefix
+    pathadd "$MPPREFIX/libexec/perl5.12/sitebin"
 fi
 
 tmp () {

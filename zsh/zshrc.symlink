@@ -7,12 +7,32 @@ export MPPREFIX="/opt/local"
 command_exists () {
     type "$1" &> /dev/null ;
 }
+function pathadd () {
+    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="${PATH:+"$PATH:"}$1"
+    fi
+}
+
+function pathprepend () {
+    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+        export PATH="$1${PATH:+":$PATH"}"
+    fi
+}
+
+export PATH
+if [ -d $HOME/.bin ]; then
+	pathadd "$HOME/.bin"
+fi
+
+if [ -d $BASH/bin ]; then
+	pathadd "$HOME/.dotfiles/bin"
+fi
+
 
 # your project folder that we can `c [tab]` to
-export PROJECTS=~/Development
+export PROJECTS="~/Development"
 
 for config_file ($ZSH/**/*.bash) source $config_file
-
 
 # source every .zsh file in this rep
 for config_file ($ZSH/**/*.zsh) source $config_file
