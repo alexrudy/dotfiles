@@ -32,9 +32,9 @@ function port_python_alias () {
     PYVERSION=$(port_python_version)
     PORT_BIN="$MPPREFIX/bin"
     PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin"
-    
     link_port_python $PORT_BIN
     link_port_python $PORT_PY_BIN
+    
     
     PYDIR="py-$PYVERSIONSHORT"
     
@@ -68,9 +68,9 @@ function port_python_alias () {
 }
 
 if [ -f $MPPREFIX/bin/port ]; then
-	port_use_python=`port select --show python 2>&1 | grep "Error"`
-	
-	if [[ -z "$port_use_python" ]]; then
-	    	port_python_alias
-	fi
+    port_use_python=`port select --show python 2>&1 | grep "Error"`
+
+    if [[ -z "$port_use_python" ]]; then
+            port_python_alias
+    fi
 fi
