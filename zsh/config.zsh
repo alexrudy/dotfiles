@@ -1,30 +1,11 @@
-# Some basics required for configuraiton
-pathadd () {
-    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
-        export PATH="${PATH:+"$PATH:"}$1"
-    fi
-}
+export CLICOLOR=1
+export LSCOLORS=Gxfxcxdxbxegedabagacad
+export LC_CTYPE=en_US.UTF-8 #required for Textmate Budles SVN
+export LESSCHARSET=utf-8
+export LESS="-R"
 
-pathprepend () {
-    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
-        export PATH="$1${PATH:+":$PATH"}"
-    fi
-}
-
-command_exists () {
-    type "$1" &> /dev/null ;
-}
-
-# export LSCOLORS="exfxcxdxbxegedabagacad"
-export CLICOLOR=true
-
-export MPPREFIX="/opt/local"
-# your project folder that we can `c [tab]` to
-export PROJECTS="$HOME/Development/"
-
-
-fpath=($ZSH/zsh/functions $fpath)
-autoload -U $ZSH/zsh/functions/*(:t)
+fpath=($DOTFILES/zsh/functions $fpath)
+autoload -U $DOTFILES/zsh/functions/*(:t)
 
 HISTFILE=~/.zsh_history
 HISTSIZE=10000

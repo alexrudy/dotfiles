@@ -9,12 +9,7 @@ if [ -f $MPPREFIX/bin/port ]; then
 	    if [ -d "$HOME/Development/" ]; then
 	        export PROJECT_HOME="$HOME/Development/"
 	    fi
+				VIRTUALENVWRAPPER_PYTHON='/opt/local/bin/python'
         source /opt/local/bin/virtualenvwrapper.sh
 	fi
 fi
-
-activatepy () {
-    in_pwd=`pwd`
-    workon "$@"
-    cd "$in_pwd"
-}

@@ -1,34 +1,15 @@
 # shortcut to this dotfiles path is $ZSH
-export ZSH=$HOME/.dotfiles
+export DOTFILES=$HOME/.dotfiles
 export ORIGPATH=$PATH
 
-source $ZSH/zsh/config.zsh
-# Configure early
+# your project folder that we can `c [tab]` to
+export PROJECTS="$HOME/Development/"
 
-# source every .zsh file in this rep
-for config_file ($ZSH/**/*.zsh); do
-    source $config_file
-done
-for config_file ($ZSH/**/*.bash); do
-    source $config_file
-done
+source $DOTFILES/dotfiles.sh
 
 pathadd "/usr/local/bin"
 pathadd "$HOME/.bin"
 pathadd "$HOME/.dotfiles/bin"
 export PATH
 
-# use .localrc for SUPER SECRET CRAP that you don't
-# want in your public, versioned repo.
-if [[ -a ~/.localrc ]]
-then
-  source ~/.localrc
-fi
-
-# initialize autocomplete here, otherwise functions won't be loaded
-autoload -U compinit
-compinit
-
-# load every completion after autocomplete loads
-for config_file ($ZSH/**/completion.sh) source $config_file
 pathadd "$HOME/.rvm/bin" # Add RVM to PATH for scripting

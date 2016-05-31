@@ -11,31 +11,7 @@ export ORIGPATH=$PATH #So we can put it back later...
 export DOTFILES=$HOME/.dotfiles
 export MPPREFIX="/opt/local"
 
-command_exists () {
-    type "$1" &> /dev/null ;
-}
-
-# load every completion after autocomplete loads
-for config_file in $DOTFILES/**/*.bash
-do 
-	source $config_file
-done
-
-# use .localrc for SUPER SECRET CRAP that you don't
-# want in your public, versioned repo.
-if [[ -a ~/.localrc ]]
-then
-  source ~/.localrc
-fi
-
-
-# load every completion after autocomplete loads
-for config_file in $DOTFILES/**/completion.sh
-do 
-	source $config_file
-done
-
-
-
+# All of the hard work is done in here!
+source $DOTFILES/dotfiles.sh
 
 
