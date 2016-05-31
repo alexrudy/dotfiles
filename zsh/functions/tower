@@ -1,7 +1,7 @@
 tower() {
     if [[ $# -gt 0 ]]; then
-        open -a "Tower.app" $@
+       gittower $@
     else
-        open -a "Tower.app" $PWD
+        gittower $PWD
     fi
 }

@@ -22,9 +22,21 @@ function prompt_alex_precmd {
   fi
 
   zstyle ':vcs_info:*:prompt:*' formats "${branch_format}"
-
+  
   vcs_info 'prompt'
-
+  things_info=""
+  if [[ "$OSTYPE" == darwin* ]]; then
+      if [[ $(osascript -e 'tell application "System Events" to (name of processes) contains "Things"') == "true" ]]; then
+n=`osascript<<EOF
+  tell application "Things"
+      set n to count of to dos of list "Today"
+  end tell
+EOF
+`
+        things_info="${_prompt_alex_colors[1]}(✓$n)%f"
+    fi
+  fi
+  
   if (( $+functions[python-info] )); then
     python-info
   fi
@@ -85,12 +97,12 @@ function prompt_alex_setup {
   zstyle ':vcs_info:*:prompt:*' nvcsformats   ""
 
   # Set python-info parameters.
-  zstyle ':prezto:module:python:info:virtualenv' format '(%v)'
+  zstyle ':prezto:module:python:info:virtualenv' format "${_prompt_alex_colors[3]}(%v)%f"
   # Define prompts.
   PROMPT="
 ${SSH_TTY:+"${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}%m%f "}in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}'"
 ""› "
-  RPROMPT='$python_info[virtualenv]'
+  RPROMPT='$python_info[virtualenv]$things_info'
 }
 
 prompt_alex_setup "$@"
