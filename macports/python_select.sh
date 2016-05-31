@@ -7,14 +7,18 @@ function port_python_version () {
   if [ -z $PYVERSION ]; then
     local GETPYTHONREGEX="s/^.*py[A-Za-z]+([0-9])([0-9]+)-?[A-Za-z]*.*$/\1.\2/"
     local COMMAND="select"
-    eval "PYVERSION=$(port $COMMAND --show python | sed -E $GETPYTHONREGEX)"
+    port_select=`port $COMMAND --show python 2>&1`
+    if [[ -n "$(echo "$port_select" | grep "Error")" ]]; then
+        return 1
+    fi
+    PYVERSION=$(echo $port_select | sed -E $GETPYTHONREGEX)
     PYVERSIONSHORT=`echo $PYVERSION | sed -E 's/\.//g'`
   fi
   echo "$PYVERSION"
 }
 
 function link_port_python () {
-  files=(`find $1/*-$(port_python_version)`)
+  files=(`find $1 -iname "*-$(port_python_version)"`)
   for file in $files
   do
       dirname=${file%/*}
@@ -29,7 +33,7 @@ function link_port_python () {
 
 function port_python_alias () {
     
-    PYVERSION=$(port_python_version)
+    PYVERSION=$1
     PORT_BIN="$MPPREFIX/bin"
     PORT_PY_BIN="$MPPREFIX/Library/Frameworks/Python.framework/Versions/$PYVERSION/bin"
     link_port_python $PORT_BIN
@@ -68,9 +72,9 @@ function port_python_alias () {
 }
 
 if [ -f $MPPREFIX/bin/port ]; then
-    port_use_python=`port select --show python 2>&1 | grep "Error"`
-
-    if [[ -z "$port_use_python" ]]; then
-            port_python_alias
+    port_use_python=$(port_python_version)
+    
+    if [[ ! $? ]]; then
+        port_python_alias "$port_use_python"
     fi
 fi

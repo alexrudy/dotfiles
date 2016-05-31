@@ -1,0 +1,7 @@
+tower() {
+    if [[ $# -gt 0 ]]; then
+        open -a "Tower.app" $@
+    else
+        open -a "Tower.app" $PWD
+    fi
+}
