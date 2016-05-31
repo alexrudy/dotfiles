@@ -7,13 +7,13 @@ configure_from_file () {
 		if [[ -a "$1" ]] && [[ ! -x "$1" ]] && [[ *":$1:"* != ":$CONFIGURE_FILES:" ]]; then
 			source $1
 			CONFIGURE_FILES="${CONFIGURE_FILES:+"$CONFIGURE_FILES:"}$1"
+			end=`/opt/local/bin/gdate +%s.%N`
+			duration=`echo "$end - $start" | bc`
+			duration=`printf "%0.1f" $duration`
+			if [[ "$duration" != "0.0" ]]; then
+				echo "$duration: $1"
+			fi
 		fi
-	fi
-	end=`/opt/local/bin/gdate +%s.%N`
-	duration=`echo "$end - $start" | bc`
-	duration=`printf "%0.1f" $duration`
-	if [[ "$duration" != "0.0" ]]; then
-		echo "$duration: $1"
 	fi
 }
 

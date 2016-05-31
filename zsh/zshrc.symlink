@@ -13,3 +13,4 @@ pathadd "$HOME/.dotfiles/bin"
 export PATH
 
 pathadd "$HOME/.rvm/bin" # Add RVM to PATH for scripting
+setopt LOCAL_OPTIONS # allow functions to have local options
