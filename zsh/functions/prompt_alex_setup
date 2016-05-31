@@ -28,6 +28,8 @@ function prompt_alex_precmd {
   if (( $+functions[python-info] )); then
     python-info
   fi
+  
+  
 }
 
 function prompt_alex_setup {
@@ -86,8 +88,8 @@ function prompt_alex_setup {
   zstyle ':prezto:module:python:info:virtualenv' format '(%v)'
   # Define prompts.
   PROMPT="
-${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}%m%f in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}'"
-""$ "
+${SSH_TTY:+"${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}%m%f "}in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}'"
+""› "
   RPROMPT='$python_info[virtualenv]'
 }
 
