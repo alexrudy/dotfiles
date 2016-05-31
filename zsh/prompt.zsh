@@ -84,12 +84,12 @@ function virtualenv_info {
 }
 
 
-export PROMPT=$'\n$(rb_prompt) $(user_on_host) in $(directory_name) $(git_dirty)$(need_push)$(virtualenv_info)\n› '
-set_prompt () {
-  export RPROMPT="%{$fg_bold[cyan]%}$(todo)%{$reset_color%}"
-}
+# export PROMPT=$'\n$(rb_prompt) $(user_on_host) in $(directory_name) $(git_dirty)$(need_push)$(virtualenv_info)\n› '
+# set_prompt () {
+  # export RPROMPT="%{$fg_bold[cyan]%}$(todo)%{$reset_color%}"
+# }
 
-precmd() {
-  title "zsh" "%m" "%55<...<%~"
-  set_prompt
-}
+# precmd() {
+  # title "zsh" "%m" "%55<...<%~"
+  # set_prompt
+# }

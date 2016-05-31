@@ -14,3 +14,8 @@ export PATH
 
 pathadd "$HOME/.rvm/bin" # Add RVM to PATH for scripting
 setopt LOCAL_OPTIONS # allow functions to have local options
+
+# Start ZPREZTO
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
