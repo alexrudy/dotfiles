@@ -29,7 +29,7 @@ function prompt_alex_precmd {
       if [[ $(osascript -e 'tell application "System Events" to (name of processes) contains "Things"') == "true" ]]; then
 n=`osascript<<EOF
   tell application "Things"
-      set n to count of to dos of list "Today"
+      get count of ((to dos in list "Today") whose status is open)
   end tell
 EOF
 `
