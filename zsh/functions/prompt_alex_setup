@@ -16,25 +16,30 @@
 function prompt_alex_precmd {
   # Check for untracked files or updated submodules since vcs_info does not.
   if [[ -n $(git ls-files --other --exclude-standard 2> /dev/null) ]]; then
-    branch_format="(${_prompt_alex_colors[1]}%b%f%u%c${_prompt_alex_colors[4]}●%f)"
+    branch_format="on ${_prompt_alex_colors[1]}%b%f%u%c${_prompt_alex_colors[4]}●%f"
   else
-    branch_format="(${_prompt_alex_colors[1]}%b%f%u%c)"
+    branch_format="on ${_prompt_alex_colors[1]}%b%f%u%c"
   fi
 
   zstyle ':vcs_info:*:prompt:*' formats "${branch_format}"
-  
+  _need_push=$(need_push)
   vcs_info 'prompt'
-  things_info=""
+  apple_info=""
   if [[ "$OSTYPE" == darwin* ]]; then
-      if [[ $(osascript -e 'tell application "System Events" to (name of processes) contains "Things"') == "true" ]]; then
-n=`osascript<<EOF
-  tell application "Things"
-      get count of ((to dos in list "Today") whose status is open)
-  end tell
-EOF
-`
-        things_info="${_prompt_alex_colors[1]}(✓$n)%f"
+    apple_info="("
+    if [[ $(isactive "Things") == "true" ]]; then
+        apple_info+="${_prompt_alex_colors[1]}✓$(today)%f"
     fi
+    # if [[ $(isactive "Mail") == "true" ]]; then
+    #     unread=$(mail-unread)
+    #     if [[ $unread -gt 0 ]]; then
+    #         apple_info+="${_prompt_alex_colors[1]}✉️ $unread%f"
+    #     fi
+    # fi
+    apple_info+=")"
+  fi
+  if [[ "$apple_info" == "()" ]]; then
+      apple_info=""
   fi
   
   if (( $+functions[python-info] )); then
@@ -82,7 +87,7 @@ function prompt_alex_setup {
   #   %a - action (e.g. rebase-i)
   #   %R - repository path
   #   %S - path in the repository
-  local branch_format="(${_prompt_alex_colors[1]}%b%f%u%c)"
+  local branch_format="on ${_prompt_alex_colors[1]}%b%f%u%c"
   local action_format="(${_prompt_alex_colors[5]}%a%f)"
   local unstaged_format="${_prompt_alex_colors[2]}●%f"
   local staged_format="${_prompt_alex_colors[5]}●%f"
@@ -100,9 +105,9 @@ function prompt_alex_setup {
   zstyle ':prezto:module:python:info:virtualenv' format "${_prompt_alex_colors[3]}(%v)%f"
   # Define prompts.
   PROMPT="
-${SSH_TTY:+"${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}%m%f "}in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}'"
+${SSH_TTY:+"${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}%m%f "}in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}${_need_push}'"
 ""› "
-  RPROMPT='$python_info[virtualenv]$things_info'
+  RPROMPT='$python_info[virtualenv]$apple_info'
 }
 
 prompt_alex_setup "$@"
