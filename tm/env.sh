@@ -7,7 +7,11 @@
 # 
 if command_exists mate; then
     tm() {
-        mate -w $@
+        if [[ $# -gt 0 ]] && [[ -a $1 ]]; then
+            mate -w $@
+        else
+            mate $@
+        fi
     }
 	export EDITOR='tm'
 	export GIT_EDITOR="mate --name 'Git Commit Message' -w -l 1"
