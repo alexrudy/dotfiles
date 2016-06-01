@@ -1,0 +1,1 @@
+pathadd $DOTFILES/osx/bin

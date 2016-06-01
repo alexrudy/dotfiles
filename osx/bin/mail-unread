@@ -1,0 +1,4 @@
+#!/usr/bin/env osascript
+tell application "Mail"
+    get unread count of inbox
+end tell
