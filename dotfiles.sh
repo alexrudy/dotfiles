@@ -1,14 +1,20 @@
 # This is the core script for loading all of the dotfiles in this directory.
 
+if [[ -a /opt/local/bin/gdate ]]; then
+	_DATEFUNC="/opt/local/bin/gdate"
+else
+	_DATEFUNC="date"
+fi
+
 CONFIGURE_FILES=""
 configure_from_file () {
-	start=`/opt/local/bin/gdate +%s.%N`
+	start=`$_DATEFUNC +%s.%N`
 	if [[ -n $2 ]] && [[ $(basename $1 ) != "completion.$2" ]]; then
 		if [[ -a "$1" ]] && [[ ! -x "$1" ]] && [[ *":$1:"* != ":$CONFIGURE_FILES:" ]]; then
 			source $1
 			CONFIGURE_FILES="${CONFIGURE_FILES:+"$CONFIGURE_FILES:"}$1"
             if [[ -n $PROFILE_TIME_THRESHOLD ]]; then
-    			end=`/opt/local/bin/gdate +%s.%N`
+    			end=`$_DATEFUNC +%s.%N`
     			duration=`echo "$end - $start" | bc`
     			if [[ $(echo "$duration >= $PROFILE_TIME_THRESHOLD" | bc) -eq 1 ]]; then
         			duration=`printf "%0.2f" $duration`
