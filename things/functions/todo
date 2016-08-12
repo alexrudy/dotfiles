@@ -7,39 +7,95 @@
 #
 
 LIST=${1:-"Today"}
-SELECT="list \"$LIST\""
-if [[ "$LIST" == "@"* ]]; then
-    SELECT="project \"${LIST##@}\""
-fi
-if [[ "$LIST" == "!"* ]]; then
-    SELECT="area \"${LIST##\!}\""
-fi
-
 osascript<<EOF
-tell application "Things"
-    set myList to {}
-    set counter to 0
-    set resultref to a reference to myList
-    set todos to ((to dos in $SELECT) whose status is open)
-    repeat with thetodo in todos
-        set counter to counter + 1
-        set AppleScript's text item delimiters to {" +"}
-        set todotext to counter as text & ") " & name of thetodo
-        if (count of tags in thetodo) is greater than 0 then
-            set todotext to todotext & " (+" & ((name of tags in thetodo) as text) & ")"
+global newline
+set newline to "
+"
+global newline
+set newline to "
+"
+using terms from application "Things"
+  on formatTodo(thetodo, counter)
+    tell application "Things"
+      set AppleScript's text item delimiters to {" +"}
+      set todotext to name of thetodo
+      if (id of to dos of list "Today") contains id of thetodo then
+        set todotext to "★ " & todotext
+      end if
+      set tagtext to " (+"
+      set posttext to ""
+      if (count of tags in thetodo) is greater than 0 then
+        set tagtext to tagtext & ((name of tags in thetodo) as text)
+      end if
+      if project of thetodo is not equal to missing value then
+        set posttext to posttext & " @" & name of project of thetodo
+        set tagtext to tagtext & ((name of tags in project of thetodo) as text)
+        if area of project of thetodo is not equal to missing value then
+          set posttext to posttext & " / " & name of area of project of thetodo
+          set tagtext to tagtext & ((name of tags in area of project of thetodo) as text)
         end if
-		if project of thetodo is not equal to missing value then
-			set todotext to todotext & " @" & name of project of thetodo
-			
-		else
-			if area of thetodo is not equal to missing value then
-				set todotext to todotext & " @" & name of area of thetodo
-			end if
-		end if
-        set end of myList to todotext
-    end repeat
-    set AppleScript's text item delimiters to {"
+      else
+        if area of thetodo is not equal to missing value then
+          set posttext to posttext & " @" & name of area of thetodo
+        end if
+      end if
+      if due date of thetodo is not equal to missing value then
+        set daystodue to ((due date of thetodo) - (current date)) / (3600 * 24)
+        if daystodue is less than 1.0 then
+          set posttext to posttext & " !Due Today"
+        else
+          set ndays to round (daystodue)
+          set posttext to posttext & " !Due in " & ndays & " days"
+        end if
+      end if
+      set tagtext to tagtext & ")"
+      if tagtext is not equal to " (+)" then
+        set todotext to todotext & tagtext
+      end if
+      set todotext to todotext & posttext
+      set innertodos to {}
+      try
+        set innertodos to (to dos of thetodo whose status is open)
+      end try
+      set innercounter to 0
+      repeat with innertodo in innertodos
+        if (id of to dos of list "Trash") does not contain (id of innertodo) then
+          set innercounter to innercounter + 1
+          set thiscounter to counter & "." & innercounter
+          set todotext to todotext & newline & "   " & thiscounter & ") " & formatTodo(innertodo, thiscounter) of me
+        end if
+      end repeat
+    end tell
+    return todotext
+  end formatTodo
+  
+  
+  tell application "Things"
+    set myList to {}
+    set thelistname to "$LIST"
+    if thelistname is in (name of lists) then
+      set todos to (to dos of list thelistname whose status is open)
+    else if thelistname is in (name of projects) then
+      set todos to (to dos of project thelistname whose status is open)
+    else if thelistname is in (name of areas) then
+      set todos to (to dos of area thelistname whose status is open)
+    else if thelistname is in (name of tags) then
+      set todos to (to dos of tag thelistname whose status is open)
+    else
+      error "Can't find list '" & thelistname & "' in Things"
+    end if
+    if todos is not equal to {} and (count of todos) is greater than 0 then
+      set counter to 0
+      repeat with thetodo in todos
+        if (id of to dos of list "Trash") does not contain (id of thetodo) then
+          set counter to counter + 1
+          set end of myList to (counter as text) & ") " & formatTodo(thetodo, counter as text) of me
+        end if
+      end repeat
+      set AppleScript's text item delimiters to {"
 "}
-    get myList as text
-end tell
+      get myList as text
+    end if
+  end tell
+end using terms from
 EOF
