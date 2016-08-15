@@ -11,28 +11,35 @@ osascript<<EOF
 global newline
 set newline to "
 "
-global newline
-set newline to "
-"
 using terms from application "Things"
+  
+  on appendTags(thecontainer, thetags)
+    if (count of {tags in thecontainer}) is greater than 0 then
+      repeat with thistag in (tags of thecontainer)
+        set thisname to name of thistag as text
+        if thetags does not contain thisname then
+          copy thisname to the end of thetags
+        end if
+      end repeat
+    end if
+  end appendTags
+  
   on formatTodo(thetodo, counter)
     tell application "Things"
-      set AppleScript's text item delimiters to {" +"}
       set todotext to name of thetodo
       if (id of to dos of list "Today") contains id of thetodo then
         set todotext to "★ " & todotext
       end if
       set tagtext to " (+"
+      set thesetags to {}
       set posttext to ""
-      if (count of tags in thetodo) is greater than 0 then
-        set tagtext to tagtext & ((name of tags in thetodo) as text)
-      end if
+      appendTags(thetodo, thesetags) of me
       if project of thetodo is not equal to missing value then
         set posttext to posttext & " @" & name of project of thetodo
-        set tagtext to tagtext & ((name of tags in project of thetodo) as text)
+        appendTags(project of thetodo, thesetags) of me
         if area of project of thetodo is not equal to missing value then
           set posttext to posttext & " / " & name of area of project of thetodo
-          set tagtext to tagtext & ((name of tags in area of project of thetodo) as text)
+          appendTags(area of project of thetodo, thesetags) of me
         end if
       else
         if area of thetodo is not equal to missing value then
@@ -48,7 +55,8 @@ using terms from application "Things"
           set posttext to posttext & " !Due in " & ndays & " days"
         end if
       end if
-      set tagtext to tagtext & ")"
+      set AppleScript's text item delimiters to {" +"}
+      set tagtext to tagtext & (thesetags as text) & ")"
       if tagtext is not equal to " (+)" then
         set todotext to todotext & tagtext
       end if
