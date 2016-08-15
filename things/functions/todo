@@ -24,16 +24,42 @@ using terms from application "Things"
     end if
   end appendTags
   
+  on formatDueDate(thetodo)
+    set datetext to ""
+    tell application "Things"
+      if due date of thetodo is not equal to missing value then
+        set ndays to round (((due date of thetodo) - (current date)) / (3600 * 24))
+        set duedate to (due date of thetodo)
+        
+        if year of duedate is equal to year of (current date) and month of duedate is equal to month of (current date) and day of duedate is equal to day of (current date) then
+          set datetext to " !Due Today"
+        else
+          if ndays is not equal to 1 then
+            set datetext to " !Due in " & ndays & " days"
+          else
+            set datetext to " !Due Tomororw"
+          end if
+        end if
+      end if
+    end tell
+    return datetext
+  end formatDueDate
+  
   on formatTodo(thetodo, counter)
     tell application "Things"
       set todotext to name of thetodo
+      
+      -- Add star for Today
       if (id of to dos of list "Today") contains id of thetodo then
         set todotext to "★ " & todotext
       end if
-      set tagtext to " (+"
+      
+      -- Collect tags
       set thesetags to {}
-      set posttext to ""
       appendTags(thetodo, thesetags) of me
+      
+      -- Add project / area information
+      set posttext to ""
       if project of thetodo is not equal to missing value then
         set posttext to posttext & " @" & name of project of thetodo
         appendTags(project of thetodo, thesetags) of me
@@ -44,23 +70,17 @@ using terms from application "Things"
       else
         if area of thetodo is not equal to missing value then
           set posttext to posttext & " @" & name of area of thetodo
+          appendTags(area of thetodo, thesetags) of me
         end if
       end if
-      if due date of thetodo is not equal to missing value then
-        set daystodue to ((due date of thetodo) - (current date)) / (3600 * 24)
-        if daystodue is less than 1.0 then
-          set posttext to posttext & " !Due Today"
-        else
-          set ndays to round (daystodue)
-          set posttext to posttext & " !Due in " & ndays & " days"
-        end if
-      end if
-      set AppleScript's text item delimiters to {" +"}
-      set tagtext to tagtext & (thesetags as text) & ")"
-      if tagtext is not equal to " (+)" then
+      
+      if (count of thesetags) is greater than 0 then
+        set AppleScript's text item delimiters to {" +"}
+        set tagtext to " (+" & (thesetags as text) & ")"
         set todotext to todotext & tagtext
       end if
-      set todotext to todotext & posttext
+      
+      set todotext to todotext & posttext & formatDueDate(thetodo) of me
       set innertodos to {}
       try
         set innertodos to (to dos of thetodo whose status is open)
@@ -77,21 +97,28 @@ using terms from application "Things"
     return todotext
   end formatTodo
   
+  on getTodoCollection(thelistname)
+    tell application "Things"
+      if thelistname is in (name of lists) then
+        set todos to (to dos of list thelistname whose status is open)
+      else if thelistname is in (name of projects) then
+        set todos to (to dos of project thelistname whose status is open)
+      else if thelistname is in (name of areas) then
+        set todos to (to dos of area thelistname whose status is open)
+      else if thelistname is in (name of tags) then
+        set todos to (to dos of tag thelistname whose status is open)
+      else
+        error "Can't find list '" & thelistname & "' in Things"
+      end if
+      return todos
+    end tell
+  end getTodoCollection
+  
   
   tell application "Things"
     set myList to {}
     set thelistname to "$LIST"
-    if thelistname is in (name of lists) then
-      set todos to (to dos of list thelistname whose status is open)
-    else if thelistname is in (name of projects) then
-      set todos to (to dos of project thelistname whose status is open)
-    else if thelistname is in (name of areas) then
-      set todos to (to dos of area thelistname whose status is open)
-    else if thelistname is in (name of tags) then
-      set todos to (to dos of tag thelistname whose status is open)
-    else
-      error "Can't find list '" & thelistname & "' in Things"
-    end if
+    set todos to getTodoCollection(thelistname) of me
     if todos is not equal to {} and (count of todos) is greater than 0 then
       set counter to 0
       repeat with thetodo in todos
@@ -100,8 +127,7 @@ using terms from application "Things"
           set end of myList to (counter as text) & ") " & formatTodo(thetodo, counter as text) of me
         end if
       end repeat
-      set AppleScript's text item delimiters to {"
-"}
+      set AppleScript's text item delimiters to newline
       get myList as text
     end if
   end tell
