@@ -1,6 +1,6 @@
 if [ -f "$MPPREFIX/bin/port" ]; then
     pathprepend "$MPPREFIX/bin"
-    pathprepend "$MPPREFIX/sbin"                            #Macports Path Prefix
+    pathprepend "$MPPREFIX/sbin"
     pathadd "$MPPREFIX/libexec/perl5.12/sitebin"
 fi
 

@@ -1,4 +1,4 @@
-backend : MacOSX
+backend : TkAgg
 
 # Fonts
 font.serif         : Times, Palatino, New Century Schoolbook, Bookman, Computer Modern Roman
@@ -8,19 +8,19 @@ font.monospace     : Courier, Computer Modern Typewriter
 
 # Force use of TeX for labels, regarldess of content
 # This makes all the fonts look consistent
-text.usetex        : true
+text.usetex        : false
 
 # Fix Figure Properties: High-DPI, fullscreen, all white.
 figure.facecolor   : w
 figure.figsize     : 9, 5
-# figure.dpi         : 160
+figure.dpi         : 200
 
 # Scientific axes limits, in log scale
-axes.formatter.limits : -3, 3
+axes.formatter.limits : -5, 5
 
 # Images should not be interpolated.
 image.interpolation : nearest
+image.origin 		: lower
 
-savefig.dpi         : 100
-image.origin : lower
+savefig.dpi         : 200
 # verbose.level  : debug
