@@ -9,7 +9,7 @@ fi
 CONFIGURE_FILES=""
 configure_from_file () {
 	start=`$_DATEFUNC +%s.%N`
-	if [[ -n $2 ]] && [[ $(basename $1 ) != "completion.$2" ]]; then
+	if [[ -z $2 ]] || [[ $(basename $1 ) != "completion.$2" ]]; then
 		if [[ -a "$1" ]] && [[ ! -x "$1" ]] && [[ *":$1:"* != ":$CONFIGURE_FILES:" ]]; then
 			source $1
 			CONFIGURE_FILES="${CONFIGURE_FILES:+"$CONFIGURE_FILES:"}$1"
@@ -30,7 +30,7 @@ configure_from_file () {
 # want in your public, versioned repo.
 if [[ -a ~/.localrc ]]
 then
-  source ~/.localrc
+  configure_from_file ~/.localrc
 fi
 
 
@@ -61,8 +61,8 @@ if [[ -n "$ZSH_NAME" ]]; then
 	done
 	
 	# initialize autocomplete here, otherwise functions won't be loaded
-	autoload -U compinit
-	compinit
+    # autoload -U compinit
+    # compinit
 	
 fi
 

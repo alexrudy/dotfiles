@@ -5,7 +5,7 @@ PATH              = "$PATH:/Users/alexrudy/.rvm/gems/ruby-1.9.3-p327/bin:/Users/
 windowTitle       = "$TM_DISPLAYNAME $windowTitleSCM"
 invisiblesMap     = "~ "
 include           = "{$include,.tm_properties,.htaccess,.gitignore,.travis.yml}"
-exclude           = "{$exclude,__pycache__}"
+exclude           = "{$exclude,__pycache__,*.pyc}"
 excludeInFileChooser = "{$excludeInFileChooser,build/*,dist/*}"
 
 [ python ]
