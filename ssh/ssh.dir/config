@@ -75,6 +75,14 @@ Host shred
     HostName shred.ucolick.org
     User alexrudy
 
+# Keck
+
+Host *.keck.hawaii.edu napili
+    KexAlgorithms +diffie-hellman-group1-sha1
+
+Host napili
+    HostName napili.keck.hawaii.edu
+
 Host spgcvs.ucolick.org
     ForwardAgent yes
     ForwardX11 no

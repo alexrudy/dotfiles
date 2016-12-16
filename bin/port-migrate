@@ -1,0 +1,48 @@
+#!/usr/bin/env sh
+set -ue
+DOTPORT=$HOME/.ports
+STATUSDIR=$DOTPORT/status
+mkdir -p "$STATUSDIR/"
+
+# Record installed ports
+if [ ! -f $DOTPORT/ports.txt ]; then
+    port -qv installed > $DOTPORT/ports.txt
+fi
+
+# Record requested ports
+if [ ! -f $DOTPORT/requested.txt ]; then
+    port echo requested | cut -d ' ' -f 1 | uniq > $DOTPORT/requested.txt
+fi
+
+# Uninstall all ports
+if [ ! -f "$STATUSDIR/uninstalled.txt" ]; then
+    sudo port -f uninstall installed
+    touch "$STATUSDIR/uninstalled.txt"
+fi
+
+# Clean up partially completed builds
+sudo rm -rf /opt/local/var/macports/build/*
+
+# Download and run the restore_ports.tcl script
+if [ ! -f "$DOTPORT/restore_ports.tcl" ]; then
+    curl -o "$DOTPORT/restore_ports.tcl" https://svn.macports.org/repository/macports/contrib/restore_ports/restore_ports.tcl
+    chmod +x "$DOTPORT/restore_ports.tcl"
+fi
+
+if [ ! -f "$STATUSDIR/restored.txt" ]; then
+    sudo "$DOTPORT/restore_ports.tcl" $DOTPORT/ports.txt
+    touch "$STATUSDIR/restored.txt"
+fi
+
+# Restore the requested status.
+if [ ! -f "$STATUSDIR/unsetrequested.txt" ]; then
+    sudo port unsetrequested installed
+    touch "$STATUSDIR/unsetrequested.txt"
+fi
+if [ ! -f "$STATUSDIR/setrequested.txt" ]; then
+    xargs sudo port setrequested < $DOTPORT/requested.txt
+    touch "$STATUSDIR/setrequested.txt"
+fi
+
+# Clean up status files.
+rm -f $STATUSDIR/*.txt
