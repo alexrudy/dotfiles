@@ -69,25 +69,17 @@ Host R2D2 r2d2
 
 Host shard
     HostName shard.ucolick.org
-    User user
+    User alexrudy
     
 Host shred
     HostName shred.ucolick.org
     User alexrudy
-    
-Host spgcvs.ucolick.org
-    IdentityFile ~/.ssh/arrudy@spgcvs
-    
-
-# Keck
-
-Host keck
-    HostName xserver2.keck.hawaii.edu
 
 Host spgcvs.ucolick.org
     ForwardAgent yes
     ForwardX11 no
     User cvsr
+    IdentityFile ~/.ssh/arrudy@spgcvs
 
 Host keckcvs.ucolick.org
     ForwardAgent yes
