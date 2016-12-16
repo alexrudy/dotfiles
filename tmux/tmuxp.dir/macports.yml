@@ -1,0 +1,6 @@
+session_name: MacPorts
+start_directory: ~/
+windows:
+- window_name: port
+  panes:
+    - pane
