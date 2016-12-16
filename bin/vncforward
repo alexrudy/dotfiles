@@ -1,4 +1,18 @@
 #!/usr/bin/env sh
+#
+#  vncforward
+#  .dotfiles
+#
+#  Created by Alexander Rudy on 2016-10-10.
+#  Copyright 2016 Alexander Rudy. All rights reserved.
+#
+
+cmd=`basename $0`
+if [ ! $# -ge 3 ]; then
+    echo "usage: $cmd n_min n_max args-to-ssh"
+    echo " e.g.: $cmd 1 5 user@host"
+    exit 1
+fi
 
 NMIN=$1
 shift
