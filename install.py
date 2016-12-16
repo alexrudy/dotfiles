@@ -101,7 +101,7 @@ class Installer(object):
                 warnings.warn("Overwriting {0}".format(target))
                 os.remove(target)
             else:
-                raise ValueError("Mode {0:s} is not understood.")
+                raise ValueError("Mode {0:s} is not understood.".format(self.mode))
         os.symlink(source, target)
         return
     
