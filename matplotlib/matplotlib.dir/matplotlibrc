@@ -13,7 +13,7 @@ text.usetex        : false
 # Fix Figure Properties: High-DPI, fullscreen, all white.
 figure.facecolor   : w
 figure.figsize     : 9, 5
-figure.dpi         : 200
+figure.dpi         : 80
 
 # Scientific axes limits, in log scale
 axes.formatter.limits : -5, 5
