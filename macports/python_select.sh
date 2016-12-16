@@ -11,7 +11,7 @@ function port_python_version () {
     if [[ -n "$(echo "$port_select" | grep "Error")" ]]; then
         return 1
     fi
-    PYVERSION=$(echo $port_select | sed -E $GETPYTHONREGEX)
+    PYVERSION=$(echo $port_select | grep python | sed -E $GETPYTHONREGEX)
     PYVERSIONSHORT=`echo $PYVERSION | sed -E 's/\.//g'`
   fi
   echo "$PYVERSION"
@@ -74,7 +74,7 @@ function port_python_alias () {
 if [ -f $MPPREFIX/bin/port ]; then
     port_use_python=$(port_python_version)
     
-    if [[ ! $? ]]; then
+    if [[ $? -eq 0 ]]; then
         port_python_alias "$port_use_python"
     fi
 fi
