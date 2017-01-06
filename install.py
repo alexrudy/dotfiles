@@ -61,7 +61,7 @@ class Installer(object):
         self._backup_check = backup_check
         
     def ask(self, target, kind="Dotfile"):
-        """docstring for fname"""
+        """Ask about installing a particular item."""
         print("{0:s} already exists: {1:s}, what do you want to do?".format(kind, target))
         print("[s]kip, [S]kip all, [o]verwrite, [O]verwrite all, [b]ackup, [B]ackup all")
         ans = getch()
@@ -103,6 +103,7 @@ class Installer(object):
             else:
                 raise ValueError("Mode {0:s} is not understood.".format(self.mode))
         os.symlink(source, target)
+        print("Linking {0}".format(os.path.basename(source)))
         return
     
     def install(self, dotfiles, kind="Dotfile"):
