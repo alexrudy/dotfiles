@@ -49,8 +49,8 @@ function setup_OSIRIS {
     }
 }
 
-if [ -d "/usr/local/osiris/drs/scripts/" ]; then
+if [ -d "$HOME/Development/OsirisDRP/" ]; then
     # Contents of /usr/local/osiris/drs/scripts/
-    setup_OSIRIS /usr/local/osiris/drs
+    setup_OSIRIS "$HOME/Development/OsirisDRP/"
 fi
 

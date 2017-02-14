@@ -11,6 +11,10 @@ pathprepend () {
     fi
 }
 
+pathdemote () {
+    path=(${(@)path:#$1}, $1)
+}
+
 command_exists () {
     type "$1" &> /dev/null ;
 }
