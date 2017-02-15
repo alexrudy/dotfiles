@@ -1,10 +1,15 @@
 tmuxv () {
+    
+    # Figure out where the project might be.
     venv=$1
-    vproj=$(cat $WORKON_HOME$1/.project)
+    vproj=$(cat $WORKON_HOME/$1/.project)
     if [[ -f "$HOME/.tmuxp/$PROJECT.yaml" ]]; then
         vsession=$($DOTFILES/tmux/extract_session_name.py "$HOME/.tmuxp/$PROJECT.yaml")
-    else
+    elif [[ -f "$vproj/.tmuxp.yml" ]]; then
         vsession=$($DOTFILES/tmux/extract_session_name.py "$vproj/.tmuxp.yml")
+    else
+        echo "Can't find a tmux session for environmnet $1"
+        return
     fi
     tmuxp load -d $vproj && tmux -CC attach -t $vsession
 }
