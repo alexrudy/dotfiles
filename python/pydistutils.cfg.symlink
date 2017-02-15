@@ -1,9 +1,0 @@
-# 
-#  pydistutils.cfg.symlink
-#  .dotfiles
-#  
-#  Created by Alex Rudy on 2012-10-08.
-#  Copyright 2012 Alex Rudy. All rights reserved.
-# 
-[install]
-# user=1
