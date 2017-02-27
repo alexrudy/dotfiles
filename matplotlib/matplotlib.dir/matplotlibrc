@@ -2,7 +2,7 @@ backend : TkAgg
 
 # Fonts
 font.serif         : Times, Palatino, New Century Schoolbook, Bookman, Computer Modern Roman
-font.sans-serif    : Helvetica, Avant Garde, Computer Modern Sans serif
+font.sans-serif    : Helvetica, Avant Garde, Computer Modern Sans serif, DejaVu Sans
 font.cursive       : Zapf Chancery
 font.monospace     : Courier, Computer Modern Typewriter
 
@@ -20,7 +20,7 @@ axes.formatter.limits : -5, 5
 
 # Images should not be interpolated.
 image.interpolation : nearest
-image.origin 		: lower
+image.origin        : lower
 
 savefig.dpi         : 200
-# verbose.level  : debug
+# verbose.level     : debug
