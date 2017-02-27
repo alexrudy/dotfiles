@@ -1,1 +1,2 @@
-cd $DOTFILES && git pull
+WD=$(pwd)
+cd $DOTFILES && git pull && cd $WD
