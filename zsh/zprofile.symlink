@@ -72,3 +72,22 @@ if [[ ! -d "$TMPDIR" ]]; then
 fi
 
 TMPPREFIX="${TMPDIR%/}/zsh"
+
+# shortcut to this dotfiles path is $ZSH
+export DOTFILES=$HOME/.dotfiles
+export ORIGPATH=$PATH
+
+# your project folder that we can `c [tab]` to
+export PROJECTS="$HOME/Development/"
+PROFILE_TIME_THRESHOLD=""
+
+source $DOTFILES/dotfiles.sh
+
+pathadd "/usr/local/bin"
+pathadd "$HOME/.bin"
+pathadd "$HOME/.dotfiles/bin"
+export PATH
+
+pathadd "$HOME/.rvm/bin" # Add RVM to PATH for scripting
+setopt LOCAL_OPTIONS # allow functions to have local options
+
