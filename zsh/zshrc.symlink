@@ -1,3 +1,10 @@
+export DOTFILES=$HOME/.dotfiles
+export ORIGPATH=$PATH
+
+# your project folder that we can `c [tab]` to
+PROFILE_TIME_THRESHOLD=""
+
+source $DOTFILES/dotfiles.sh
 
 # Start ZPREZTO
 if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
