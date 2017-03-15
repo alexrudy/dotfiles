@@ -91,3 +91,4 @@ export PATH
 pathadd "$HOME/.rvm/bin" # Add RVM to PATH for scripting
 setopt LOCAL_OPTIONS # allow functions to have local options
 
+test -e "${HOME}/.iterm2_shell_integration.zsh" && configure_from_file "${HOME}/.iterm2_shell_integration.zsh"

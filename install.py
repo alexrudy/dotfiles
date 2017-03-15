@@ -106,9 +106,9 @@ class Installer(object):
         print("Linking {0}".format(os.path.basename(source)))
         return
     
-    def install(self, dotfiles, kind="Dotfile"):
+    def install(self, dotfiles, home="~"):
         """Install from a shell glob."""
-        home = os.path.expanduser("~")
+        home = os.path.expanduser(home)
         for filename in glob.iglob(join(dotfiles, "*", "*.symlink")):
             source = os.path.relpath(filename, home)
             target = join(home, ".{0:s}".format(os.path.splitext(os.path.basename(filename))[0]))
@@ -126,9 +126,10 @@ def main():
     """Main function."""
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dotfiles", default="~/.dotfiles")
+    parser.add_argument("-h", "--home", default="~")
     opt = parser.parse_args()
     installer = Installer(mode="i")
-    installer.install(os.path.expanduser(opt.dotfiles), "i")
+    installer.install(os.path.expanduser(opt.dotfiles), opt.home)
     
 if __name__ == '__main__':
     main()

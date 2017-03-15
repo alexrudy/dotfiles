@@ -6,7 +6,7 @@ else
 	_DATEFUNC="date"
 fi
 
-CONFIGURE_FILES=""
+CONFIGURE_FILES=${CONFIGURE_FILES:-''}
 configure_from_file () {
 	start=`$_DATEFUNC +%s.%N`
 	if [[ -z $2 ]] || [[ $(basename $1 ) != "completion.$2" ]]; then
@@ -32,8 +32,6 @@ if [[ -a ~/.localrc ]]
 then
   configure_from_file ~/.localrc
 fi
-
-
 
 # First, grab the path manipulation functions, etc.
 for config_file in $DOTFILES/core/*.sh
