@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 dest=$1
 shift
-ssh -t $dest "tmuxv -CC attach -t $@"
+ssh -t $dest "loadrc && tmuxv $@"
 
