@@ -1,0 +1,5 @@
+# env is always loaded.
+
+function loadrc () {
+    source $HOME/.zshrc
+}
