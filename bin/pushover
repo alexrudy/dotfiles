@@ -1,4 +1,16 @@
 #!/usr/bin/env python
+#
+#  pushover
+#  Send yourself notifications via https://pushover.net
+#  Just set your pushover user ID to PUSHOVER_USER_ID
+#  and your application API token to PUSHOVER_API_TOKEN
+#  then call this script with the message you want to
+#  send::
+#  
+#  $ make test; pushover "make test finished!"
+#
+#  Copyright 2017 Alexander Rudy. All rights reserved.
+#
 
 import sys
 import os
