@@ -126,7 +126,7 @@ def main():
     """Main function."""
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dotfiles", default="~/.dotfiles")
-    parser.add_argument("-h", "--home", default="~")
+    parser.add_argument("--home", default="~")
     opt = parser.parse_args()
     installer = Installer(mode="i")
     installer.install(os.path.expanduser(opt.dotfiles), opt.home)
