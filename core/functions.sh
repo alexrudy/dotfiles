@@ -11,6 +11,13 @@ pathprepend () {
     fi
 }
 
+epath () {
+    for p in $path
+    do
+        print $p
+    done
+}
+
 pathdemote () {
     path=(${(@)path:#$1}, $1)
 }
