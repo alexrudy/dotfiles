@@ -1,1 +1,3 @@
 set-option -g default-shell $SHELL
+set-option -g set-titles on
+set-option -g set-titles-string "#{session_name} - #{host}"
