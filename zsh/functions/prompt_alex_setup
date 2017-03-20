@@ -104,7 +104,7 @@ function prompt_alex_setup {
   # Set python-info parameters.
   zstyle ':prezto:module:python:info:virtualenv' format "${_prompt_alex_colors[3]}(%v)%f"
   # Define prompts.
-  if [[ -z $SSH_TERM && -z $TMUX ]]; then
+  if [[ -z $SSH_TTY && -z $TMUX ]]; then
       HOSTPROMPT=""
   else
       HOSTPROMPT="${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}%m%f "
