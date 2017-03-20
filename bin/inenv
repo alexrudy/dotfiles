@@ -1,0 +1,23 @@
+#!/usr/bin/env zsh
+
+# inve
+#
+# usage: inve [VIRTUALENV] [COMMAND [ARGS]]
+#
+# For use with Ian Bicking's virtualenv tool. Attempts to find the root of
+# a virtual environment. Then, executes COMMAND with ARGS in the context of
+# the activated environment. If no COMMAND is given, activate defaults to a
+# subshell.
+
+
+# Activate
+export VIRTUAL_ENV="$WORKON_HOME/$1"
+shift
+export PATH="$VIRTUAL_ENV/bin:$PATH"
+unset PYTHON_HOME
+
+if [[ -e "$VIRTUAL_ENV/.project" ]]; then
+    cd $(cat "$VIRTUAL_ENV/.project")
+fi
+
+exec "${@:-$SHELL}"
