@@ -5,7 +5,7 @@ remove=false
 askremove=true
 force=false
 
-USAGE=$(cat <<EOF
+USAGE=<<EOF
 Usage:
     $0 [-f] path
     
@@ -19,7 +19,6 @@ arguments:
 This program recursively hunts for files with ($USER's conflicted copy ####-##-##)
 
 EOF
-)
 
 if [[ "$1" = "-h" ]]; then
     echo "$USAGE"
@@ -32,10 +31,11 @@ if [[ "$1" = "-f" ]]; then
     force=true
 fi
 
-for file in `find "$1" -iname "*conflicted copy*"`
+files=$(find "$1" -iname "*conflicted copy*")
+for file in $files
 do
-    fixed=`echo "$file" | sed 's/ (.*conflicted copy.*)//'`
-    echo "'$file' conflicts with $fixed'"
+    fixed=$(echo "$file" | sed 's/ (.*conflicted copy.*)//')
+    echo "$file conflicts with $fixed"
     if [[ "$force" = true ]]; then
         echo "Removing $file.."
         rm "$file"
