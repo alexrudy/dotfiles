@@ -11,6 +11,8 @@ if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
   configure_from_file "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
 fi
 
+{eval `ssh-agent`; ssh-add -A} &> /dev/null
+
 # export LSCOLORS=Gxfxcxdxbxegedabagacad
 
 test -e "${HOME}/.iterm2_shell_integration.zsh" && configure_from_file "${HOME}/.iterm2_shell_integration.zsh"
