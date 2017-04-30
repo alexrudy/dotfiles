@@ -31,11 +31,10 @@ if [[ "$1" = "-f" ]]; then
     force=true
 fi
 
-files=$(find "$1" -iname "*conflicted copy*")
-for file in $files
+for file in $(find "$1" -iname "*conflicted copy*")
 do
     fixed=$(echo "$file" | sed 's/ (.*conflicted copy.*)//')
-    echo "$file conflicts with $fixed"
+    echo "'$file' conflicts with $fixed'"
     if [[ "$force" = true ]]; then
         echo "Removing $file.."
         rm "$file"

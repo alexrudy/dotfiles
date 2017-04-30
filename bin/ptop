@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo `pgrep $@ | tr '\n' ',' | sed 's/,$//'`
