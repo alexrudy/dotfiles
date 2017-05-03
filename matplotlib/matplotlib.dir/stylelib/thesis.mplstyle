@@ -1,0 +1,24 @@
+# Fix Figure Properties: High-DPI, fullscreen, all white.
+figure.facecolor   : w
+figure.figsize     : 9, 5
+figure.dpi         : 180
+
+# Fonts
+font.serif         : Times, Palatino, New Century Schoolbook, Bookman, Computer Modern Roman
+font.sans-serif    : Helvetica, Avant Garde, Computer Modern Sans serif, DejaVu Sans
+font.cursive       : Zapf Chancery
+font.monospace     : Courier, Computer Modern Typewriter
+
+# Scientific axes limits, in log scale
+axes.formatter.limits : -5, 5
+
+axes.grid           : True
+axes.formatter.useoffset      : False
+
+
+# Images should not be interpolated.
+image.interpolation : nearest
+image.origin        : lower
+
+# Image saving preferences
+savefig.dpi         : 200
