@@ -1,6 +1,6 @@
 # Fix Figure Properties: High-DPI, fullscreen, all white.
 figure.facecolor   : w
-figure.figsize     : 9, 5
+figure.figsize     : 5, 3
 figure.dpi         : 180
 
 # Fonts
