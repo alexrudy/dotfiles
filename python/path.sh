@@ -1,9 +1,9 @@
 # This file activates python tools that should be running on startup.
 
-ANACONDA=$HOME/.anaconda3/bin
-if [[ -d "$ANACONDA" ]]; then
-    pathadd $ANACONDA
-fi
+# ANACONDA=$HOME/.anaconda3/bin
+# if [[ -d "$ANACONDA" ]]; then
+#     pathadd $ANACONDA
+# fi
 
 if [[ -e "/usr/local/bin/virtualenvwrapper.sh" ]]; then
 	VIRTUALENVWRAPPER="/usr/local/bin/virtualenvwrapper.sh"
