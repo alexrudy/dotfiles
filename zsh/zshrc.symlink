@@ -6,6 +6,10 @@ export ORIGPATH=$PATH
 export PROJECTS="$HOME/Development/"
 PROFILE_TIME_THRESHOLD=""
 
+# Enable early so that prompt can find it.
+export ITERM2_SHOULD_DECORATE_PROMPT="1"
+test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+
 source $DOTFILES/dotfiles.sh
 
 pathadd "/usr/local/bin"
@@ -23,4 +27,3 @@ fi
 
 export LSCOLORS=Gxfxcxdxbxegedabagacad
 
-test -e "${HOME}/.iterm2_shell_integration.zsh" && configure_from_file "${HOME}/.iterm2_shell_integration.zsh"
