@@ -36,9 +36,9 @@ def main(status, message):
     message = " ".join(message)
     if status is not None:
         if status == 0:
-            message += u" \u2705".encode('utf-8')
+            message += u" \u2705"
         else:
-            message += u" \u274c {0:d}".format(status).encode('utf-8')
+            message += u" \u274c {0:d}".format(status)
     
     r = send_message(message)
     if not r.status_code == 200:
