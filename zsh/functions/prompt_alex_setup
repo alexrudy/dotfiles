@@ -27,9 +27,16 @@ function prompt_alex_precmd {
   apple_info=""
   if [[ "$OSTYPE" == darwin* ]]; then
     apple_info="("
-    if [[ $(isactive "Things") == "true" ]]; then
+    if [[ $(isactive "Things3") == "true" ]]; then
         apple_info+="${_prompt_alex_colors[1]}✓$(today)%f"
     fi
+    if [[ $(isactive "Tunnelblick") ]]; then
+        if [[ $(tb connections) -ge 1 ]]; then
+            apple_info+="🔐"
+        else
+            apple_info+="🔓"
+        fi
+    fi  
     # if [[ $(isactive "Mail") == "true" ]]; then
     #     unread=$(mail-unread)
     #     if [[ $unread -gt 0 ]]; then
