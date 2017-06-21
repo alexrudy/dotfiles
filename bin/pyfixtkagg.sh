@@ -10,6 +10,8 @@ if ! find $TARGET_SP -name "_tkinter.*"; then
     echo $(find $TARGET_SP -name "_tkinter.*")
 else
     SOURCE=$(find $SOURCE_SP -name "_tkinter.*")
-    echo "Found source $SOURCE"
+    echo "Found source:"
+    echo "$SOURCE"
     ln -s $SOURCE $TARGET_SP/`basename $SOURCE`
+    echo $(find $TARGET_SP -name "_tkinter.*")
 fi
