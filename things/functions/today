@@ -1,5 +1,5 @@
 osascript<<EOF
-  tell application "Things"
+  tell application "Things3"
       get count of ((to dos in list "Today") whose status is open)
   end tell
 EOF

@@ -11,7 +11,7 @@ osascript<<EOF
 global newline
 set newline to "
 "
-using terms from application "Things"
+using terms from application "Things3"
   
   on appendTags(thecontainer, thetags)
     if (count of {tags in thecontainer}) is greater than 0 then
@@ -26,7 +26,7 @@ using terms from application "Things"
   
   on formatDueDate(thetodo)
     set datetext to ""
-    tell application "Things"
+    tell application "Things3"
       if due date of thetodo is not equal to missing value then
         set ndays to round (((due date of thetodo) - (current date)) / (3600 * 24))
         set duedate to (due date of thetodo)
@@ -46,7 +46,7 @@ using terms from application "Things"
   end formatDueDate
   
   on formatTodo(thetodo, counter)
-    tell application "Things"
+    tell application "Things3"
       set todotext to name of thetodo
       
       -- Add star for Today
@@ -98,7 +98,7 @@ using terms from application "Things"
   end formatTodo
   
   on getTodoCollection(thelistname)
-    tell application "Things"
+    tell application "Things3"
       if thelistname is in (name of lists) then
         set todos to (to dos of list thelistname whose status is open)
       else if thelistname is in (name of projects) then
@@ -115,7 +115,7 @@ using terms from application "Things"
   end getTodoCollection
   
   
-  tell application "Things"
+  tell application "Things3"
     set myList to {}
     set thelistname to "$LIST"
     set todos to getTodoCollection(thelistname) of me
