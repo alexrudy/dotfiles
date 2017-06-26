@@ -30,7 +30,7 @@ function prompt_alex_precmd {
     if [[ $(isactive "Things3") == "true" ]]; then
         apple_info+="${_prompt_alex_colors[1]}✓$(today)%f"
     fi
-    if [[ $(isactive "Tunnelblick") ]]; then
+    if [[ $(isactive "Tunnelblick") == "true" ]]; then
         if [[ $(tb connections) -ge 1 ]]; then
             apple_info+="🔐"
         else
