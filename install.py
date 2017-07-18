@@ -96,7 +96,6 @@ class Installer(object):
                 return
             elif self.mode in "bB":
                 self.backup(target)
-                os.remove(target)
             elif self.mode in "oO":
                 warnings.warn("Overwriting {0}".format(target))
                 os.remove(target)
