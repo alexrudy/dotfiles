@@ -1,5 +1,5 @@
 SUBCOMMAND=${1:-"connections"}
-DEFAULT="ucolick-only"
+DEFAULT="${TBDEFAULT:-vpn}"
 if [[ $# -ge 1 ]]; then
     shift
 fi
