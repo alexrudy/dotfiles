@@ -114,7 +114,7 @@ function prompt_alex_setup {
   if [[ -z $SSH_TTY && -z $TMUX ]]; then
       HOSTPROMPT=""
   else
-      HOSTPROMPT="${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}%m%f "
+	  HOSTPROMPT="${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}${iterm2_hostname:-%m}%f "
   fi
   PROMPT=$'\n'"%{$(iterm2_prompt_mark)%}${HOSTPROMPT}in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}${_need_push}'$'\n'"› "
   RPROMPT='$python_info[virtualenv]$apple_info'
