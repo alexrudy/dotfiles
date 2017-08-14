@@ -15,3 +15,8 @@
 
 Include lendup.config
 
+Host *
+	ServerAliveInterval 10
+	AddKeysToAgent yes
+    UseKeychain yes
+	IdentityFile ~/.ssh/id_rsa
