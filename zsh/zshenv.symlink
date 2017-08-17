@@ -1,6 +1,7 @@
 # env is always loaded.
 
 function loadrc () {
+	setopt interactive
     source $HOME/.zshrc
 	source $HOME/.zprofile
 }
