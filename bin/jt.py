@@ -10,13 +10,22 @@ import logging
 import logging.handlers
 import os
 import sys
+import json
 import time
 import curses
-import select
+import shlex
+import selectors
 import functools
+import contextlib
+from time import time as _time
+from time import sleep
     
 def int_or_pair(value):
     """Integer, or a pair of integers."""
+    if isinstance(value, int):
+        return value
+    elif isinstance(value, tuple):
+        return value
     if "," in value:
         s, d = value.split(",")
         return int(s), int(d)
@@ -99,17 +108,26 @@ def setup_logging():
     h = logging.FileHandler(os.path.join(logdir, 'jt.log'), mode='w')
     f = logging.Formatter("[%(asctime)s] %(message)s")
     h.setFormatter(f)
-    h.setLevel(logging.INFO)
+    h.setLevel(logging.DEBUG)
+    root.setLevel(logging.DEBUG)
     root.addHandler(h)
     
     os.makedirs(logdir, exist_ok=True)
     ssh = logging.getLogger("ssh")
     ssh_handler = logging.handlers.RotatingFileHandler(os.path.join(logdir, 'ssh.log'), mode='w')
-    ssh_formatter = logging.Formatter("%(msg)s [%(asctime)s]")
+    ssh_formatter = logging.Formatter("[%(levelname)s] %(msg)s [%(asctime)s] %(name)s")
     ssh_handler.setFormatter(ssh_formatter)
     ssh_handler.setLevel(logging.DEBUG)
     ssh.addHandler(ssh_handler)
     ssh.setLevel(logging.DEBUG)
+    ssh.propagate = False
+
+def format_timedelta(td):
+    """Format a time-delta into hours/minutes/seconds"""
+    hr = td.seconds // 3600
+    mn = (td.seconds // 60) - (hr * 60)
+    s = td.seconds % 60
+    return "{:d}:{:02d}:{:02d}".format(hr, mn, s)
 
 # Sentinels for the class below.
 _timedout = object()
@@ -121,59 +139,84 @@ class ContinuousSSH(object):
         super(ContinuousSSH, self).__init__()
         self.args = args
         self._status = ""
+        self._change = None
         self._messenger = StatusMessage(stream)
         self._logger = logging.getLogger('ssh')
         self._handler = self._logger.handlers[0]
+        self._popen_settings = {'bufsize':0}
+        self._max_backoff_time = 1.0
+        self._backoff_time = 0.1
+        self._last_proc = None
         self.status("disconnected", fg='red')
         
     def status(self, msg, **kwargs):
         """Status"""
         kwargs.setdefault('reset', True)
         self._status = click.style(msg, **kwargs)
+        self._change = dt.datetime.now()
         
     def update(self, msg):
         """Update the message line."""
-        self._messenger.update("[{0:s}] {1}".format(self._status, msg))
+        td = dt.datetime.now() - self._change
+        self._messenger.update("[{0:s}] {1} | {2}".format(self._status, format_timedelta(td), msg))
     
     def run(self):
         """Run the continuous process."""
         try:
             with self._messenger:
                 while True:
+                    self._last_proc = _time()
                     self._run_once()
+                    if (_time() - self._last_proc) < self._backoff_time:
+                         sleep(self._backoff_time - (_time() - self._last_proc))
+                         self._backoff_time = min(2.0 * self._backoff_time, self._max_backoff_time)
+                    else:
+                         self._backoff_time = 0.1
         except KeyboardInterrupt:
             pass
+    
+    def timeout(self):
+        """Handle timeout"""
+        self.update('')
             
-    def _await_output(self, stream, timeout=None, timeout_callback=None):
+    def _await_output(self, proc, timeout=None):
         """Await output from the stream"""
-        while True:
-            if timeout is None:
-                r, _, _ = select.select([stream], [], [])
-            else:
-                r, _, _ = select.select([stream], [], [], timeout)
-            if r:
-                line = stream.readline()
-                if line == "":
-                    break
-                yield line.strip(b'\r\n').strip()
-            elif timeout_callback is not None:
-                timeout_callback()
+        endtime = _time() + timeout
+        sel = selectors.DefaultSelector()
+        with contextlib.closing(sel):
+            sel.register(proc.stdout, selectors.EVENT_READ)
+            while (proc.returncode is None):
+                events = sel.select(timeout=timeout)
+                for (key, event) in events:
+                    if key.fileobj is proc.stdout:
+                        line = proc.stdout.readline()
+                        if line:
+                            yield line.decode('utf-8', 'backslashreplace').strip('\r\n').strip()
+                            endtime = _time() + timeout
+                if _time() > endtime:
+                    self.timeout()
+                proc.poll()
         
     def _run_once(self):
         """Run the SSH process once"""
-        proc = subprocess.Popen(self.args, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(self.args, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, **self._popen_settings)
+        log = self._logger.getChild(str(proc.pid))
         try:
             self.status("connecting", fg='yellow')
-            for line in self._await_output(proc.stdout, timeout=1.0, timeout_callback=functools.partial(self.update, "")):
-                line = line.decode('utf-8', 'backslashreplace').strip()
+            for line in self._await_output(proc, timeout=1.0):
                 if line.startswith("debug1:"):
                     line = line[len("debug1:"):].strip()
-                    self._logger.debug(line)
+                    log.debug(line)
                 else:
-                    self._logger.info(line)
+                    log.info(line)
                 if "Entering interactive session" in line:
                     self.status("connected", fg='green')
+                if "not responding" in line:
+                    self.status("disconnected", fg='red')
+                    log.debug("Killing process.".format(proc.pid))
+                    proc.kill()
                 self.update(line)
+            log.info("Waiting for process to end.".format(proc.pid))
             proc.wait()
             self.status("disconnected", fg='red')
             self._handler.doRollover()
@@ -181,15 +224,39 @@ class ContinuousSSH(object):
             if proc.returncode is None:
                 proc.terminate()
         
-        
+
+def get_relevant_ports(host, virtualenv=None, shell='zsh -i'):
+    """Get relevant port numbers for jupyter notebook services"""
+    log = logging.getLogger("jt.auto")
+    cmd = "jupyter notebook list --json"
+    if virtualenv is not None:
+        cmd = "workon {0} && echo "" && {1}".format(virtualenv, cmd)
+    out = subprocess.check_output(['ssh', '-t', host, "{0} -c {1}".format(shell, shlex.quote(cmd))], stderr=subprocess.DEVNULL)
+    ports = []
+    for line in out.splitlines():
+        if line.strip(b"\r\n").strip():
+            try:
+                port = json.loads(line)['port']
+                ports.append(port)
+            except json.JSONDecodeError:
+                log.exception("Couldn't parse {0!r}".format(line.decode('utf-8', 'backslashreplace')))
+            else:
+                log.debug("Parsed {0} from {1}".format(port, line.decode('utf-8', 'backslashreplace')))
+    return ports
+    
+    
 
 @click.command()
-@click.option('-p', '--port', 'ports', default=8090, type=int_or_pair, multiple=True,
+@click.option('-p', '--port', 'ports', default=[8090], type=int_or_pair, multiple=True,
               help='Port to forward from the remote machine to the local machine')
 @click.option('-k', '--interval', default=5, type=int, 
-              help='Interval, in seconds, to use for maintaining the ssh connection.')
+              help='Interval, in seconds, to use for maintaining the ssh connection (ServerAliveInterval)')
+@click.option('--connect-timeout', default=10, type=int, 
+              help="Timeout for starting ssh connections (ConnectTimeout)")
+@click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host')
+@click.option('--venv', default='ds', help="Virtual Environment on remote host to find the jupyter command")
 @click.argument('host')
-def main(host, ports, interval):
+def main(host, ports, interval, connect_timeout, auto, venv):
     """Run an SSH tunnel over specified ports to HOST.
     
     Using the ssh option 'ServerAliveInterval', this script will keep the SSH tunnel alive
@@ -203,10 +270,20 @@ def main(host, ports, interval):
     setup_logging()
     log = logging.getLogger('jt')
     
-    forward_template = '{0:d}:localhost:{0:d}'
-    ssh_args = ['ssh', '-v', '-N', '-o', 'ServerAliveInterval {}'.format(interval)]
+    if auto:
+        ports = get_relevant_ports(host, venv)
+        log.info("Autodiscovered ports: {0!r}".format(ports))
+        click.echo("Forwarding ports {0}".format(", ".join("{:d}".format(p) for p in ports)))
+        
+    forward_template = '{0:d}:localhost:{1:d}'
+    ssh_args = ['ssh', '-v', '-N', 
+                '-o', 'ServerAliveInterval {:d}'.format(interval),
+                '-o', 'ConnectTimeout {:d}'.format(connect_timeout)]
     for port in set(ports):
-        ssh_args.extend(["-L", forward_template.format(port)])
+        if isinstance(port, int):
+            ssh_args.extend(["-L", forward_template.format(port, port)])
+        else:
+            ssh_args.extend(["-L", forward_template.format(*port)])
     ssh_args.append(host)
     log.debug("args = %r", ssh_args)
     proc = ContinuousSSH(ssh_args, click.get_text_stream('stdout'))
