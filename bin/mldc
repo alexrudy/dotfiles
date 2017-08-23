@@ -9,7 +9,8 @@ import subprocess
 @click.option('-2', 'host', flag_value='mldc2', help='Shortcut for --host mldc2', envvar='MLDC_HOST')
 @click.option('-i', '--iterm/--no-iterm', is_flag=True, default=False, help='Use iTerm integration for tmux', envvar='MLDC_ITERM')
 @click.option('-s', '--session', envvar='MLDC_TMUX_SESSION', help='Specify a tmux session to attach', default=None)
-def main(host, iterm, session):
+@click.option('-k', '--keepalive', type=int, default=10, help='Keep alive interval for the SSH connection in seconds (ServerAliveInterval)')
+def main(host, iterm, session, keepalive):
     """Connect to MLDC, and run tmux"""
     if host is None:
         click.echo("Requires a value for '--host'")
@@ -17,7 +18,7 @@ def main(host, iterm, session):
     attach_arg = "-CC attach" if iterm else "attach"
     session_arg = " -t {0:s}".format(session) if session else ""
     command = "loadrc && tmux {0}{1}".format(attach_arg, session_arg)
-    args = ['ssh', '-t', host, command]
+    args = ['ssh', '-t', '-o', 'ServerAliveInterval {0:d}'.format(keepalive), host, command]
     if session:
         click.echo("Connecting to '{0}' over SSH and launching tmux session '{1}'".format(host, session))
     else:
