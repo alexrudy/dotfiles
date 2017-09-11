@@ -224,35 +224,37 @@ class ContinuousSSH(object):
             if proc.returncode is None:
                 proc.terminate()
         
-def iter_json_ports(output):
+def iter_json_data(output):
     """Iterate through decoded JSON information ports"""
     log = logging.getLogger("jt.auto")
     
     for line in output.splitlines():
         if line.strip(b"\r\n").strip():
-            log.debug("JSON Payload: {0!r}".format(line.decode('utf-8', 'backslashreplace')))
+            log.debug("JSON payload = {0!r}".format(line.decode('utf-8', 'backslashreplace')))
             try:
                 data = json.loads(line)
-                port = data['port']
-                token = data['token']
+                data['full_url'] = "http://localhost:{port:d}/?token={token:s}".format(**data)
             except json.JSONDecodeError:
                 log.exception("Couldn't parse {0!r}".format(line.decode('utf-8', 'backslashreplace')))
             else:
-                log.debug("Parsed {0}".format(port))
-                click.echo("http://localhost:{:d}/?token={:s}".format(port, token))
-                yield port
+                log.debug("parsed port = {0}".format(data['port']))
+                log.debug("juptyter url = {!r}".format(data['full_url']))
+                yield data
 
-def get_relevant_ports(host):
+def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
     """Get relevant port numbers for jupyter notebook services"""
     log = logging.getLogger("jt.auto")
     
     pgrep_string = "python .*jupyter-notebook"
-    pgrep_args = ['ssh', host, 'pgrep -u$(id -u) -f "python .*jupyter-notebook" | xargs ps -o command= -p']
+    pgrep_args = ['pgrep', '-f', shlex.quote(pgrep_string), '|', 'xargs', 'ps', '-o', 'command=', '-p']
+    if restrict_to_user:
+        pgrep_args.insert(1, '-u$(id -u)')
+    ssh_pgrep_args = ['ssh', host, ' '.join(pgrep_args)]
     ports = set()
     log.debug('ssh pgrep args = {!r}'.format(pgrep_args))
-    procs = subprocess.check_output(pgrep_args)
-    click.echo("Locating Juptyer notebooks on {}".format(host))
-    
+    procs = subprocess.check_output(ssh_pgrep_args)
+    if show_urls:
+        click.echo("Locating juptyer notebooks on {}".format(host))
     for proc in procs.splitlines():
         parts = shlex.split(proc.decode('utf-8', 'backslashreplace'))
         python = parts[0]
@@ -271,7 +273,11 @@ def get_relevant_ports(host):
         ssh_juptyer_args = ['ssh', host, " ".join(shlex.quote(cpart) for cpart in cmd)]
         log.debug('ssh jupyter args = {!r}'.format(ssh_juptyer_args))
         output = subprocess.check_output(ssh_juptyer_args)
-        ports.update(iter_json_ports(output))
+        for data in iter_json_data(output):
+            if data['port'] not in ports:
+                ports.add(data['port'])
+                if show_urls:
+                    click.echo("{:d}) {full_url:s} ({notebook_dir:s})".format(len(ports), **data))
     return ports
 
 @click.command()
@@ -282,8 +288,10 @@ def get_relevant_ports(host):
 @click.option('--connect-timeout', default=10, type=int, 
               help="Timeout for starting ssh connections (ConnectTimeout)")
 @click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host')
+@click.option('--auto-restrict-user/--no-auto-restrict-user', default=True,
+              help='Restrict automatic decection to the user ID')
 @click.argument('host')
-def main(host, ports, interval, connect_timeout, auto):
+def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
     """Run an SSH tunnel over specified ports to HOST.
     
     Using the ssh option 'ServerAliveInterval', this script will keep the SSH tunnel alive
@@ -291,18 +299,18 @@ def main(host, ports, interval, connect_timeout, auto):
     
     To forward ports 80 and 495 from mysever.com to localhost, you would use:
     
-    jt -p 80 -p 495 myserver.com
+    jt.py -p 80 -p 495 myserver.com
     
     """
     setup_logging()
     log = logging.getLogger('jt')
     
     if auto:
-        ports = get_relevant_ports(host)
+        ports = get_relevant_ports(host, auto_restrict_user)
         if not ports:
             click.echo("No jupyter open ports found.")
             raise click.Abort()
-        log.info("Autodiscovered ports: {0!r}".format(ports))
+        log.info("Auto-discovered ports: {0!r}".format(ports))
         click.echo("Forwarding ports {0}".format(", ".join("{:d}".format(p) for p in ports)))
         
     forward_template = '{0:d}:localhost:{1:d}'
