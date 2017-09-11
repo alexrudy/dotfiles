@@ -224,27 +224,55 @@ class ContinuousSSH(object):
             if proc.returncode is None:
                 proc.terminate()
         
-
-def get_relevant_ports(host, virtualenv=None, shell='zsh -i'):
-    """Get relevant port numbers for jupyter notebook services"""
+def iter_json_ports(output):
+    """Iterate through decoded JSON information ports"""
     log = logging.getLogger("jt.auto")
-    cmd = "jupyter notebook list --json"
-    if virtualenv is not None:
-        cmd = "workon {0} && echo "" && {1}".format(virtualenv, cmd)
-    out = subprocess.check_output(['ssh', '-t', host, "{0} -c {1}".format(shell, shlex.quote(cmd))], stderr=subprocess.DEVNULL)
-    ports = []
-    for line in out.splitlines():
+    
+    for line in output.splitlines():
         if line.strip(b"\r\n").strip():
+            log.debug("JSON Payload: {0!r}".format(line.decode('utf-8', 'backslashreplace')))
             try:
-                port = json.loads(line)['port']
-                ports.append(port)
+                data = json.loads(line)
+                port = data['port']
+                token = data['token']
             except json.JSONDecodeError:
                 log.exception("Couldn't parse {0!r}".format(line.decode('utf-8', 'backslashreplace')))
             else:
-                log.debug("Parsed {0} from {1}".format(port, line.decode('utf-8', 'backslashreplace')))
+                log.debug("Parsed {0}".format(port))
+                click.echo("http://localhost:{:d}/?token={:s}".format(port, token))
+                yield port
+
+def get_relevant_ports(host):
+    """Get relevant port numbers for jupyter notebook services"""
+    log = logging.getLogger("jt.auto")
+    
+    pgrep_string = "python .*jupyter-notebook"
+    pgrep_args = ['ssh', host, 'pgrep -u$(id -u) -f "python .*jupyter-notebook" | xargs ps -o command= -p']
+    ports = set()
+    log.debug('ssh pgrep args = {!r}'.format(pgrep_args))
+    procs = subprocess.check_output(pgrep_args)
+    click.echo("Locating Juptyer notebooks on {}".format(host))
+    
+    for proc in procs.splitlines():
+        parts = shlex.split(proc.decode('utf-8', 'backslashreplace'))
+        python = parts[0]
+        if "pgrep" in parts and pgrep_string in parts:
+            continue
+        if parts[0] == 'xargs':
+            continue
+        log.debug("Python candidate = {0!r}".format(parts))
+        for p in parts[1:]:
+            if 'jupyter-notebook' in p:
+                jupyter = p
+                break
+        else:
+            raise ValueError("Can't find jupyter notebook in process {0}".format(proc))
+        cmd = python, jupyter, 'list', '--json'
+        ssh_juptyer_args = ['ssh', host, " ".join(shlex.quote(cpart) for cpart in cmd)]
+        log.debug('ssh jupyter args = {!r}'.format(ssh_juptyer_args))
+        output = subprocess.check_output(ssh_juptyer_args)
+        ports.update(iter_json_ports(output))
     return ports
-    
-    
 
 @click.command()
 @click.option('-p', '--port', 'ports', default=[8090], type=int_or_pair, multiple=True,
@@ -254,9 +282,8 @@ def get_relevant_ports(host, virtualenv=None, shell='zsh -i'):
 @click.option('--connect-timeout', default=10, type=int, 
               help="Timeout for starting ssh connections (ConnectTimeout)")
 @click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host')
-@click.option('--venv', default='ds', help="Virtual Environment on remote host to find the jupyter command")
 @click.argument('host')
-def main(host, ports, interval, connect_timeout, auto, venv):
+def main(host, ports, interval, connect_timeout, auto):
     """Run an SSH tunnel over specified ports to HOST.
     
     Using the ssh option 'ServerAliveInterval', this script will keep the SSH tunnel alive
@@ -271,7 +298,10 @@ def main(host, ports, interval, connect_timeout, auto, venv):
     log = logging.getLogger('jt')
     
     if auto:
-        ports = get_relevant_ports(host, venv)
+        ports = get_relevant_ports(host)
+        if not ports:
+            click.echo("No jupyter open ports found.")
+            raise click.Abort()
         log.info("Autodiscovered ports: {0!r}".format(ports))
         click.echo("Forwarding ports {0}".format(", ".join("{:d}".format(p) for p in ports)))
         
@@ -285,7 +315,7 @@ def main(host, ports, interval, connect_timeout, auto, venv):
         else:
             ssh_args.extend(["-L", forward_template.format(*port)])
     ssh_args.append(host)
-    log.debug("args = %r", ssh_args)
+    log.debug("ssh forwarding args = %r", ssh_args)
     proc = ContinuousSSH(ssh_args, click.get_text_stream('stdout'))
     click.echo("Use ^C to exit")
     proc.run()
