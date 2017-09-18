@@ -32,9 +32,9 @@ function prompt_alex_precmd {
     fi
     if [[ $(isactive "Tunnelblick") == "true" ]]; then
         if [[ $(tb connections) -ge 1 ]]; then
-            apple_info+="🔐"
+            apple_info+="${_prompt_alex_colors[2]}L%f"
         else
-            apple_info+="🔓"
+            apple_info+="${_prompt_alex_colors[3]}U%f"
         fi
     fi  
     # if [[ $(isactive "Mail") == "true" ]]; then
