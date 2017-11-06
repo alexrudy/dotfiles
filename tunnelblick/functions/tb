@@ -4,12 +4,21 @@ if [[ $# -ge 1 ]]; then
     shift
 fi
 
-function connections () {
+function nconnections () {
     osascript<<EOF
 tell application "Tunnelblick"
 	set connected_configs to every configuration where state = "CONNECTED"
 	return count of connected_configs
 end tell 
+EOF
+}
+
+function connections () {
+    osascript<<EOF
+tell application "Tunnelblick"
+	set connected_configs to name of every configuration whose state = "CONNECTED"
+	return connected_configs
+end tell
 EOF
 }
 
@@ -44,4 +53,4 @@ EOF
 
 }
 
-echo `$SUBCOMMAND`
+echo `$SUBCOMMAND $@`
