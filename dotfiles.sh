@@ -26,13 +26,6 @@ configure_from_file () {
 	fi
 }
 
-# use .localrc for SUPER SECRET CRAP that you don't
-# want in your public, versioned repo.
-if [[ -a ~/.localrc ]]
-then
-  configure_from_file ~/.localrc
-fi
-
 # First, grab the path manipulation functions, etc.
 for config_file in $DOTFILES/core/*.sh
 do
@@ -82,4 +75,11 @@ if [[ -n "$ZSH_NAME" ]]; then
 	do 
 		configure_from_file $config_file
 	done
+fi
+
+# use .localrc for SUPER SECRET CRAP that you don't
+# want in your public, versioned repo.
+if [[ -a ~/.localrc ]]
+then
+  configure_from_file ~/.localrc
 fi
