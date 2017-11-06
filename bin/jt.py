@@ -106,7 +106,7 @@ def setup_logging():
     logdir = os.path.join(os.path.expanduser("~"),".jt")
     
     h = logging.FileHandler(os.path.join(logdir, 'jt.log'), mode='w')
-    f = logging.Formatter("[%(asctime)s] %(message)s")
+    f = logging.Formatter("[%(levelname)-8s %(asctime)s] %(message)s [%(name)s]")
     h.setFormatter(f)
     h.setLevel(logging.DEBUG)
     root.setLevel(logging.DEBUG)
@@ -115,7 +115,7 @@ def setup_logging():
     os.makedirs(logdir, exist_ok=True)
     ssh = logging.getLogger("ssh")
     ssh_handler = logging.handlers.RotatingFileHandler(os.path.join(logdir, 'ssh.log'), mode='w')
-    ssh_formatter = logging.Formatter("[%(levelname)s] %(msg)s [%(asctime)s] %(name)s")
+    ssh_formatter = logging.Formatter("[%(levelname)-8s %(asctime)s] %(message)s [%(name)s]")
     ssh_handler.setFormatter(ssh_formatter)
     ssh_handler.setLevel(logging.DEBUG)
     ssh.addHandler(ssh_handler)
@@ -142,6 +142,7 @@ class ContinuousSSH(object):
         self._change = None
         self._messenger = StatusMessage(stream)
         self._logger = logging.getLogger('ssh')
+        self._loggerjt = logging.getLogger('jt.ssh')
         self._handler = self._logger.handlers[0]
         self._popen_settings = {'bufsize':0}
         self._max_backoff_time = 1.0
@@ -201,7 +202,9 @@ class ContinuousSSH(object):
         """Run the SSH process once"""
         proc = subprocess.Popen(self.args, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, **self._popen_settings)
         log = self._logger.getChild(str(proc.pid))
+        self._loggerjt.info('Launching proc = {}'.format(proc.pid))
         try:
+            self._loggerjt.debug('Connecting proc = {}'.format(proc.pid))
             self.status("connecting", fg='yellow')
             for line in self._await_output(proc, timeout=1.0):
                 if line.startswith("debug1:"):
@@ -211,9 +214,11 @@ class ContinuousSSH(object):
                     log.info(line)
                 if "Entering interactive session" in line:
                     self.status("connected", fg='green')
+                    self._loggerjt.debug('Connected proc = {}'.format(proc.pid))
                 if "not responding" in line:
                     self.status("disconnected", fg='red')
-                    log.debug("Killing process.".format(proc.pid))
+                    log.debug("Killing proc = {}".format(proc.pid))
+                    self._loggerjt.debug('Killing proc = {}'.format(proc.pid))
                     proc.kill()
                 self.update(line)
             log.info("Waiting for process to end.".format(proc.pid))
@@ -223,6 +228,7 @@ class ContinuousSSH(object):
         finally:
             if proc.returncode is None:
                 proc.terminate()
+            self._loggerjt.debug('Ended proc = {}'.format(proc.pid))
         
 def iter_json_data(output):
     """Iterate through decoded JSON information ports"""
@@ -238,7 +244,7 @@ def iter_json_data(output):
                 log.exception("Couldn't parse {0!r}".format(line.decode('utf-8', 'backslashreplace')))
             else:
                 log.debug("parsed port = {0}".format(data['port']))
-                log.debug("juptyter url = {!r}".format(data['full_url']))
+                log.debug("jupyter url = {!r}".format(data['full_url']))
                 yield data
 
 def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
@@ -254,7 +260,7 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
     log.debug('ssh pgrep args = {!r}'.format(pgrep_args))
     procs = subprocess.check_output(ssh_pgrep_args)
     if show_urls:
-        click.echo("Locating juptyer notebooks on {}".format(host))
+        click.echo("Locating jupyter notebooks on {}".format(host))
     for proc in procs.splitlines():
         parts = shlex.split(proc.decode('utf-8', 'backslashreplace'))
         python = parts[0]
@@ -278,6 +284,7 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
                 ports.add(data['port'])
                 if show_urls:
                     click.echo("{:d}) {full_url:s} ({notebook_dir:s})".format(len(ports), **data))
+    log.info("Auto-discovered ports = {0!r}".format(ports))
     return ports
 
 @click.command()
@@ -310,7 +317,6 @@ def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
         if not ports:
             click.echo("No jupyter open ports found.")
             raise click.Abort()
-        log.info("Auto-discovered ports: {0!r}".format(ports))
         click.echo("Forwarding ports {0}".format(", ".join("{:d}".format(p) for p in ports)))
         
     forward_template = '{0:d}:localhost:{1:d}'
