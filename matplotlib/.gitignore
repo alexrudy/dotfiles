@@ -7,3 +7,4 @@
 # 
 matplotlib.dir/tex.*
 matplotlib.dir/*.cache
+matplotlib.dir/fontList.json
