@@ -1,7 +1,7 @@
 #!/usr/bin/env osascript
 on run args
-    set the_application to item 1 of args
-	with timeout of 1 seconds
-	    tell application "System Events" to (name of processes) contains the_application
-	end timeout
+  set the_application to item 1 of args
+  with timeout of 2 seconds
+    tell application "System Events" to (name of processes) contains the_application
+  end timeout
 end run
