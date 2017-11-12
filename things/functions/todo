@@ -28,10 +28,10 @@ using terms from application "Things3"
     set datetext to ""
     tell application "Things3"
       if due date of thetodo is not equal to missing value then
-        set ndays to round (((due date of thetodo) - (current date)) / (3600 * 24))
+        set ndays to round (((due date of thetodo) - (current date)) / (3600.0 * 24.0)) rounding up
         set duedate to (due date of thetodo)
         
-        if year of duedate is equal to year of (current date) and month of duedate is equal to month of (current date) and day of duedate is equal to day of (current date) then
+        if ndays is less than 1 then
           set datetext to " !Due Today"
         else
           if ndays is not equal to 1 then
@@ -99,7 +99,13 @@ using terms from application "Things3"
   
   on getTodoCollection(thelistname)
     tell application "Things3"
-      if thelistname is in (name of lists) then
+      if thelistname starts with "+" then
+        set tagname to characters 2 thru -1 of thelistname as string
+        set todos to (to dos of tag tagname whose status is open)
+      else if thelistname starts with "@" then
+        set areaname to characters 2 thru -1 of thelistname as string
+        set todos to (to dos of area areaname whose status is open)
+      else if thelistname is in (name of lists) then
         set todos to (to dos of list thelistname whose status is open)
       else if thelistname is in (name of projects) then
         set todos to (to dos of project thelistname whose status is open)
