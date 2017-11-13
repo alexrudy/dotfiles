@@ -15,8 +15,8 @@ def main(host, iterm, session, keepalive):
     if host is None:
         click.echo("Requires a value for '--host'")
         raise click.Abort()
-    attach_arg = "-CC attach" if iterm else "attach"
-    session_arg = " -t {0:s}".format(session) if session else ""
+    attach_arg = "-CC new-session" if iterm else "new-session"
+    session_arg = " -A -s {0:s}".format(session) if session else ""
     command = "loadrc && tmux {0}{1}".format(attach_arg, session_arg)
     args = ['ssh', '-t', '-o', 'ServerAliveInterval {0:d}'.format(keepalive), host, command]
     if session:
