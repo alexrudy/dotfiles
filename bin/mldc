@@ -10,15 +10,23 @@ import subprocess
 @click.option('-i', '--iterm/--no-iterm', is_flag=True, default=False, help='Use iTerm integration for tmux', envvar='MLDC_ITERM')
 @click.option('-s', '--session', envvar='MLDC_TMUX_SESSION', help='Specify a tmux session to attach', default=None)
 @click.option('-k', '--keepalive', type=int, default=10, help='Keep alive interval for the SSH connection in seconds (ServerAliveInterval)')
-def main(host, iterm, session, keepalive):
+@click.option('-r', '--rmate/--no-rmate', is_flag=True, default=True, help='Enable RMATE forwarding')
+def main(host, iterm, session, keepalive, rmate):
     """Connect to MLDC, and run tmux"""
     if host is None:
         click.echo("Requires a value for '--host'")
         raise click.Abort()
+    
     attach_arg = "-CC new-session" if iterm else "new-session"
     session_arg = " -A -s {0:s}".format(session) if session else ""
     command = "loadrc && tmux {0}{1}".format(attach_arg, session_arg)
-    args = ['ssh', '-t', '-o', 'ServerAliveInterval {0:d}'.format(keepalive), host, command]
+    args = ['ssh', '-t', '-o', 'ServerAliveInterval {0:d}'.format(keepalive)]
+    
+    if rmate:
+        args += ['-R', '52698:localhost:52698']
+    
+    args += [host, command]
+    
     if session:
         click.echo("Connecting to '{0}' over SSH and launching tmux session '{1}'".format(host, session))
     else:
