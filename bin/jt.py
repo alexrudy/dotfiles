@@ -251,7 +251,7 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
     """Get relevant port numbers for jupyter notebook services"""
     log = logging.getLogger("jt.auto")
     
-    pgrep_string = "python .*jupyter-notebook"
+    pgrep_string = "python3? .*jupyter-notebook"
     pgrep_args = ['pgrep', '-f', shlex.quote(pgrep_string), '|', 'xargs', 'ps', '-o', 'command=', '-p']
     if restrict_to_user:
         pgrep_args.insert(1, '-u$(id -u)')
