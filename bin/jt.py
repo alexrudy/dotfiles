@@ -1,6 +1,30 @@
 #!/usr/bin/env python3
 """
 A tool to keep a SSH tunnel open.
+
+To use this tool, you need to install `click` and have a working python3 
+installation. Check both by running:
+    
+    python3 -m pip install click
+    
+
+Afterwards, to use this tool, run:
+    
+    python3 jt.py --help
+    
+Or, for even more ergonmic use, mark this file as executable, and put
+it somewhere on your path:
+    
+    mv jt.py ~/.bin/jt.py
+    chmod +x ~/.bin/jt.py
+    jt.py --help
+
+For really simple usage, check out the `--auto` flag. To forward all of your
+jupyter notebooks from a host `mymachine`, you would run:
+    
+    jt.py mymachine --auto
+
+
 """
 
 import click
@@ -104,7 +128,9 @@ def setup_logging():
     """Set up the loggers"""
     root = logging.getLogger()
     logdir = os.path.join(os.path.expanduser("~"),".jt")
+    os.makedirs(logdir, exist_ok=True)
     
+    # Logger for the master process.
     h = logging.FileHandler(os.path.join(logdir, 'jt.log'), mode='w')
     f = logging.Formatter("[%(levelname)-8s %(asctime)s] %(message)s [%(name)s]")
     h.setFormatter(f)
@@ -112,7 +138,7 @@ def setup_logging():
     root.setLevel(logging.DEBUG)
     root.addHandler(h)
     
-    os.makedirs(logdir, exist_ok=True)
+    # Logger for each subprocess.
     ssh = logging.getLogger("ssh")
     ssh_handler = logging.handlers.RotatingFileHandler(os.path.join(logdir, 'ssh.log'), mode='w')
     ssh_formatter = logging.Formatter("[%(levelname)-8s %(asctime)s] %(message)s [%(name)s]")
@@ -289,14 +315,14 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
 
 @click.command()
 @click.option('-p', '--port', 'ports', default=[8090], type=int_or_pair, multiple=True,
-              help='Port to forward from the remote machine to the local machine')
+              help='Port to forward from the remote machine to the local machine. To forward to a different port, pass the ports as `remote,local`.')
 @click.option('-k', '--interval', default=5, type=int, 
-              help='Interval, in seconds, to use for maintaining the ssh connection (ServerAliveInterval)')
+              help='Interval, in seconds, to use for maintaining the ssh connection (see ServerAliveInterval)')
 @click.option('--connect-timeout', default=10, type=int, 
-              help="Timeout for starting ssh connections (ConnectTimeout)")
-@click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host')
+              help="Timeout for starting ssh connections (see ConnectTimeout)")
+@click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host.')
 @click.option('--auto-restrict-user/--no-auto-restrict-user', default=True,
-              help='Restrict automatic decection to the user ID')
+              help='Restrict automatic decection to the user ID. (default=True) Turning this off will try to forward ports for all users on the remote host.')
 @click.argument('host')
 def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
     """Run an SSH tunnel over specified ports to HOST.
@@ -308,21 +334,31 @@ def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
     
     jt.py -p 80 -p 495 myserver.com
     
+    To stop the SSH tunnel, press ^C.
     """
     setup_logging()
     log = logging.getLogger('jt')
     
     if auto:
-        ports = get_relevant_ports(host, auto_restrict_user)
+        try:
+            ports = get_relevant_ports(host, auto_restrict_user)
+        except subprocess.CalledProcessError as e:
+            click.echo("[{}] Collecting ports for forwarding: {!r}".format(click.style("ERROR", fg='red'), e.msg))
+        
         if not ports:
             click.echo("No jupyter open ports found.")
             raise click.Abort()
+        
         click.echo("Forwarding ports {0}".format(", ".join("{:d}".format(p) for p in ports)))
         
     forward_template = '{0:d}:localhost:{1:d}'
     ssh_args = ['ssh', '-v', '-N', 
                 '-o', 'ServerAliveInterval {:d}'.format(interval),
                 '-o', 'ConnectTimeout {:d}'.format(connect_timeout)]
+    if not ports:
+        click.echo("[{}] No ports selected for forwarding!".format(click.style("WARNING", fg='yellow')))
+        
+    
     for port in set(ports):
         if isinstance(port, int):
             ssh_args.extend(["-L", forward_template.format(port, port)])
