@@ -3,3 +3,5 @@ if [[ -d $HOME/.cargo ]]; then
     source $HOME/.cargo/env
   fi
 fi
+
+export DYLD_LIBRARY_PATH=$(rustc --print sysroot)/lib:$DYLD_LIBRARY_PATH
