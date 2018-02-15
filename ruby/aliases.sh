@@ -1,4 +1,4 @@
-alias r='ruby'
+# alias r='ruby'
 
 alias sc='script/console'
 alias sg='script/generate'
