@@ -16,24 +16,42 @@ end tell
 
 @click.command()
 @click.option("--profile", default='default', type=str, help='AWS profile to update')
+@click.option("--og", is_flag=True, help="Use OG method.")
+@click.option("--from-profile/--not-from-profile", default=True, is_flag=True, help="Gather arguments from the aws profile.")
 @click.option("--vault-path", default='aws/creds', type=str, help="Default path in the vault for keys.")
 @click.option("--vault-write/--vault-read", default=True, is_flag=True, help="Should we read or write from the vault?")
 @click.option("--role", "--vault-role", default='user_engineer_default', type=str)
 @click.option("--config", "config_path", default=os.path.expanduser('~/.aws/credentials'), type=click.Path())
-def main(profile, vault_path, vault_write, vault_role, config_path):
+def main(profile, og, from_profile, vault_path, vault_write, vault_role, config_path):
     """Update AWS credentials from the LendUp Vault"""
     if not check_vpn():
         click.echo("Please connect to the prod-us-east VPN before continuing")
         raise click.Abort()
+    config = get_aws_config(config_path)
+    
+    if from_profile and profile in config:
+        vault_role = config[profile].get('vault_role', vault_role)
+        vault_path = config[profile].get('vault_path', vault_path)
+        vault_write = config[profile].get('vault_write', vault_write)
         
+    if og:
+        vault_path = "aws/sts"
+        vault_write = True
+        if not vault_role.endswith('-og'):
+            vault_role += '-og'
+    
     try:
         response_data = get_vault_info(path=vault_path, role=vault_role, write=vault_write)
     except subprocess.CalledProcessError as e:
         click.echo("Error in vault read, returned exit code: {}".format(e.returncode))
         raise click.Abort()
-    config = get_aws_config(config_path)
     if profile not in config:
         config.add_section(profile)
+    
+    if from_profile:
+        config[profile]['vault_role'] = vault_role
+        config[profile]['vault_path'] = vault_path
+        config[profile]['vault_write'] = vault_write
     
     config[profile]['aws_access_key_id'] = response_data['access_key']
     config[profile]['aws_secret_access_key'] = response_data['secret_key']
