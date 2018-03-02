@@ -12,7 +12,7 @@ import subprocess
 @click.option('-k', '--keepalive', type=int, default=10, help='Keep alive interval for the SSH connection in seconds (ServerAliveInterval)')
 @click.option('-t', '--timeout', type=int, default=2, help="Connection timeout when the host is unreachable")
 @click.option('-r', '--rmate/--no-rmate', is_flag=True, default=True, help='Enable RMATE forwarding')
-def main(host, iterm, session, keepalive, rmate):
+def main(host, iterm, session, keepalive, timeout, rmate):
     """Connect to MLDC, and run tmux"""
     if host is None:
         click.echo("Requires a value for '--host'")
