@@ -4,6 +4,7 @@ import click
 import subprocess
 import configparser
 import os
+import posixpath
 import json
 import io
 
@@ -15,6 +16,7 @@ end tell
 """
 
 @click.command()
+@click.option("--auth/--no-auth", default=True, is_flag=True, help="Authenticate with vault first.")
 @click.option("--profile", default='default', type=str, help='AWS profile to update')
 @click.option("--og", is_flag=True, help="Use OG method.")
 @click.option("--from-profile/--not-from-profile", default=True, is_flag=True, help="Gather arguments from the aws profile.")
@@ -22,11 +24,19 @@ end tell
 @click.option("--vault-write/--vault-read", default=True, is_flag=True, help="Should we read or write from the vault?")
 @click.option("--role", "--vault-role", default='user_engineer_default', type=str)
 @click.option("--config", "config_path", default=os.path.expanduser('~/.aws/credentials'), type=click.Path())
-def main(profile, og, from_profile, vault_path, vault_write, vault_role, config_path):
+@click.option("--vault-username", default=os.environ['USER'])
+def main(auth, profile, og, from_profile, vault_path, vault_write, vault_role, config_path, vault_username):
     """Update AWS credentials from the LendUp Vault"""
     if not check_vpn():
         click.echo("Please connect to the prod-us-east VPN before continuing")
         raise click.Abort()
+    if not check_vault_connection():
+        if auth:
+            authenticate_vault(vault_username)
+        else:
+            click.echo("Please authenticate in vault with `vault auth` or the `--auth` flag to this command.")
+            raise click.Abort()
+        
     config = get_aws_config(config_path)
     
     if from_profile and profile in config:
@@ -51,7 +61,7 @@ def main(profile, og, from_profile, vault_path, vault_write, vault_role, config_
     if from_profile:
         config[profile]['vault_role'] = vault_role
         config[profile]['vault_path'] = vault_path
-        config[profile]['vault_write'] = vault_write
+        config[profile]['vault_write'] = "yes" if vault_write else "no"
     
     config[profile]['aws_access_key_id'] = response_data['access_key']
     config[profile]['aws_secret_access_key'] = response_data['secret_key']
@@ -65,12 +75,28 @@ def main(profile, og, from_profile, vault_path, vault_write, vault_role, config_
 
 def get_vault_info(path, role, write):
     """Get and parse fixed-width format Vault information."""
+    fullpath = posixpath.join(path, role)
     if write:
-        out = subprocess.check_output(['vault', 'write', '-f', '--format', 'json', f'{path}{role}'])
+        out = subprocess.check_output(['vault', 'write', '-f', '--format', 'json', f'{fullpath}'])
     else:
-        out = subprocess.check_output(['vault', 'read', '--format', 'json', f'{path}{role}'])
+        out = subprocess.check_output(['vault', 'read', '--format', 'json', f'{fullpath}'])
     response = json.loads(out)
     return response['data']
+    
+def check_vault_connection():
+    """docstring for check_vault_connection"""
+    try:
+        out = subprocess.check_output(['vault', 'read', '--format', 'json', '/auth/token/lookup-self']) == 0
+    except subprocess.CalledProcessError as e:
+        return False
+    else:
+        return True
+
+def authenticate_vault(username):
+    """Authenticate to Vault."""
+    args = ['vault', 'auth', '-method=ldap', 'username={}'.format(username)]
+    click.echo(" ".join(args))
+    subprocess.call(args)
 
 def check_vpn(connection='prod-us-east'):
     """Check VPN Connection"""
