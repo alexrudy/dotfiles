@@ -107,7 +107,7 @@ class StatusMessage:
     def __exit__(self, typ, value, traceback):
         if self._enabled:
             # Beginning of line and clear
-            terminfo.send('cr', 'el')
+            terminfo.send('el')
             self.__stream.flush()
 
     def update(self, msg):
@@ -174,13 +174,16 @@ class ContinuousSSH(object):
         self._max_backoff_time = 1.0
         self._backoff_time = 0.1
         self._last_proc = None
-        self.status("disconnected", fg='red')
+        self.status("disconnected", fg='red', update=False)
         
     def status(self, msg, **kwargs):
         """Status"""
         kwargs.setdefault('reset', True)
+        update = kwargs.pop('update', True)
         self._status = click.style(msg, **kwargs)
         self._change = dt.datetime.now()
+        if update:
+            self.update('')
         
     def update(self, msg):
         """Update the message line."""
@@ -189,8 +192,8 @@ class ContinuousSSH(object):
     
     def run(self):
         """Run the continuous process."""
-        try:
-            with self._messenger:
+        with self._messenger:
+            try:
                 while True:
                     self._last_proc = _time()
                     self._run_once()
@@ -199,8 +202,8 @@ class ContinuousSSH(object):
                          self._backoff_time = min(2.0 * self._backoff_time, self._max_backoff_time)
                     else:
                          self._backoff_time = 0.1
-        except KeyboardInterrupt:
-            pass
+            except KeyboardInterrupt:
+                self.status('disconnected', fg='red')
     
     def timeout(self):
         """Handle timeout"""
@@ -254,6 +257,7 @@ class ContinuousSSH(object):
         finally:
             if proc.returncode is None:
                 proc.terminate()
+            self.status("disconnected", fg='red')
             self._loggerjt.debug('Ended proc = {}'.format(proc.pid))
         
 def iter_json_data(output):
@@ -343,7 +347,7 @@ def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
         try:
             ports = get_relevant_ports(host, auto_restrict_user)
         except subprocess.CalledProcessError as e:
-            click.echo("[{}] Collecting ports for forwarding: {!r}".format(click.style("ERROR", fg='red'), e.msg))
+            click.echo("[{}] Collecting ports for forwarding: {:s}".format(click.style("ERROR", fg='red'), str(e)))
         
         if not ports:
             click.echo("No jupyter open ports found.")
