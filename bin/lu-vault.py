@@ -65,9 +65,9 @@ def main(auth, profile, og, from_profile, vault_path, vault_write, vault_role, c
     
     config[profile]['aws_access_key_id'] = response_data['access_key']
     config[profile]['aws_secret_access_key'] = response_data['secret_key']
-    if 'security_token' in response_data:
+    if response_data.get('security_token', False):
         config[profile]['aws_session_token'] = response_data['security_token']
-    else:
+    elif 'aws_session_token' in config[profile]:
         config[profile].pop('aws_session_token')
     
     with open(config_path, 'w') as f:
