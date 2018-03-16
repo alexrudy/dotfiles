@@ -42,7 +42,7 @@ def main(auth, profile, og, from_profile, vault_path, vault_write, vault_role, c
     if from_profile and profile in config:
         vault_role = config[profile].get('vault_role', vault_role)
         vault_path = config[profile].get('vault_path', vault_path)
-        vault_write = config[profile].get('vault_write', vault_write)
+        vault_write = config[profile].getboolean('vault_write', vault_write)
         
     if og:
         vault_path = "aws/sts"
