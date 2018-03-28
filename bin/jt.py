@@ -319,7 +319,7 @@ def get_relevant_ports(host_args, restrict_to_user=True, show_urls=True):
 
 @click.command()
 @click.option('-p', '--port', 'ports', default=[8090], type=int_or_pair, multiple=True,
-              help='Port to forward from the remote machine to the local machine. To forward to a different port, pass the ports as `remote,local`.')
+              help='Port to forward from the remote machine to the local machine. To forward to a different port, pass the ports as `local,remote`.')
 @click.option('-k', '--interval', default=5, type=int, 
               help='Interval, in seconds, to use for maintaining the ssh connection (see ServerAliveInterval)')
 @click.option('--connect-timeout', default=10, type=int, 
