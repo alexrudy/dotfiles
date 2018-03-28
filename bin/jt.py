@@ -277,7 +277,7 @@ def iter_json_data(output):
                 log.debug("jupyter url = {!r}".format(data['full_url']))
                 yield data
 
-def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
+def get_relevant_ports(host_args, restrict_to_user=True, show_urls=True):
     """Get relevant port numbers for jupyter notebook services"""
     log = logging.getLogger("jt.auto")
     
@@ -285,12 +285,12 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
     pgrep_args = ['pgrep', '-f', shlex.quote(pgrep_string), '|', 'xargs', 'ps', '-o', 'command=', '-p']
     if restrict_to_user:
         pgrep_args.insert(1, '-u$(id -u)')
-    ssh_pgrep_args = ['ssh', host, ' '.join(pgrep_args)]
+    ssh_pgrep_args = ['ssh', *host, ' '.join(pgrep_args)]
     ports = set()
     log.debug('ssh pgrep args = {!r}'.format(pgrep_args))
     procs = subprocess.check_output(ssh_pgrep_args)
     if show_urls:
-        click.echo("Locating jupyter notebooks on {}".format(host))
+        click.echo("Locating jupyter notebooks on {}".format(host_args))
     for proc in procs.splitlines():
         parts = shlex.split(proc.decode('utf-8', 'backslashreplace'))
         python = parts[0]
@@ -327,8 +327,8 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
 @click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host.')
 @click.option('--auto-restrict-user/--no-auto-restrict-user', default=True,
               help='Restrict automatic decection to the user ID. (default=True) Turning this off will try to forward ports for all users on the remote host.')
-@click.argument('host')
-def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
+@click.argument('host_args', nargs=-1)
+def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
     """Run an SSH tunnel over specified ports to HOST.
     
     Using the ssh option 'ServerAliveInterval', this script will keep the SSH tunnel alive
@@ -343,9 +343,13 @@ def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
     setup_logging()
     log = logging.getLogger('jt')
     
+    host_args = list(host_args)
+    if 'ssh' in host_args:
+        host_args.remove('ssh')
+    
     if auto:
         try:
-            ports = get_relevant_ports(host, auto_restrict_user)
+            ports = get_relevant_ports(host_args, auto_restrict_user)
         except subprocess.CalledProcessError as e:
             click.echo("[{}] Collecting ports for forwarding: {:s}".format(click.style("ERROR", fg='red'), str(e)))
         
@@ -354,7 +358,8 @@ def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
             raise click.Abort()
         
         click.echo("Forwarding ports {0}".format(", ".join("{:d}".format(p) for p in ports)))
-        
+    
+    
     forward_template = '{0:d}:localhost:{1:d}'
     ssh_args = ['ssh', '-v', '-N', 
                 '-o', 'ServerAliveInterval {:d}'.format(interval),
@@ -366,9 +371,15 @@ def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
     for port in set(ports):
         if isinstance(port, int):
             ssh_args.extend(["-L", forward_template.format(port, port)])
+            if not auto:
+                click.echo("Forwarding (http) addresses: http://localhost:{}".format(port))
         else:
             ssh_args.extend(["-L", forward_template.format(*port)])
-    ssh_args.append(host)
+            if not auto:
+                click.echo("Forwarding (http) addresses: http://localhost:{}".format(port[0]))
+            
+            
+    ssh_args.extend(host_args)
     log.debug("ssh forwarding args = %r", ssh_args)
     proc = ContinuousSSH(ssh_args, click.get_text_stream('stdout'))
     click.echo("Use ^C to exit")
