@@ -316,6 +316,31 @@ def get_relevant_ports(host_args, restrict_to_user=True, show_urls=True):
                     click.echo("{:d}) {full_url:s} ({notebook_dir:s})".format(len(ports), **data))
     log.info("Auto-discovered ports = {0!r}".format(ports))
     return ports
+    
+def clean_ports(ports):
+    """Take the ports, and yield appropriate pairs."""
+    port_map = dict()
+    
+    for port in ports:
+        if isinstance(port, int):
+            local, remote = port, port
+        else:
+            local, remote = port
+        
+        # We only check for duplicate local ports here. You might forward multiple local ports
+        # to the same remote port, and I'm not here to tell you that is silly.
+        
+        # Check if ports are already in use for a different forwarding pair.
+        if port_map.get(local, remote) != remote:
+            click.echo("Local port {:d} is already set to be forwarding to {}".format(local, local_ports[local]))
+            raise click.Abort()
+        
+        # Skip if we are already forwarding this pair of ports.
+        if local in port_map:
+           continue 
+        
+        port_map[local] = remote
+        yield local, remote
 
 @click.command()
 @click.option('-p', '--port', 'ports', default=[8090], type=int_or_pair, multiple=True,
@@ -367,16 +392,12 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
     if not ports:
         click.echo("[{}] No ports selected for forwarding!".format(click.style("WARNING", fg='yellow')))
         
-    
-    for port in set(ports):
-        if isinstance(port, int):
-            ssh_args.extend(["-L", forward_template.format(port, port)])
-            if not auto:
-                click.echo("Forwarding (http) addresses: http://localhost:{}".format(port))
-        else:
-            ssh_args.extend(["-L", forward_template.format(*port)])
-            if not auto:
-                click.echo("Forwarding (http) addresses: http://localhost:{}".format(port[0]))
+    if not auto:
+        click.echo("Forwarding addresses")    
+    for i, (local_port, remote_port) in enumerate(clean_ports(ports)):
+        ssh_args.extend(["-L", forward_template.format(local_port, remote_port)])
+        if not auto:
+            click.echo("{}) http://localhost:{}".format(i, local_port))
             
             
     ssh_args.extend(host_args)
