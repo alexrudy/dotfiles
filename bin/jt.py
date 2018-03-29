@@ -394,7 +394,8 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
         
     if not auto:
         click.echo("Forwarding addresses")    
-    for i, (local_port, remote_port) in enumerate(clean_ports(ports)):
+    
+    for i, (local_port, remote_port) in enumerate(clean_ports(ports), start=1):
         ssh_args.extend(["-L", forward_template.format(local_port, remote_port)])
         if not auto:
             click.echo("{}) http://localhost:{}".format(i, local_port))
