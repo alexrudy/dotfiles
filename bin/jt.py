@@ -371,7 +371,9 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
     host_args = list(host_args)
     if 'ssh' in host_args:
         host_args.remove('ssh')
-    
+    host_args.extend([
+        '-o', 'BatchMode yes', # Ensure that SSH doesn't ask for user input.
+        ])
     if auto:
         try:
             ports = get_relevant_ports(host_args, auto_restrict_user)
@@ -387,6 +389,7 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
     
     forward_template = '{0:d}:localhost:{1:d}'
     ssh_args = ['ssh', '-v', '-N', 
+                '-o', 'StrictHostKeyChecking accept-new', # Allow ssh connections to new locations
                 '-o', 'ServerAliveInterval {:d}'.format(interval),
                 '-o', 'ConnectTimeout {:d}'.format(connect_timeout)]
     if not ports:
