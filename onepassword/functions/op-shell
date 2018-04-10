@@ -1,0 +1,4 @@
+op-activate
+if [[ -a "~/.op-shell-items" ]]; then
+	source "~/.op-shell-items"
+fi
