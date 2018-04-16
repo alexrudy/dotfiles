@@ -45,7 +45,10 @@ from time import time as _time
 from time import sleep
     
 def int_or_pair(value):
-    """Integer, or a pair of integers."""
+    """Integer, or a pair of integers.
+    
+    Helpful for parsing the command line arguments where you pass two
+    ports as 1234,1235 and what you want is to forward 1234 to 1235."""
     if isinstance(value, int):
         return value
     elif isinstance(value, tuple):
@@ -140,7 +143,7 @@ def setup_logging():
     
     # Logger for each subprocess.
     ssh = logging.getLogger("ssh")
-    ssh_handler = logging.handlers.RotatingFileHandler(os.path.join(logdir, 'ssh.log'), mode='w')
+    ssh_handler = logging.handlers.RotatingFileHandler(os.path.join(logdir, 'ssh.log'), mode='w', backupCount=10, maxBytes=1e6)
     ssh_formatter = logging.Formatter("[%(levelname)-8s %(asctime)s] %(message)s [%(name)s]")
     ssh_handler.setFormatter(ssh_formatter)
     ssh_handler.setLevel(logging.DEBUG)
@@ -160,7 +163,22 @@ _timedout = object()
 _eof = object()      
 
 class ContinuousSSH(object):
-    """Continuos process management."""
+    """Continuous SSH process management.
+    
+    This class manages a keep-alive SSH connection,
+    and logs STDOUT from the connection, as well
+    as displaying status information on the command line
+    using :class:`StatusMessage`.
+    
+    Parameters
+    ----------
+    
+    args: list-like
+        The list of arguments to launch the subprocess.
+    
+    
+    
+    """
     def __init__(self, args, stream):
         super(ContinuousSSH, self).__init__()
         self.args = args
@@ -241,15 +259,19 @@ class ContinuousSSH(object):
                     log.debug(line)
                 else:
                     log.info(line)
+                
                 if "Entering interactive session" in line:
                     self.status("connected", fg='green')
                     self._loggerjt.debug('Connected proc = {}'.format(proc.pid))
+                
                 if "not responding" in line:
                     self.status("disconnected", fg='red')
                     log.debug("Killing proc = {}".format(proc.pid))
                     self._loggerjt.debug('Killing proc = {}'.format(proc.pid))
                     proc.kill()
+                
                 self.update(line)
+            
             log.info("Waiting for process to end.".format(proc.pid))
             proc.wait()
             self.status("disconnected", fg='red')
@@ -364,6 +386,8 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
     jt.py -p 80 -p 495 myserver.com
     
     To stop the SSH tunnel, press ^C.
+    
+    This script logs SSH connections in the folder ~/.jt/
     """
     setup_logging()
     log = logging.getLogger('jt')
@@ -371,6 +395,8 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
     host_args = list(host_args)
     if 'ssh' in host_args:
         host_args.remove('ssh')
+    if '--' in host_args:
+        host_args.remove('--')
     host_args.extend([
         '-o', 'BatchMode yes', # Ensure that SSH doesn't ask for user input.
         ])
