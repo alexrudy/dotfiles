@@ -1,4 +1,28 @@
 #!/usr/bin/env python3
+"""
+A tool for working with domino sessions from a local machine.
+
+This tool relies on a configuration file, `.sync.yml`, which
+you can create with the `init` command. All of the subcommands
+for this tool will accept the full ssh command string from
+domino (something like `ssh -p 49001 ubuntu@ec2-*.us-west-2.compute.amazonaws.com`).
+You can cache this string using the `box` subcommand, which
+'boxes' up your connection string and adds it to the 
+configuration file (`.sync.yml`) for later use. Unfortunately,
+there does not seem to be a way to automatically discover the
+ec2 address of the host machine for a given domino run 
+programatically.
+
+Commonly useful commands other than `init` and `box` are `up` and
+`down`, which rsync files up to and down from domino respectively
+using rsync to ensure that only changed files are moved. Also,
+the `ssh` command will open an ssh connection and return the command
+line to you. This is mostly useful if you've stored connection
+info using `box`. Finally, `ddd` will open a persistent ssh connection
+and set up port forwarding for the dask dashboard, which you can then
+open in a webbrowser. This requires that you have the `jt.py` script
+on your path as well as this script.
+"""
 
 import click
 import subprocess
@@ -45,7 +69,16 @@ def handle_ssh_arguments(ctx, param, value):
 @click.option('-c', '--config', default='.sync.yml', type=click.Path(), help='Path to the config file.')
 @click.option('-n', '--dry-run', is_flag=True, default=False, help="Dry run rsync")
 def main(cfg, ctx, config, dry_run):
-    """Sync files back and forth from domino"""
+    """Work with domino sessions from your local machine.
+    
+    To work with files in a domino project locally, you need
+    to either mount the domino directory on your machine (not yet 
+    supported by this script) or copy files back and forth (
+    hence the `sync` name). This script manages that copy back-
+    and-forth using rsync, and a configuration file in the directory
+    you are syncing with domino.
+    
+    """
     config = Path(config)
     if config.exists():
         with config.open("r") as stream:
@@ -93,7 +126,11 @@ def init(cfg, project_name):
 @click.pass_obj
 @click.argument('host', nargs=-1, callback=handle_ssh_arguments)
 def box(cfg, host):
-    """Cache the ssh host information."""
+    """Cache the ssh host information.
+    
+    This command saves the ssh host and arguments to the
+    .sync.yml file for later use.
+    """
     ssh = getcfg(cfg, 'remote.ssh', {})
     ssh.setdefault('args', list(host_args[:-1]))
     ssh['host'] = host_args[-1]
@@ -110,7 +147,15 @@ def save_config(cfg):
 @click.pass_obj
 @click.argument('host', nargs=-1, callback=handle_ssh_arguments)
 def up(cfg, host):
-    """Push files up to domino"""
+    """Push files up to domino
+    
+    Uses rsync in archive and update mode (-au) to push only
+    files changed locally to the server .
+    
+    If this pushes too many files, consider adding paths to the list
+    of excludes in the .sync.yml file for this project.
+    
+    """
     source = Path.cwd()
     destination_path = getcfg(cfg, 'remote.path', '/mnt/even/analytics/')
     destination = f"{host:s}:{destination_path}"
@@ -121,7 +166,14 @@ def up(cfg, host):
 @click.pass_obj
 @click.argument('host', nargs=-1, callback=handle_ssh_arguments)
 def down(cfg, host):
-    """Pull files down from domino"""
+    """Pull files down from domino
+    
+    Uses rsync in archive and update mode (-au) to pull only
+    files changed on the server down to the local working directory.
+    
+    If this pulls too many files, consider adding paths to the list
+    of excludes in the .sync.yml file for this project.
+    """
     destination = Path.cwd()
     source_path = getcfg(cfg, 'remote.path', '/mnt/even/analytics/')
     source = f"{host:s}:{source_path}"
@@ -131,7 +183,15 @@ def down(cfg, host):
 @click.pass_obj
 @click.argument('host', nargs=-1, callback=handle_ssh_arguments)
 def ddd(cfg, host):
-    """Dask dashboard port forwarder for domino."""
+    """Dask dashboard port forwarder for domino.
+    
+    Once this is running and connected, you can open
+    http://localhost:4487 in your webbrowser of choice
+    to see the dask dashboard from your domino host.
+    
+    This requires `jt.py` be on your path.
+    
+    """
     args = ['jt.py', '-p4487,8787', '--']
     args.extend(getcfg(cfg, 'remote.ssh.args', ['ssh']))
     args.append(host)
@@ -141,7 +201,12 @@ def ddd(cfg, host):
 @click.pass_obj
 @click.argument('host', nargs=-1, callback=handle_ssh_arguments)
 def ssh(cfg, host):
-    """Open an ssh connection to domino"""
+    """Open an ssh connection to domino.
+    
+    Opens a simple ssh connection to the domino machine.
+    Mostly useful if you have saved your connection string
+    via the `box` command.
+    """
     ssh_args = getcfg(cfg, 'remote.ssh.args', ['ssh'])
     ssh_args.append(host)
     subprocess.check_call(ssh_args)
