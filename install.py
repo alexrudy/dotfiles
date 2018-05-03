@@ -111,13 +111,24 @@ class Installer(object):
         for filename in glob.iglob(join(dotfiles, "*", "*.symlink")):
             source = os.path.relpath(filename, home)
             target = join(home, ".{0:s}".format(os.path.splitext(os.path.basename(filename))[0]))
-            self._install(source, target)
+            
+            prefix = os.path.commonpath(os.path.abspath(p) for p in (os.path.realpath(target), source))
+            correct = os.path.abspath(dotfiles) in prefix
+            
+            if not (os.path.exists(target) and correct):
+                self._install(source, target)
+                
             if self.mode in string.ascii_lowercase:
                 self.mode = "i"
         for dirname in glob.iglob(join(dotfiles, "*", "*.dir")):
             source = os.path.relpath(dirname, home)
             target = join(home, ".{0:s}".format(os.path.splitext(os.path.basename(dirname))[0]))
-            self._install(source, target, kind="Directory")
+            
+            prefix = os.path.commonpath(os.path.abspath(p) for p in (os.path.realpath(target), source))
+            correct = os.path.abspath(dotfiles) in prefix
+            
+            if not (os.path.exists(target) and correct):
+                self._install(source, target, kind="Directory")
             if self.mode in string.ascii_lowercase:
                 self.mode = "i"
 
