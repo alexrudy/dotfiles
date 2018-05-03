@@ -20,10 +20,12 @@ function prompt_alex_precmd {
   else
     branch_format="on ${_prompt_alex_colors[1]}%b%f%u%c"
   fi
-
+  
   zstyle ':vcs_info:*:prompt:*' formats "${branch_format}"
   _need_push=$(need_push)
   vcs_info 'prompt'
+  
+  # Check mac applications
   apple_info=""
   if [[ "$OSTYPE" == darwin* ]]; then
     apple_info="("
@@ -47,6 +49,11 @@ function prompt_alex_precmd {
   fi
   if [[ "$apple_info" == "()" ]]; then
       apple_info=""
+  fi
+  
+  # Check for shell login with onepassword
+  if [[ -n $OP_SHELL_ACTIVE ]]; then
+	  op_shell_info="${_prompt_alex_colors[2]}●%f"
   fi
   
   if (( $+functions[python-info] )); then
@@ -117,7 +124,7 @@ function prompt_alex_setup {
 	  HOSTPROMPT="${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}${iterm2_hostname:-%m}%f "
   fi
   PROMPT=$'\n'"%{$(iterm2_prompt_mark)%}${HOSTPROMPT}in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}${_need_push}'$'\n'"› "
-  RPROMPT='$python_info[virtualenv]$apple_info'
+  RPROMPT='$python_info[virtualenv]$apple_info$op_shell_info'
 }
 
 prompt_alex_setup "$@"
