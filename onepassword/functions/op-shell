@@ -1,4 +1,7 @@
 op-activate
-if [[ -a "~/.op-shell-items" ]]; then
-	source "~/.op-shell-items"
+if [[ -a "$HOME/.op-shell-items" ]]; then
+	source "$HOME/.op-shell-items"
+	export OP_SHELL_ACTIVE=true
+else
+	echo "[WARNING] can't locate .op-shell-items file!"
 fi
