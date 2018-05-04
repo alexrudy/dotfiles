@@ -1,3 +1,4 @@
 export GOPATH=~/go
 export GOBIN=~/go/bin
-export PATH=$PATH:$GOBIN
+export GOSRC=~/go/src/
+pathadd $GOBIN
