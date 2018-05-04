@@ -2,10 +2,16 @@ pmodload 'helper'
 
 function prompt_alex_pwd {
   d=$(print -P '%3~')
-   case $d in
-      ('~'*|/*) echo "$d";;
-      (*)       echo "...$d"
-   esac
+  e=$(print -P '%~')
+  if [[ $d == $e ]]; then
+    echo $e
+  else
+    case $e in
+      ('~'*) echo "~...$d";;
+        (/*) echo "/...$d";;
+    (*)       echo "...$d"
+     esac
+   fi
 }
 
 function prompt_alex_async_callback {
