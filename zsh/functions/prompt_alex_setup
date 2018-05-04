@@ -21,6 +21,8 @@ function prompt_alex_precmd {
     branch_format="on ${_prompt_alex_colors[1]}%b%f%u%c"
   fi
   
+  _prompt_alex_pwd=$(prompt-pwd)
+  
   zstyle ':vcs_info:*:prompt:*' formats "${branch_format}"
   _need_push=$(need_push)
   vcs_info 'prompt'
@@ -93,6 +95,8 @@ function prompt_alex_setup {
       "%F{green}"
     )
   fi
+  
+  _prompt_alex_pwd=''
 
   # Formats:
   #   %b - branchname
@@ -115,6 +119,11 @@ function prompt_alex_setup {
   zstyle ':vcs_info:*:prompt:*' formats "${branch_format}"
   zstyle ':vcs_info:*:prompt:*' nvcsformats   ""
 
+
+  if zstyle -T ':prezto:module:prompt' show-return-val; then
+    show_return+='%? '
+  fi
+  
   # Set python-info parameters.
   zstyle ':prezto:module:python:info:virtualenv' format "${_prompt_alex_colors[3]}(%v)%f"
   # Define prompts.
@@ -123,7 +132,7 @@ function prompt_alex_setup {
   else
 	  HOSTPROMPT="${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}${iterm2_hostname:-%m}%f "
   fi
-  PROMPT=$'\n'"%{$(iterm2_prompt_mark)%}${HOSTPROMPT}in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}${_need_push}'$'\n'"› "
+  PROMPT=$'\n'"%{$(iterm2_prompt_mark)%}${HOSTPROMPT}in ${_prompt_alex_colors[5]}"'${_prompt_alex_pwd}'"%f "'${vcs_info_msg_0_}${_need_push}'$'\n'"› "
   RPROMPT='$python_info[virtualenv]$apple_info$op_shell_info'
 }
 
