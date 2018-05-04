@@ -22,7 +22,7 @@ zstyle ':prezto:*:*' color 'yes'
 
 zstyle ':prezto:module:python' skip-virtualenvwrapper-init 'on'
 zstyle ':prezto:module:python:virtualenv' initialize 'no'
-
+zstyle ':prezto:module:git:alias' skip 'yes'
 # Set the Prezto modules to load (browse modules).
 # The order matters.
 zstyle ':prezto:load' pmodule \
@@ -36,6 +36,7 @@ zstyle ':prezto:load' pmodule \
   'python' \
   'completion' \
   'prompt' \
+  'git' \
   'ssh'
 
 #
