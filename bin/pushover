@@ -18,14 +18,38 @@ import os
 import requests
 import click
 
-USER = os.environ['PUSHOVER_USER_ID']
-API = os.environ['PUSHOVER_API_TOKEN']
-
-def send_message(text):
+def send_message(text, credentials=None):
     """Send a message"""
-    payload = {"message": text, "user": USER, "token": API }
+    payload = {"message": text}
+    if credentials is None:
+        credentials = discover_credentials()
+    payload = credentials.apply(payload)
     r = requests.post('https://api.pushover.net/1/messages.json', data=payload, headers={'User-Agent': 'Python'})
     return r
+    
+class PushoverCredentials(object):
+    def __init__(self, user_id, api_token):
+        self.user_id = str(user_id)
+        self.api_token = str(api_token)
+    
+    def apply(self, payload):
+        """Apply these credentials to a payload"""
+        payload['user'] = self.user_id
+        payload['token'] = self.api_token
+        return payload
+        
+    
+def discover_credentials():
+    """Discover credentials from the environment."""
+    return PushoverCredentials(os.environ['PUSHOVER_USER_ID'], os.environ['PUSHOVER_API_TOKEN'])
+    
+def status_message(status, message):
+    """Construct a status message (presumably from a process exit code.)"""
+    if status == 0:
+        message += u" \u2705"
+    else:
+        message += u" \u274c {0:d}".format(status)
+    return message
     
 @click.command()
 @click.option("-s", "--status", type=int, help="Status of previous command.", default=None)
@@ -35,14 +59,11 @@ def main(status, message):
     
     message = " ".join(message)
     if status is not None:
-        if status == 0:
-            message += u" \u2705"
-        else:
-            message += u" \u274c {0:d}".format(status)
-    
-    r = send_message(message)
+        message = status_message(status, message)
+    r = send_message(message, discover_credentials())
     if not r.status_code == 200:
-        print(r.text)
+        click.echo(r.text)
+        raise click.Abort(r.status_code)
     
 if __name__ == '__main__':
     main()

@@ -1,58 +1,128 @@
-#
-# A theme based on Steve Losh's Extravagant Prompt with vcs_info integration.
-#
-# Authors:
-#   Steve Losh <steve@stevelosh.com>
-#   Bart Trojanowski <bart@jukie.net>
-#   Brian Carper <brian@carper.ca>
-#   Sorin Ionescu <sorin.ionescu@gmail.com>
-#   steeef <steeef@gmail.com>
-#   Alex Rudy <alex.rudy@gmail.com>
-#
-# Screenshots:
-#   http://i.imgur.com/HyRvv.png
-#
+pmodload 'helper'
+
+function prompt_alex_pwd {
+  d=$(print -P '%3~')
+  e=$(print -P '%~')
+  if [[ $d == $e ]]; then
+    echo $e
+  else
+    case $e in
+      ('~'*) echo "~...$d";;
+        (/*) echo "/...$d";;
+    (*)       echo "...$d"
+     esac
+   fi
+}
+
+function prompt_alex_async_callback {
+  case $1 in
+    prompt_alex_async_git)
+      # We can safely split on ':' because it isn't allowed in ref names.
+      IFS=':' read _git_target _git_post_target <<<"$3"
+
+      # The target actually contains 3 space separated possibilities, so we need to
+      # make sure we grab the first one.
+      _git_target=$(coalesce ${(@)${(z)_git_target}})
+
+      if [[ -z "$_git_target" ]]; then
+        # No git target detected, flush the git fragment and redisplay the prompt.
+        if [[ -n "$_prompt_alex_git" ]]; then
+          _prompt_alex_git=''
+          zle && zle reset-prompt
+        fi
+      else
+        # Git target detected, update the git fragment and redisplay the prompt.
+        _prompt_alex_git="on ${_git_target}${_git_post_target}"
+        zle && zle reset-prompt
+      fi
+      ;;
+    prompt_alex_async_apple)
+      apple_info="$3"
+      zle && zle reset-prompt
+      ;;
+  esac
+}
+
+function prompt_alex_async_git {
+  cd -q "$1"
+  if (( $+functions[git-info] )); then
+    git-info
+    print ${git_info[status]}
+  fi
+}
+
+function prompt_alex_async_tasks {
+  # Initialize async worker. This needs to be done here and not in
+  # prompt_alex_setup so the git formatting can be overridden by other prompts.
+  if (( !${prompt_prezto_async_init:-0} )); then
+    async_start_worker prompt_alex -n
+    async_register_callback prompt_alex prompt_alex_async_callback
+    typeset -g prompt_prezto_async_init=1
+  fi
+
+  # Kill the old process of slow commands if it is still running.
+  async_flush_jobs prompt_alex
+
+  # Compute slow commands in the background.
+  async_job prompt_alex prompt_alex_async_git "$PWD"
+  async_job prompt_alex prompt_alex_async_apple
+}
+
+function prompt_alex_async_apple {
+    apple_info=""
+    if [[ "$OSTYPE" == darwin* ]]; then
+      apple_info="("
+      if [[ $(isactive "Things3") == "true" ]]; then
+          apple_info+="${_prompt_alex_colors[1]}✓$(today)%f"
+      fi
+      if [[ $(isactive "Tunnelblick") == "true" ]]; then
+          if [[ $(tb nconnections) -ge 1 ]]; then
+              apple_info+="${_prompt_alex_colors[2]}L%f"
+          else
+              apple_info+="${_prompt_alex_colors[3]}U%f"
+          fi
+      fi  
+      # if [[ $(isactive "Mail") == "true" ]]; then
+      #     unread=$(mail-unread)
+      #     if [[ $unread -gt 0 ]]; then
+      #         apple_info+="${_prompt_alex_colors[1]}✉️ $unread%f"
+      #     fi
+      # fi
+      apple_info+=")"
+    fi
+    if [[ "$apple_info" == "()" ]]; then
+        apple_info=""
+    fi
+    print ${apple_info}
+}
 
 function prompt_alex_precmd {
-  # Check for untracked files or updated submodules since vcs_info does not.
-  if [[ -n $(git ls-files --other --exclude-standard 2> /dev/null) ]]; then
-    branch_format="on ${_prompt_alex_colors[1]}%b%f%u%c${_prompt_alex_colors[4]}●%f"
-  else
-    branch_format="on ${_prompt_alex_colors[1]}%b%f%u%c"
-  fi
-
-  zstyle ':vcs_info:*:prompt:*' formats "${branch_format}"
-  _need_push=$(need_push)
-  vcs_info 'prompt'
-  apple_info=""
-  if [[ "$OSTYPE" == darwin* ]]; then
-    apple_info="("
-    if [[ $(isactive "Things3") == "true" ]]; then
-        apple_info+="${_prompt_alex_colors[1]}✓$(today)%f"
+  
+  _prompt_alex_pwd=$(prompt_alex_pwd)
+  
+  # Handle updating git data. We also clear the git prompt data if we're in a
+  # different git root now.
+  if (( $+functions[git-dir] )); then
+    local new_git_root="$(git-dir 2> /dev/null)"
+    if [[ $new_git_root != $_alex_cur_git_root ]]; then
+      _prompt_alex_git=''
+      _alex_cur_git_root=$new_git_root
     fi
-    if [[ $(isactive "Tunnelblick") == "true" ]]; then
-        if [[ $(tb nconnections) -ge 1 ]]; then
-            apple_info+="${_prompt_alex_colors[2]}L%f"
-        else
-            apple_info+="${_prompt_alex_colors[3]}U%f"
-        fi
-    fi  
-    # if [[ $(isactive "Mail") == "true" ]]; then
-    #     unread=$(mail-unread)
-    #     if [[ $unread -gt 0 ]]; then
-    #         apple_info+="${_prompt_alex_colors[1]}✉️ $unread%f"
-    #     fi
-    # fi
-    apple_info+=")"
   fi
-  if [[ "$apple_info" == "()" ]]; then
-      apple_info=""
+  
+  
+  # Check mac applications
+  
+  # Check for shell login with onepassword
+  if [[ -n $OP_SHELL_ACTIVE ]]; then
+	  op_shell_info="${_prompt_alex_colors[2]}●%f"
   fi
   
   if (( $+functions[python-info] )); then
     python-info
   fi
   
+  prompt_alex_async_tasks
   
 }
 
@@ -61,8 +131,13 @@ function prompt_alex_setup {
   unsetopt XTRACE KSH_ARRAYS
   prompt_opts=(cr percent subst)
 
+  _prompt_alex_precmd_async_pid=0
+  _prompt_alex_precmd_async_data=$(mktemp "${TMPDIR:-/tmp}/sorin-prompt-async-XXXXXXXXXX")
+  
   # Load required functions.
   autoload -Uz add-zsh-hook
+  autoload -Uz async && async
+  
   autoload -Uz vcs_info
 
   # Add hook for calling vcs_info before each command.
@@ -86,6 +161,11 @@ function prompt_alex_setup {
       "%F{green}"
     )
   fi
+  
+  _prompt_alex_pwd=''
+  _alex_cur_git_root=''
+
+  _prompt_alex_git=''
 
   # Formats:
   #   %b - branchname
@@ -107,7 +187,28 @@ function prompt_alex_setup {
   zstyle ':vcs_info:*:prompt:*' actionformats "${branch_format}${action_format}"
   zstyle ':vcs_info:*:prompt:*' formats "${branch_format}"
   zstyle ':vcs_info:*:prompt:*' nvcsformats   ""
+  
+  zstyle ':prezto:module:git:info' verbose 'yes'
+  zstyle ':prezto:module:git:info:action' format '%F{7}:%f%%B%F{9}%s%f%%b'
+  zstyle ':prezto:module:git:info:added' format ' %%B%F{2}✚%f%%b'
+  zstyle ':prezto:module:git:info:ahead' format ' %%B%F{13}⬆%f%%b'
+  zstyle ':prezto:module:git:info:behind' format ' %%B%F{13}⬇%f%%b'
+  zstyle ':prezto:module:git:info:branch' format ' %%B%F{2}%b%f%%b'
+  zstyle ':prezto:module:git:info:commit' format ' %%B%F{3}%.7c%f%%b'
+  zstyle ':prezto:module:git:info:deleted' format ' %%B%F{1}✖%f%%b'
+  zstyle ':prezto:module:git:info:modified' format ' %%B%F{4}✱%f%%b'
+  zstyle ':prezto:module:git:info:position' format ' %%B%F{13}%p%f%%b'
+  zstyle ':prezto:module:git:info:renamed' format ' %%B%F{5}➜%f%%b'
+  zstyle ':prezto:module:git:info:stashed' format ' %%B%F{6}✭%f%%b'
+  zstyle ':prezto:module:git:info:unmerged' format ' %%B%F{3}═%f%%b'
+  zstyle ':prezto:module:git:info:untracked' format ' %%B%F{7}◼%f%%b'
+  zstyle ':prezto:module:git:info:keys' format \
+    'status' '%b %p %c:%s%A%B%S%a%d%m%r%U%u'
 
+  if zstyle -T ':prezto:module:prompt' show-return-val; then
+    show_return+='%? '
+  fi
+  
   # Set python-info parameters.
   zstyle ':prezto:module:python:info:virtualenv' format "${_prompt_alex_colors[3]}(%v)%f"
   # Define prompts.
@@ -116,8 +217,8 @@ function prompt_alex_setup {
   else
 	  HOSTPROMPT="${_prompt_alex_colors[3]}%n%f at ${_prompt_alex_colors[2]}${iterm2_hostname:-%m}%f "
   fi
-  PROMPT=$'\n'"%{$(iterm2_prompt_mark)%}${HOSTPROMPT}in ${_prompt_alex_colors[5]}%~%f "'${vcs_info_msg_0_}${_need_push}'$'\n'"› "
-  RPROMPT='$python_info[virtualenv]$apple_info'
+  PROMPT=$'\n'"%{$(iterm2_prompt_mark)%}${HOSTPROMPT}in ${_prompt_alex_colors[5]}"'${_prompt_alex_pwd}'"%f "'${_prompt_alex_git}${_need_push}'$'\n'"› "
+  RPROMPT='$python_info[virtualenv]$apple_info$op_shell_info'
 }
 
 prompt_alex_setup "$@"

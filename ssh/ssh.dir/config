@@ -10,10 +10,6 @@
 # configuration file, and defaults at the end.
 #
 # For more information about ssh options, see `man ssh`.
-#
-# 2010-10-24
-
-Include lendup.config
 
 Include linode.config
 

@@ -45,7 +45,10 @@ from time import time as _time
 from time import sleep
     
 def int_or_pair(value):
-    """Integer, or a pair of integers."""
+    """Integer, or a pair of integers.
+    
+    Helpful for parsing the command line arguments where you pass two
+    ports as 1234,1235 and what you want is to forward 1234 to 1235."""
     if isinstance(value, int):
         return value
     elif isinstance(value, tuple):
@@ -140,7 +143,7 @@ def setup_logging():
     
     # Logger for each subprocess.
     ssh = logging.getLogger("ssh")
-    ssh_handler = logging.handlers.RotatingFileHandler(os.path.join(logdir, 'ssh.log'), mode='w')
+    ssh_handler = logging.handlers.RotatingFileHandler(os.path.join(logdir, 'ssh.log'), mode='w', backupCount=10, maxBytes=1e6)
     ssh_formatter = logging.Formatter("[%(levelname)-8s %(asctime)s] %(message)s [%(name)s]")
     ssh_handler.setFormatter(ssh_formatter)
     ssh_handler.setLevel(logging.DEBUG)
@@ -160,7 +163,22 @@ _timedout = object()
 _eof = object()      
 
 class ContinuousSSH(object):
-    """Continuos process management."""
+    """Continuous SSH process management.
+    
+    This class manages a keep-alive SSH connection,
+    and logs STDOUT from the connection, as well
+    as displaying status information on the command line
+    using :class:`StatusMessage`.
+    
+    Parameters
+    ----------
+    
+    args: list-like
+        The list of arguments to launch the subprocess.
+    
+    
+    
+    """
     def __init__(self, args, stream):
         super(ContinuousSSH, self).__init__()
         self.args = args
@@ -241,15 +259,19 @@ class ContinuousSSH(object):
                     log.debug(line)
                 else:
                     log.info(line)
+                
                 if "Entering interactive session" in line:
                     self.status("connected", fg='green')
                     self._loggerjt.debug('Connected proc = {}'.format(proc.pid))
+                
                 if "not responding" in line:
                     self.status("disconnected", fg='red')
                     log.debug("Killing proc = {}".format(proc.pid))
                     self._loggerjt.debug('Killing proc = {}'.format(proc.pid))
                     proc.kill()
+                
                 self.update(line)
+            
             log.info("Waiting for process to end.".format(proc.pid))
             proc.wait()
             self.status("disconnected", fg='red')
@@ -277,7 +299,7 @@ def iter_json_data(output):
                 log.debug("jupyter url = {!r}".format(data['full_url']))
                 yield data
 
-def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
+def get_relevant_ports(host_args, restrict_to_user=True, show_urls=True):
     """Get relevant port numbers for jupyter notebook services"""
     log = logging.getLogger("jt.auto")
     
@@ -285,12 +307,12 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
     pgrep_args = ['pgrep', '-f', shlex.quote(pgrep_string), '|', 'xargs', 'ps', '-o', 'command=', '-p']
     if restrict_to_user:
         pgrep_args.insert(1, '-u$(id -u)')
-    ssh_pgrep_args = ['ssh', host, ' '.join(pgrep_args)]
+    ssh_pgrep_args = ['ssh', *host, ' '.join(pgrep_args)]
     ports = set()
     log.debug('ssh pgrep args = {!r}'.format(pgrep_args))
     procs = subprocess.check_output(ssh_pgrep_args)
     if show_urls:
-        click.echo("Locating jupyter notebooks on {}".format(host))
+        click.echo("Locating jupyter notebooks on {}".format(host_args))
     for proc in procs.splitlines():
         parts = shlex.split(proc.decode('utf-8', 'backslashreplace'))
         python = parts[0]
@@ -316,10 +338,35 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
                     click.echo("{:d}) {full_url:s} ({notebook_dir:s})".format(len(ports), **data))
     log.info("Auto-discovered ports = {0!r}".format(ports))
     return ports
+    
+def clean_ports(ports):
+    """Take the ports, and yield appropriate pairs."""
+    port_map = dict()
+    
+    for port in ports:
+        if isinstance(port, int):
+            local, remote = port, port
+        else:
+            local, remote = port
+        
+        # We only check for duplicate local ports here. You might forward multiple local ports
+        # to the same remote port, and I'm not here to tell you that is silly.
+        
+        # Check if ports are already in use for a different forwarding pair.
+        if port_map.get(local, remote) != remote:
+            click.echo("Local port {:d} is already set to be forwarding to {}".format(local, local_ports[local]))
+            raise click.Abort()
+        
+        # Skip if we are already forwarding this pair of ports.
+        if local in port_map:
+           continue 
+        
+        port_map[local] = remote
+        yield local, remote
 
 @click.command()
 @click.option('-p', '--port', 'ports', default=[8090], type=int_or_pair, multiple=True,
-              help='Port to forward from the remote machine to the local machine. To forward to a different port, pass the ports as `remote,local`.')
+              help='Port to forward from the remote machine to the local machine. To forward to a different port, pass the ports as `local,remote`.')
 @click.option('-k', '--interval', default=5, type=int, 
               help='Interval, in seconds, to use for maintaining the ssh connection (see ServerAliveInterval)')
 @click.option('--connect-timeout', default=10, type=int, 
@@ -327,8 +374,8 @@ def get_relevant_ports(host, restrict_to_user=True, show_urls=True):
 @click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host.')
 @click.option('--auto-restrict-user/--no-auto-restrict-user', default=True,
               help='Restrict automatic decection to the user ID. (default=True) Turning this off will try to forward ports for all users on the remote host.')
-@click.argument('host')
-def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
+@click.argument('host_args', nargs=-1)
+def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
     """Run an SSH tunnel over specified ports to HOST.
     
     Using the ssh option 'ServerAliveInterval', this script will keep the SSH tunnel alive
@@ -339,13 +386,23 @@ def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
     jt.py -p 80 -p 495 myserver.com
     
     To stop the SSH tunnel, press ^C.
+    
+    This script logs SSH connections in the folder ~/.jt/
     """
     setup_logging()
     log = logging.getLogger('jt')
     
+    host_args = list(host_args)
+    if 'ssh' in host_args:
+        host_args.remove('ssh')
+    if '--' in host_args:
+        host_args.remove('--')
+    host_args.extend([
+        '-o', 'BatchMode yes', # Ensure that SSH doesn't ask for user input.
+        ])
     if auto:
         try:
-            ports = get_relevant_ports(host, auto_restrict_user)
+            ports = get_relevant_ports(host_args, auto_restrict_user)
         except subprocess.CalledProcessError as e:
             click.echo("[{}] Collecting ports for forwarding: {:s}".format(click.style("ERROR", fg='red'), str(e)))
         
@@ -354,21 +411,26 @@ def main(host, ports, interval, connect_timeout, auto, auto_restrict_user):
             raise click.Abort()
         
         click.echo("Forwarding ports {0}".format(", ".join("{:d}".format(p) for p in ports)))
-        
+    
+    
     forward_template = '{0:d}:localhost:{1:d}'
     ssh_args = ['ssh', '-v', '-N', 
+                '-o', 'StrictHostKeyChecking accept-new', # Allow ssh connections to new locations
                 '-o', 'ServerAliveInterval {:d}'.format(interval),
                 '-o', 'ConnectTimeout {:d}'.format(connect_timeout)]
     if not ports:
         click.echo("[{}] No ports selected for forwarding!".format(click.style("WARNING", fg='yellow')))
         
+    if not auto:
+        click.echo("Forwarding addresses")    
     
-    for port in set(ports):
-        if isinstance(port, int):
-            ssh_args.extend(["-L", forward_template.format(port, port)])
-        else:
-            ssh_args.extend(["-L", forward_template.format(*port)])
-    ssh_args.append(host)
+    for i, (local_port, remote_port) in enumerate(clean_ports(ports), start=1):
+        ssh_args.extend(["-L", forward_template.format(local_port, remote_port)])
+        if not auto:
+            click.echo("{}) http://localhost:{}".format(i, local_port))
+            
+            
+    ssh_args.extend(host_args)
     log.debug("ssh forwarding args = %r", ssh_args)
     proc = ContinuousSSH(ssh_args, click.get_text_stream('stdout'))
     click.echo("Use ^C to exit")
