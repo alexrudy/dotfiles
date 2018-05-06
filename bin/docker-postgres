@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+docker run --rm --name local-postgres -e POSTGRES_PASSWORD=$(op get item "local postgres" | jq -r '.details.password') -d -p 5433:5432 -v "$HOME/Documents/postgres/data:/var/lib/postgresql/data" postgres
