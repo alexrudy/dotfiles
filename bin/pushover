@@ -17,6 +17,8 @@ import sys
 import os
 import requests
 import click
+import json
+import subprocess
 
 def send_message(text, credentials=None):
     """Send a message"""
@@ -38,10 +40,14 @@ class PushoverCredentials(object):
         payload['token'] = self.api_token
         return payload
         
+class CredentialDiscoveryError(Exception):
+    pass
     
 def discover_credentials():
     """Discover credentials from the environment."""
-    return PushoverCredentials(os.environ['PUSHOVER_USER_ID'], os.environ['PUSHOVER_API_TOKEN'])
+    if all(f"PUSHOVER_{var}" in os.environ for var in ('USER_ID', 'API_TOKEN')):
+        return PushoverCredentials(os.environ['PUSHOVER_USER_ID'], os.environ['PUSHOVER_API_TOKEN'])
+    raise CredentialDiscoveryError("Can't discover credentials!")
     
 def status_message(status, message):
     """Construct a status message (presumably from a process exit code.)"""
@@ -60,9 +66,14 @@ def main(status, message):
     message = " ".join(message)
     if status is not None:
         message = status_message(status, message)
-    r = send_message(message, discover_credentials())
+    try:
+        creds = discover_credentials()
+    except CredentialDiscoveryError as e:
+        click.echo(str(e), err=True)
+        raise click.Abort()
+    r = send_message(message, creds)
     if not r.status_code == 200:
-        click.echo(r.text)
+        click.echo(r.text, err=True)
         raise click.Abort(r.status_code)
     
 if __name__ == '__main__':
