@@ -112,7 +112,7 @@ class Installer(object):
             source = os.path.relpath(filename, home)
             target = join(home, ".{0:s}".format(os.path.splitext(os.path.basename(filename))[0]))
             
-            prefix = os.path.commonpath(os.path.abspath(p) for p in (os.path.realpath(target), source))
+            prefix = os.path.commonpath([os.path.abspath(p) for p in (os.path.realpath(target), source)])
             correct = os.path.abspath(dotfiles) in prefix
             
             if not (os.path.exists(target) and correct):
