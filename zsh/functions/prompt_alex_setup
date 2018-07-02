@@ -132,7 +132,7 @@ function prompt_alex_setup {
   prompt_opts=(cr percent subst)
 
   _prompt_alex_precmd_async_pid=0
-  _prompt_alex_precmd_async_data=$(mktemp "${TMPDIR:-/tmp}/sorin-prompt-async-XXXXXXXXXX")
+  _prompt_alex_precmd_async_data=$(mktemp "${TMPDIR:-/tmp}/alex-prompt-async-XXXXXXXXXX")
   
   # Load required functions.
   autoload -Uz add-zsh-hook
