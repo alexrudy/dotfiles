@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 #
 #  pushover
@@ -20,13 +20,19 @@ import click
 import json
 import subprocess
 
+class ConnectionError(Exception):
+    pass
+
 def send_message(text, credentials=None):
     """Send a message"""
     payload = {"message": text}
     if credentials is None:
         credentials = discover_credentials()
     payload = credentials.apply(payload)
-    r = requests.post('https://api.pushover.net/1/messages.json', data=payload, headers={'User-Agent': 'Python'})
+    try:
+        r = requests.post('https://api.pushover.net/1/messages.json', data=payload, headers={'User-Agent': 'Python'})
+    except requests.exceptions.ConnectionError as e:
+        raise ConnectionError from e
     return r
     
 class PushoverCredentials(object):
@@ -47,6 +53,8 @@ def discover_credentials():
     """Discover credentials from the environment."""
     if all(f"PUSHOVER_{var}" in os.environ for var in ('USER_ID', 'API_TOKEN')):
         return PushoverCredentials(os.environ['PUSHOVER_USER_ID'], os.environ['PUSHOVER_API_TOKEN'])
+    if all(f"PUSHOVER_{var}" in os.enviorn for var in ('USER_TOKEN', 'APP_TOKEN')):
+        return PushoverCredentials(os.environ['PUSHOVER_USER_TOKEN'], os.environ['PUSHOVER_APP_TOKEN'])
     raise CredentialDiscoveryError("Can't discover credentials!")
     
 def status_message(status, message):
@@ -71,7 +79,11 @@ def main(status, message):
     except CredentialDiscoveryError as e:
         click.echo(str(e), err=True)
         raise click.Abort()
-    r = send_message(message, creds)
+    try:
+        r = send_message(message, creds)
+    except ConnectionError as e:
+        click.echo(str(e), err=True)
+        raise click.Abort()
     if not r.status_code == 200:
         click.echo(r.text, err=True)
         raise click.Abort(r.status_code)
