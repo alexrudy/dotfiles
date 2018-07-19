@@ -7,7 +7,7 @@ function prompt_alex_pwd {
     echo $e
   else
     case $e in
-      ('~'*) echo "~...$d";;
+      ('~'*) echo "~/...$d";;
         (/*) echo "/...$d";;
     (*)       echo "...$d"
      esac
