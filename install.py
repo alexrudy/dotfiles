@@ -137,8 +137,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dotfiles", default="~/.dotfiles")
     parser.add_argument("--home", default="~")
+    parser.add_argument("--mode", default="i", help="Set installer mode: [s]kip, [S]kip all, [o]verwrite, [O]verwrite all, [b]ackup, [B]ackup all")
     opt = parser.parse_args()
-    installer = Installer(mode="i")
+    installer = Installer(mode=opt.mode)
     installer.install(os.path.expanduser(opt.dotfiles), opt.home)
     
 if __name__ == '__main__':
