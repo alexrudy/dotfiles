@@ -53,7 +53,7 @@ def discover_credentials():
     """Discover credentials from the environment."""
     if all(f"PUSHOVER_{var}" in os.environ for var in ('USER_ID', 'API_TOKEN')):
         return PushoverCredentials(os.environ['PUSHOVER_USER_ID'], os.environ['PUSHOVER_API_TOKEN'])
-    if all(f"PUSHOVER_{var}" in os.enviorn for var in ('USER_TOKEN', 'APP_TOKEN')):
+    if all(f"PUSHOVER_{var}" in os.environ for var in ('USER_TOKEN', 'APP_TOKEN')):
         return PushoverCredentials(os.environ['PUSHOVER_USER_TOKEN'], os.environ['PUSHOVER_APP_TOKEN'])
     raise CredentialDiscoveryError("Can't discover credentials!")
     
