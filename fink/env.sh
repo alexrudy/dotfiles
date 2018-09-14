@@ -74,7 +74,7 @@ if [[ -d $FINKPREFIX ]]; then
     # GIT support
     #==================================
 
-    if [[ $FINK_GIT ]]
+    if [ -n $FINK_GIT ]
     then
         alias git='gitsupport'
 
