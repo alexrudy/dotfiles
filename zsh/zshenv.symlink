@@ -2,5 +2,5 @@
 
 function loadrc () {
     source $HOME/.zshrc
-	source $HOME/.zprofile
+    source $HOME/.zprofile
 }

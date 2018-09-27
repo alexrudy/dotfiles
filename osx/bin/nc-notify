@@ -1,0 +1,4 @@
+#!/usr/bin/env osascript
+on run args
+  display notification args
+end run

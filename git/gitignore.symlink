@@ -29,3 +29,5 @@ Temporary Items
 \.python-version
 
 .dropbox
+.mypy_cache
+.vscode
