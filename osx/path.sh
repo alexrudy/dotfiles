@@ -5,5 +5,5 @@ fi
 pathadd "$DOTFILES/osx/bin"
 
 if [ -f "$DOTFILES/osx/defaultbrowser/defaultbrowser" ]; then
-  ln -s "$DOTFILES/osx/defaultbrowser/defaultbrowser" "$DOTFILES/osx/bin/defaultbrowser"
+  mv "$DOTFILES/osx/defaultbrowser/defaultbrowser" "$DOTFILES/osx/bin/defaultbrowser"
 fi
