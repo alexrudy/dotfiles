@@ -20,6 +20,14 @@ zstyle ':prezto:*:*' color 'yes'
 # Set the Zsh functions to load (man zshcontrib).
 # zstyle ':prezto:load' zfunction 'zargs' 'zmv'
 
+zstyle ':prezto:module:syntax-highlighting' highlighters \
+  'main' \
+  'brackets' \
+  'pattern' \
+  'line' \
+  'cursor' \
+  'root'
+
 zstyle ':prezto:module:python' skip-virtualenvwrapper-init 'on'
 zstyle ':prezto:module:python:virtualenv' initialize 'no'
 zstyle ':prezto:module:git:alias' skip 'yes'
@@ -33,11 +41,14 @@ zstyle ':prezto:load' pmodule \
   'directory' \
   'spectrum' \
   'utility' \
+  'syntax-highlighting' \
   'python' \
   'completion' \
   'prompt' \
   'git' \
-  'ssh'
+  'ssh' \
+  'history-substring-search' \
+  'autosuggestions'
 
 #
 # Autosuggestions
