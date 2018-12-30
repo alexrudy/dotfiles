@@ -5,3 +5,4 @@
 matplotlib.dir/tex.*
 matplotlib.dir/*.cache
 matplotlib.dir/fontList.json
+matplotlib.dir/fontlist*.json
