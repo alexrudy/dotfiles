@@ -28,17 +28,17 @@ function prompt_alex_async_callback {
         # No git target detected, flush the git fragment and redisplay the prompt.
         if [[ -n "$_prompt_alex_git" ]]; then
           _prompt_alex_git=''
-          zle && zle reset-prompt
+          zle && zle .reset-prompt
         fi
       else
         # Git target detected, update the git fragment and redisplay the prompt.
         _prompt_alex_git="on ${_git_target}${_git_post_target}"
-        zle && zle reset-prompt
+        zle && zle .reset-prompt
       fi
       ;;
     prompt_alex_async_apple)
       apple_info="$3"
-      zle && zle reset-prompt
+      zle && zle .reset-prompt
       ;;
   esac
 }
