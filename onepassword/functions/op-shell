@@ -1,7 +1,16 @@
+op-import () {
+  setopt localoptions ERR_RETURN
+  source "$HOME/.op-shell-items"
+  export OP_SHELL_ACTIVE=true
+}
+
 op-activate
 if [[ -a "$HOME/.op-shell-items" ]]; then
-	source "$HOME/.op-shell-items"
-	export OP_SHELL_ACTIVE=true
+  if op-import; then
+    print -P "[%F{green}DONE%f] added op variables to the shell."
+  else
+    print -P "[%F{red}ERROR%f] op-shell-items encountered an error."
+  fi
 else
-	echo "[WARNING] can't locate .op-shell-items file!"
+	print -P "[%F{yellow}WARNING%f] can't locate .op-shell-items file!"
 fi
