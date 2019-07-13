@@ -31,3 +31,5 @@ Temporary Items
 .dropbox
 .mypy_cache
 .vscode
+
+node_modules/
