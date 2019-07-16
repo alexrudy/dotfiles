@@ -1,10 +1,10 @@
 op-import () {
   setopt localoptions ERR_RETURN
+  op-activate
   source "$HOME/.op-shell-items"
   export OP_SHELL_ACTIVE=true
 }
 
-op-activate
 if [[ -a "$HOME/.op-shell-items" ]]; then
   if op-import; then
     print -P "[%F{green}DONE%f] added op variables to the shell."
