@@ -5,6 +5,6 @@
 #  Created by Alexander Rudy on 2012-10-07.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
 # 
-if [ -d /usr/texbin ]; then
-	export PATH=$PATH:/usr/texbin                                               #TeXLive Support
+if [ -d /Library/TeX/texbin ]; then
+	export PATH=$PATH:/Library/TeX/texbin    #TeXLive Support
 fi
