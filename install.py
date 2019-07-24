@@ -89,7 +89,7 @@ class Installer(object):
     
     def _install(self, source, target, kind="Dotfile"):
         """Install a single file."""
-        if os.path.exists(target):
+        if os.path.lexists(target):
             if self.mode == "i":
                 self.ask(target, kind)
             if self.mode in "sS":
