@@ -1,7 +1,5 @@
 if [[ -d $HOME/.cargo ]]; then
-  if [[ -f $HOME/.cargo/env ]]; then
-    source $HOME/.cargo/env
-  fi
+    pathadd $HOME/.cargo/bin
 fi
 
 if command_exists rustc; then

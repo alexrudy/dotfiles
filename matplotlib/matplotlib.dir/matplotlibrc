@@ -1,4 +1,4 @@
-backend : MacOSX
+# backend : MacOSX
 
 # Fonts
 # font.serif         : Times, Palatino, New Century Schoolbook, Bookman, Computer Modern Roman
