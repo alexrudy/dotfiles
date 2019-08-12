@@ -1,15 +1,5 @@
-# Sample gitconfig
-#
-# This is a sample gitconfig. Usually we keep a lot of sensitive information
-# here (things like authentication tokens, email addresses, and so on), so this
-# file is ignored in this project's .gitignore.
-#
-# To set this up, rename this file to `gitconfig.symlink` and you'll be able to
-# install this to the correct location by running the project's main `rake`
-# task.
-[user]
-        name = Zach Holman
-        email = your@example.com
+[include]
+path = ~/.gitconfig.local
 [alias]
         promote = !$DOTFILES/bin/git-promote
         wtf     = !$DOTFILES/bin/git-wtf
@@ -25,7 +15,11 @@
         b-alex = "!git branch --sort=-committerdate | grep alex/"
         recents = "!git for-each-ref --sort=-committerdate refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex/ | head -n 10"
         mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex/"
+        
+        # prune merged branches
         pmb = !git checkout master && git pull -p && git branch --merged master | grep -v \"\\* master\" | xargs -n 1 git branch -d
+        # Show branches, verbosely, sorted by last touch, with commit messages.
+        brv = "!f() { git branch --sort=-creatordate --color=always --format='%(color:reset)%(creatordate:short) %(color:bold white)%(align:2,right)%(upstream:trackshort)%(end)%(color:nobold) %(align:40,left)%(color:yellow)%(refname:short)%(end) %(color:reset)%(contents:subject)'; }; f"
 [color]
         diff = auto
         status = auto
@@ -36,6 +30,4 @@
 [apply]
         whitespace = nowarn
 [github]
-        user = holman
-[mergetool]
-        keepBackup = false
+        user = alexrudy
