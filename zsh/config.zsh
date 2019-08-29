@@ -4,6 +4,7 @@ export LC_CTYPE=en_US.UTF-8 #required for Textmate Budles SVN
 export LESSCHARSET=utf-8
 export LESS="-R"
 
+typeset -aU path
 fpath=($DOTFILES/zsh/functions $fpath)
 autoload -U $DOTFILES/zsh/functions/*(:t)
 
