@@ -1,13 +1,13 @@
 # Some basic fucntions required for configuraiton
 pathadd () {
     if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
-        export PATH="${PATH:+"$PATH:"}$1"
+        pathdemote $1
     fi
 }
 
 pathprepend () {
     if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
-        export PATH="$1${PATH:+":$PATH"}"
+        pathpromote $1
     fi
 }
 
@@ -18,9 +18,19 @@ epath () {
     done
 }
 
-pathdemote () {
-    path=(${(@)path:#$1}, $1)
+pathpromote () {
+    path=($1 ${(@)path:#$1})
 }
+
+
+pathdemote () {
+    path=(${(@)path:#$1} $1)
+}
+
+pathdrop () {
+    path=(${(@)path:#$1})
+}
+
 
 command_exists () {
     type "$1" &> /dev/null ;

@@ -1,5 +1,5 @@
 if [[ -d $HOME/.cargo ]]; then
-    pathadd $HOME/.cargo/bin
+    pathprepend $HOME/.cargo/bin
 fi
 
 if command_exists rustc; then
