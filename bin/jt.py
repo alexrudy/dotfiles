@@ -307,7 +307,7 @@ def get_relevant_ports(host_args, restrict_to_user=True, show_urls=True):
     pgrep_args = ['pgrep', '-f', shlex.quote(pgrep_string), '|', 'xargs', 'ps', '-o', 'command=', '-p']
     if restrict_to_user:
         pgrep_args.insert(1, '-u$(id -u)')
-    ssh_pgrep_args = ['ssh', *host, ' '.join(pgrep_args)]
+    ssh_pgrep_args = ['ssh', *host_args, ' '.join(pgrep_args)]
     ports = set()
     log.debug('ssh pgrep args = {!r}'.format(pgrep_args))
     procs = subprocess.check_output(ssh_pgrep_args)
