@@ -41,6 +41,7 @@ import shlex
 import selectors
 import functools
 import contextlib
+from pathlib import PosixPath
 from time import time as _time
 from time import sleep
     
@@ -127,7 +128,7 @@ class StatusMessage:
         
     
 
-def setup_logging():
+def setup_logging(verbose):
     """Set up the loggers"""
     root = logging.getLogger()
     logdir = os.path.join(os.path.expanduser("~"),".jt")
@@ -140,6 +141,12 @@ def setup_logging():
     h.setLevel(logging.DEBUG)
     root.setLevel(logging.DEBUG)
     root.addHandler(h)
+    
+    lvl = {1: logging.INFO, 0: logging.WARNING}.get(verbose, logging.DEBUG)
+    sh = logging.StreamHandler()
+    sh.setLevel(lvl)
+    sh.setFormatter(f)
+    root.addHandler(sh)
     
     # Logger for each subprocess.
     ssh = logging.getLogger("ssh")
@@ -287,13 +294,13 @@ def iter_json_data(output):
     log = logging.getLogger("jt.auto")
     
     for line in output.splitlines():
-        if line.strip(b"\r\n").strip():
-            log.debug("JSON payload = {0!r}".format(line.decode('utf-8', 'backslashreplace')))
+        if line.strip("\r\n").strip():
+            log.debug("JSON payload = {0!r}".format(line))
             try:
                 data = json.loads(line)
                 data['full_url'] = "http://localhost:{port:d}/?token={token:s}".format(**data)
             except json.JSONDecodeError:
-                log.exception("Couldn't parse {0!r}".format(line.decode('utf-8', 'backslashreplace')))
+                log.exception("Couldn't parse {0!r}".format(line))
             else:
                 log.debug("parsed port = {0}".format(data['port']))
                 log.debug("jupyter url = {!r}".format(data['full_url']))
@@ -303,34 +310,41 @@ def get_relevant_ports(host_args, restrict_to_user=True, show_urls=True):
     """Get relevant port numbers for jupyter notebook services"""
     log = logging.getLogger("jt.auto")
     
-    pgrep_string = "python3? .*jupyter-notebook"
+    pgrep_string = "python3?.* .*jupyter"
     pgrep_args = ['pgrep', '-f', shlex.quote(pgrep_string), '|', 'xargs', 'ps', '-o', 'command=', '-p']
     if restrict_to_user:
         pgrep_args.insert(1, '-u$(id -u)')
     ssh_pgrep_args = ['ssh', *host_args, ' '.join(pgrep_args)]
     ports = set()
     log.debug('ssh pgrep args = {!r}'.format(pgrep_args))
-    procs = subprocess.check_output(ssh_pgrep_args)
+    cmd = subprocess.run(ssh_pgrep_args, capture_output=True)
+    cmd.check_returncode()
+    procs = cmd.stdout.decode('utf-8', 'backslashreplace')
     if show_urls:
         click.echo("Locating jupyter notebooks on {}".format(host_args))
     for proc in procs.splitlines():
-        parts = shlex.split(proc.decode('utf-8', 'backslashreplace'))
+        parts = shlex.split(proc)
         python = parts[0]
         if "pgrep" in parts and pgrep_string in parts:
             continue
         if parts[0] == 'xargs':
             continue
-        log.debug("Python candidate = {0!r}".format(parts))
+        log.debug("Python candidate = {!r}".format(parts))
         for p in parts[1:]:
             if 'jupyter-notebook' in p:
                 jupyter = p
                 break
+            if 'jupyter-lab' in p:
+                jupyter = str(PosixPath(p).parent / "jupyter-notebook")
+                break
         else:
-            raise ValueError("Can't find jupyter notebook in process {0}".format(proc))
+            raise ValueError("Can't find jupyter notebook in process {}".format(proc))
         cmd = python, jupyter, 'list', '--json'
-        ssh_juptyer_args = ['ssh', host, " ".join(shlex.quote(cpart) for cpart in cmd)]
+        ssh_juptyer_args = ['ssh', *host_args, " ".join(shlex.quote(cpart) for cpart in cmd)]
         log.debug('ssh jupyter args = {!r}'.format(ssh_juptyer_args))
-        output = subprocess.check_output(ssh_juptyer_args)
+        cmd = subprocess.run(ssh_juptyer_args, capture_output=True)
+        cmd.check_returncode()
+        output = cmd.stdout.decode('utf-8', 'backslashreplace')
         for data in iter_json_data(output):
             if data['port'] not in ports:
                 ports.add(data['port'])
@@ -372,10 +386,12 @@ def clean_ports(ports):
 @click.option('--connect-timeout', default=10, type=int, 
               help="Timeout for starting ssh connections (see ConnectTimeout)")
 @click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host.')
+@click.option('--auto-check/--no-auto-check', help='Check what ports would be used in `--auto` mode')
 @click.option('--auto-restrict-user/--no-auto-restrict-user', default=True,
               help='Restrict automatic decection to the user ID. (default=True) Turning this off will try to forward ports for all users on the remote host.')
+@click.option("-v", "--verbose", help="Show log messages", count=True)
 @click.argument('host_args', nargs=-1)
-def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
+def main(host_args, ports, interval, connect_timeout, auto, auto_check, auto_restrict_user, verbose):
     """Run an SSH tunnel over specified ports to HOST.
     
     Using the ssh option 'ServerAliveInterval', this script will keep the SSH tunnel alive
@@ -389,7 +405,10 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
     
     This script logs SSH connections in the folder ~/.jt/
     """
-    setup_logging()
+    if auto_check:
+        auto = True
+    
+    setup_logging(verbose)
     log = logging.getLogger('jt')
     
     host_args = list(host_args)
@@ -401,10 +420,16 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
         '-o', 'BatchMode yes', # Ensure that SSH doesn't ask for user input.
         ])
     if auto:
+        ports = []
         try:
             ports = get_relevant_ports(host_args, auto_restrict_user)
         except subprocess.CalledProcessError as e:
-            click.echo("[{}] Collecting ports for forwarding: {:s}".format(click.style("ERROR", fg='red'), str(e)))
+            error_message = "[{}]".format(click.style("ERROR", fg='red'))
+            click.echo("{} Collecting ports for forwarding: {:s}".format(error_message, str(e)))
+            for line in e.stdout.decode('utf-8', 'backslashreplace').splitlines():
+                click.echo("{} STDOUT: {}".format(error_message, line))
+            for line in e.stderr.decode('utf-8', 'backslashreplace').splitlines():
+                click.echo("{} STDERR: {}".format(error_message, line))
         
         if not ports:
             click.echo("No jupyter open ports found.")
@@ -412,6 +437,9 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_restrict_user):
         
         click.echo("Forwarding ports {0}".format(", ".join("{:d}".format(p) for p in ports)))
     
+    if auto_check:
+        click.echo("Ended after auto check...")
+        return 
     
     forward_template = '{0:d}:localhost:{1:d}'
     ssh_args = ['ssh', '-v', '-N', 
