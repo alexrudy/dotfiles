@@ -1,5 +1,6 @@
 [include]
-path = ~/.gitconfig.local
+        path = ~/.gitconfig.local
+
 [alias]
         promote = !$DOTFILES/bin/git-promote
         wtf     = !$DOTFILES/bin/git-wtf
