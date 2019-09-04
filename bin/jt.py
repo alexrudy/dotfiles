@@ -260,7 +260,7 @@ class ContinuousSSH(object):
         try:
             self._loggerjt.debug('Connecting proc = {}'.format(proc.pid))
             self.status("connecting", fg='yellow')
-            for line in self._await_output(proc, timeout=1.0):
+            for line in self._await_output(proc, timeout=0.1):
                 if line.startswith("debug1:"):
                     line = line[len("debug1:"):].strip()
                     log.debug(line)
@@ -321,7 +321,7 @@ def get_relevant_ports(host_args, restrict_to_user=True, show_urls=True):
     cmd.check_returncode()
     procs = cmd.stdout.decode('utf-8', 'backslashreplace')
     if show_urls:
-        click.echo("Locating jupyter notebooks on {}".format(host_args))
+        click.echo("[{}] Locating jupyter notebooks...".format(click.style("INFO", fg='green')))
     for proc in procs.splitlines():
         parts = shlex.split(proc)
         python = parts[0]
@@ -331,11 +331,13 @@ def get_relevant_ports(host_args, restrict_to_user=True, show_urls=True):
             continue
         log.debug("Python candidate = {!r}".format(parts))
         for p in parts[1:]:
-            if 'jupyter-notebook' in p:
+            if p.endswith('jupyter-notebook'):
                 jupyter = p
                 break
-            if 'jupyter-lab' in p:
+            if p.endswith('jupyter-lab'):
                 jupyter = str(PosixPath(p).parent / "jupyter-notebook")
+                break
+            if 'ipykernel' in p:
                 break
         else:
             raise ValueError("Can't find jupyter notebook in process {}".format(proc))
