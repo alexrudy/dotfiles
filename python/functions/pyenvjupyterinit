@@ -1,0 +1,7 @@
+
+pyenvjupyterinit () {
+  PYENVROOT=$(pyenv root)
+  
+  find "$(pyenv root)/versions" -path '**/bin/python' -print0 | xargs -0 -I{} pyenvkernel {}
+  
+}
