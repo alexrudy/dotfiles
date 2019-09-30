@@ -380,6 +380,17 @@ def clean_ports(ports):
         port_map[local] = remote
         yield local, remote
 
+def echo_subprocess_error(error, stderr=True):
+    """
+    Echo a subprocess error and the output from that subprocess.
+    """
+    error_message = "[{}]".format(click.style("ERROR", fg='red'))
+    click.echo("{} Collecting ports for forwarding: {:s}".format(error_message, str(e)), err=stderr)
+    for line in error.stdout.decode('utf-8', 'backslashreplace').splitlines():
+        click.echo("{} STDOUT: {}".format(error_message, line), err=stderr)
+    for line in error.stderr.decode('utf-8', 'backslashreplace').splitlines():
+        click.echo("{} STDERR: {}".format(error_message, line), err=stderr)
+
 @click.command()
 @click.option('-p', '--port', 'ports', default=[8090], type=int_or_pair, multiple=True,
               help='Port to forward from the remote machine to the local machine. To forward to a different port, pass the ports as `local,remote`.')
@@ -387,28 +398,46 @@ def clean_ports(ports):
               help='Interval, in seconds, to use for maintaining the ssh connection (see ServerAliveInterval)')
 @click.option('--connect-timeout', default=10, type=int, 
               help="Timeout for starting ssh connections (see ConnectTimeout)")
+@click.option('--connect-accept-new/--no-connect-accept-new', default=True, help="Allow connections to hosts which aren't in the known hosts file.")
+@click.option('-R/-L', '--remote/--local', default=False, help="Use remote forwarding (defaults to using local forwarding / -L)")
 @click.option('--auto/--no-auto', help='Automatically detect ports in use by jupyter on the remote host.')
-@click.option('--auto-check/--no-auto-check', help='Check what ports would be used in `--auto` mode')
+@click.option('--auto-check/--no-auto-check', help='Check and debug what ports would be used in `--auto` mode', hidden=True)
 @click.option('--auto-restrict-user/--no-auto-restrict-user', default=True,
               help='Restrict automatic decection to the user ID. (default=True) Turning this off will try to forward ports for all users on the remote host.')
 @click.option("-v", "--verbose", help="Show log messages", count=True)
+@click.option("--debug", help="Enable debug mode", default=False, is_flag=True)
 @click.argument('host_args', nargs=-1)
-def main(host_args, ports, interval, connect_timeout, auto, auto_check, auto_restrict_user, verbose):
+def main(host_args, ports, interval, connect_timeout, connect_accpet_new, remote, auto, auto_check, auto_restrict_user, verbose, debug):
     """Run an SSH tunnel over specified ports to HOST.
     
     Using the ssh option 'ServerAliveInterval', this script will keep the SSH tunnel alive
-    and respawn a new tunnel if the old one dies.
+    and spawn a new tunnel if the old one dies.
     
     To forward ports 80 and 495 from mysever.com to localhost, you would use:
     
-    jt.py -p 80 -p 495 myserver.com
+    \b
+        jt.py -p 80 -p 495 myserver.com
     
     To stop the SSH tunnel, press ^C.
+    
+    To forward all of your jupyter notebooks from a host `myserver.com`, you would run:
+    
+    \b
+        jt.py myserver.com --auto
+    
+    You can pass arbitrary arguments to SSH to influence the connection using a special
+    `--` to mark which arguments apply to ssh (as opposed to jt.py):
+    
+    \b
+        jt.py -- -k /path/to/my/key myserver.com
     
     This script logs SSH connections in the folder ~/.jt/
     """
     if auto_check:
         auto = True
+
+    if debug and verbose < 1:
+        verbose = 1
     
     setup_logging(verbose)
     log = logging.getLogger('jt')
@@ -426,12 +455,7 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_check, auto_res
         try:
             ports = get_relevant_ports(host_args, auto_restrict_user)
         except subprocess.CalledProcessError as e:
-            error_message = "[{}]".format(click.style("ERROR", fg='red'))
-            click.echo("{} Collecting ports for forwarding: {:s}".format(error_message, str(e)))
-            for line in e.stdout.decode('utf-8', 'backslashreplace').splitlines():
-                click.echo("{} STDOUT: {}".format(error_message, line))
-            for line in e.stderr.decode('utf-8', 'backslashreplace').splitlines():
-                click.echo("{} STDERR: {}".format(error_message, line))
+            echo_subprocess_error(e)
         
         if not ports:
             click.echo("No jupyter open ports found.")
@@ -443,21 +467,29 @@ def main(host_args, ports, interval, connect_timeout, auto, auto_check, auto_res
         click.echo("Ended after auto check...")
         return 
     
-    forward_template = '{0:d}:localhost:{1:d}'
     ssh_args = ['ssh', '-v', '-N', 
-                '-o', 'StrictHostKeyChecking accept-new', # Allow ssh connections to new locations
                 '-o', 'ServerAliveInterval {:d}'.format(interval),
                 '-o', 'ConnectTimeout {:d}'.format(connect_timeout)]
+    
+    if connect_accpet_new:
+        ssh_args.extend(['-o', 'StrictHostKeyChecking accept-new'])
+    
     if not ports:
         click.echo("[{}] No ports selected for forwarding!".format(click.style("WARNING", fg='yellow')))
         
     if not auto:
         click.echo("Forwarding addresses")    
     
+    forward_arg = "-R" if remote else "-L"
+    forward_template = '{0:d}:localhost:{1:d}'
+
     for i, (local_port, remote_port) in enumerate(clean_ports(ports), start=1):
-        ssh_args.extend(["-L", forward_template.format(local_port, remote_port)])
+        ssh_args.extend([forward_arg, forward_template.format(local_port, remote_port)])
         if not auto:
-            click.echo("{}) http://localhost:{}".format(i, local_port))
+            if remote:
+                click.echo("{}) {} -> {}".format(i, remote_port, local_port))
+            else:
+                click.echo("{}) http://localhost:{}".format(i, local_port))
             
             
     ssh_args.extend(host_args)
