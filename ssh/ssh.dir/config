@@ -14,10 +14,10 @@
 Include linode.config
 
 Host *
-	ServerAliveInterval 10
-	AddKeysToAgent yes
-    UseKeychain yes
-	IdentityFile ~/.ssh/id_rsa
+  ServerAliveInterval 10
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_rsa
 
 Include linode.config
 Include bitly.config
