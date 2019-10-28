@@ -1,3 +1,8 @@
 set-option -g default-shell $SHELL
 set-option -g set-titles on
 set-option -g set-titles-string "#{session_name} - #{host}"
+
+set-option -g status-utf8 on
+set-option -g utf8 on
+set-option -g status-bg black
+set-option -g status-fg green
