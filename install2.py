@@ -257,7 +257,7 @@ def install_zprezto(home, dryrun=False):
     command = ['git', 'clone','--recursive','https://github.com/sorin-ionescu/prezto.git', destination]
     log.debug(" ".join(command))
     if not dryrun:
-        subprocess.run(command)
+        subprocess.check_call(command)
     
 
 
