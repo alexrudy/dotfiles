@@ -8,7 +8,7 @@ if [ -f "$DOTFILES/osx/defaultbrowser/defaultbrowser" ]; then
   mv "$DOTFILES/osx/defaultbrowser/defaultbrowser" "$DOTFILES/osx/bin/defaultbrowser"
 fi
 
-if which xcode-select 2> /dev/null; then
+if command_exists xcode-select; then
     XCODE_PATH=$(xcode-select -p)
     if [ -d $XCODE_PATH ]; then
       pathprepend $XCODE_PATH/usr/bin
