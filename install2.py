@@ -244,7 +244,18 @@ class Installer(object):
         
         log.debug("cp -r {0} {1}".format(bfname, target))
         if not self.dryrun:
-            shutil.copytree(bfname, target, symlinks=True)
+            for dirpath, dirnames, filenames in os.walk(bfname):
+                for filename in filenames:
+                    filepath = join(dirpath, filename)
+                    
+                    targetpath = join(target, os.path.relpath(filepath, bfname))
+                    
+                    try:
+                        os.makedirs(os.path.dirname(targetpath))
+                    except OSError:
+                        pass
+                    
+                    shutil.copy2(filepath, targetpath)
     
 def install_zprezto(home, dryrun=False):
     home = os.path.expanduser(home)
