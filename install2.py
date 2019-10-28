@@ -9,6 +9,7 @@ import sys
 import warnings
 import string
 import subprocess
+import shutil
 
 # Python2 fixes
 if sys.version_info[0] < 3:
