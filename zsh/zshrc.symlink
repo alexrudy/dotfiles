@@ -25,6 +25,10 @@ if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
   configure_from_file "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
 fi
 
+# Configure this last to ensure it beats out pyenv
+pathprepend "$HOME/.local/bin"
+
+
 # {eval `ssh-agent`; ssh-add -A} &> /dev/null
 export LSCOLORS=Gxfxcxdxbxegedabagacad
 
