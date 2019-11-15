@@ -27,6 +27,7 @@ Temporary Items
 
 \.dsync.yml
 \.python-version
+\.envrc
 
 .dropbox
 .mypy_cache

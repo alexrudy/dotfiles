@@ -1,16 +1,21 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import glob
+import logging
 import os
 import argparse
+import itertools
 import sys
 import warnings
 import string
+import subprocess
+import shutil
 
 # Python2 fixes
 if sys.version_info[0] < 3:
     input = raw_input
 
+log = logging.getLogger()
 
 join = os.path.join
 
@@ -52,95 +57,245 @@ class _GetchWindows:
 
 
 getch = _Getch()
+
+
+MODE_INTERACTIVE = "i"
+MODE_SKIP = "s"
+MODE_OVERWRITE = "o"
+MODE_BACKUP = "b"
+MODE_MERGE = "m"
+MODES = set((MODE_INTERACTIVE, MODE_SKIP, MODE_OVERWRITE, MODE_BACKUP, MODE_MERGE))
+
+ACTION_SUCCESS = "success"
+ACTION_ASK = "ask"
+ACTION_NOTHING = "nothing"
+
+HOME = os.environ["HOME"]
+
+MODES_INFO = {
+    MODE_SKIP: "[s]kip, [S]kip all",
+    MODE_OVERWRITE: "[o]verwrite, [O]verwrite all",
+    MODE_BACKUP: "[b]ackup, [B]ackup all",
+    MODE_MERGE: "[m]erge, [M]erge all",
+}
+
+
+
+
     
 class Installer(object):
-    """An installer, which asks questions of the user."""
-    def __init__(self, mode="i", backup_check=1):
+    
+    def __init__(self, source=os.getcwd(), home=HOME, dryrun=False, mode=MODE_INTERACTIVE):
         super(Installer, self).__init__()
-        self.mode = mode
-        self._backup_check = backup_check
+        self.source = source
+        self.home =  os.path.expanduser(home)
+        self.dryrun = dryrun
+        self.initial_mode = self.mode = mode.lower()
+        self.sticky = mode.lower() != mode
         
-    def ask(self, target, kind="Dotfile"):
+    def run(self):
+        
+        dotfiles = join(self.source, "**", "*.symlink")
+        dotdirs = join(self.source, "**", "*.dir")
+        
+        dirreset = False
+        
+        for path in itertools.chain.from_iterable(glob.iglob(c, recursive=True) for c in (dotfiles, dotdirs)):
+            
+            if os.path.isdir(path) and not dirreset:
+                dirreset, self.mode = True, self.initial_mode
+            
+            
+            self.install_path(path)
+            
+    
+    def install_path(self, source):
+        
+        destination = self.destination_path(source)
+        sticky = False
+        
+        result = self.install(source, destination, self.mode)
+        
+        while result == ACTION_ASK:
+            log.debug("Asking about {0}".format(destination))
+            mode, sticky = self.ask(destination)
+            result = self.install(source, destination, mode)
+        
+        
+        if sticky:
+            self.mode = mode
+        
+    def ask(self, target):
         """Ask about installing a particular item."""
+        
+        kind = "Dotdir" if os.path.isdir(target) else "Dotfile"
+    
+        options = set(MODES)
+        if kind == "Dotfile":
+            options.remove("m")
+    
+        helps = ", ".join([MODES_INFO[m] for m in sorted(options) if m in MODES_INFO] + ['[q]uit'])
+        
+        
         print("{0:s} already exists: {1:s}, what do you want to do?".format(kind, target))
-        print("[s]kip, [S]kip all, [o]verwrite, [O]verwrite all, [b]ackup, [B]ackup all")
+        print(helps)
         ans = getch()
         c = ans[0]
-        while c not in "sSoObB":
+        while c.lower() not in MODES:
             if c in "qQ":
                 raise SystemExit()
             print("Can't understand your input: {0}".format(ans))
             ans = getch()
             c = ans[0]
-        self.mode = c
     
-    def backup(self, target):
-        """Backup a target."""
-        bfname = target+".backup"
-        for i in range(self._backup_check):
+        if c.lower() == c:
+            return c, False
+        return c.lower(), True
+        
+    def install(self, source, destination, mode):
+        """Install a path in the given home directory"""
+    
+        if os.path.lexists(destination):
+            if mode == MODE_INTERACTIVE:
+                log.debug("Interactive mode for {0}".format(destination))
+                return ACTION_ASK
+            elif mode == MODE_SKIP:
+                log.info("Skipping {0}".format(os.path.basename(source)))
+                return ACTION_NOTHING
+            elif mode == MODE_MERGE and not os.path.isdir(destination):
+                log.debug("Interactive mode for {0} (mode was 'merge', but this isn't a directory)".format(destination))
+                return ACTION_ASK
+            elif mode == MODE_MERGE:
+                self.merge(source, destination)
+                return ACTION_SUCCESS
+            elif mode == MODE_OVERWRITE:
+                log.warning("Overwriting {0}".format(destination))
+                self.remove(destination)
+                self.symlink(source, destination)
+                return ACTION_SUCCESS
+            elif mode == MODE_BACKUP:
+                self.backup(destination)
+                self.symlink(source, destination)
+                return ACTION_SUCCESS
+                
+            else:
+                raise ValueError("Mode = {0}".format(mode))
+    
+        else:
+            self.symlink(source, destination)
+            return ACTION_SUCCESS
+            
+    def rename(self, source, target):
+        log.debug("mv {0} {1}".format(source, target))
+        if not self.dryrun:
+            os.rename(source, target)
+        
+    def remove(self, source):
+        log.debug("rm {0}".format(source))
+        if not self.dryrun:
+            os.remove(source)
+
+    def symlink(self, source, destination):
+        log.info("Linking {0}".format(os.path.basename(source)))
+        log.debug("ln -s {0} {1}".format(source, destination))
+        if not self.dryrun:
+            os.symlink(source, destination)
+
+
+    def destination_path(self, source):
+        """
+        Compute the destination path given a source path and a home directory
+        """
+        target = join(self.home, ".{0:s}".format(os.path.splitext(os.path.basename(source))[0]))
+    
+        prefix = os.path.commonpath([os.path.abspath(p) for p in (os.path.realpath(target), source)])
+        correct = os.path.abspath(self.home) in prefix
+    
+        if not correct:
+            raise ValueError("Unexpected target path {0} for soruce {1}".format(target, source))
+        return target
+    
+    def backup(self, target, n_check=10):
+        bfname = "{0}.backup".format(target)
+        for i in range(n_check):
             if i:
-                bfname = target+".backup{:d}".format(i)
+                bfname = target+".{:d}.backup".format(i)
             if not os.path.exists(bfname):
-                os.rename(target, bfname)
+                self.rename(target, bfname)
                 break
         else:
-            warnings.warn("Overwriting {0}".format(bfname))
-            os.rename(target, bfname)
+            bfname = "{0}.backup".format(target)
+            log.warning("Overwriting {0}".format(bfname))
+            if not self.dryrun:
+                self.rename(target, bfname)
+        return bfname
+        
+    def merge(self, source, target):
+        """Merge a target directory with a source tree"""
+        
+        if os.path.realpath(target) == os.path.realpath(source):
+            log.info("Skipping merge for {0}, it already points to {1}".format(target, os.path.basename(source)))
+            return
+        
+        log.info("Merging {0}".format(os.path.basename(source)))
+        bfname = self.backup(target)
+        
+        self.symlink(source, target)
+        
+        log.debug("cp -r {0} {1}".format(bfname, target))
+        if not self.dryrun:
+            for dirpath, dirnames, filenames in os.walk(bfname):
+                for filename in filenames:
+                    filepath = join(dirpath, filename)
+                    
+                    targetpath = join(target, os.path.relpath(filepath, bfname))
+                    
+                    try:
+                        os.makedirs(os.path.dirname(targetpath))
+                    except OSError:
+                        pass
+                    
+                    shutil.copy2(filepath, targetpath)
     
-    def _install(self, source, target, kind="Dotfile"):
-        """Install a single file."""
-        if os.path.lexists(target):
-            if self.mode == "i":
-                self.ask(target, kind)
-            if self.mode in "sS":
-                return
-            elif self.mode in "bB":
-                self.backup(target)
-            elif self.mode in "oO":
-                warnings.warn("Overwriting {0}".format(target))
-                os.remove(target)
-            else:
-                raise ValueError("Mode {0:s} is not understood.".format(self.mode))
-        os.symlink(source, target)
-        print("Linking {0}".format(os.path.basename(source)))
+def install_zprezto(home, dryrun=False):
+    home = os.path.expanduser(home)
+    destination = join(os.environ.get('ZDOTDIR', home), '.zprezto')
+    
+    if os.path.exists(destination):
+        log.debug("Skipping .zprezto installation, {0} exists".format(destination))
         return
     
-    def install(self, dotfiles, home="~"):
-        """Install from a shell glob."""
-        home = os.path.expanduser(home)
-        for filename in glob.iglob(join(dotfiles, "*", "*.symlink")):
-            source = os.path.relpath(filename, home)
-            target = join(home, ".{0:s}".format(os.path.splitext(os.path.basename(filename))[0]))
-            
-            prefix = os.path.commonpath([os.path.abspath(p) for p in (os.path.realpath(target), source)])
-            correct = os.path.abspath(dotfiles) in prefix
-            
-            if not (os.path.exists(target) and correct):
-                self._install(source, target)
-                
-            if self.mode in string.ascii_lowercase:
-                self.mode = "i"
-        for dirname in glob.iglob(join(dotfiles, "*", "*.dir")):
-            source = os.path.relpath(dirname, home)
-            target = join(home, ".{0:s}".format(os.path.splitext(os.path.basename(dirname))[0]))
-            
-            prefix = os.path.commonpath([os.path.abspath(p) for p in (os.path.realpath(target), source)])
-            correct = os.path.abspath(dotfiles) in prefix
-            
-            if not (os.path.exists(target) and correct):
-                self._install(source, target, kind="Directory")
-            if self.mode in string.ascii_lowercase:
-                self.mode = "i"
+    
+    command = ['git', 'clone','--recursive','https://github.com/sorin-ionescu/prezto.git', destination]
+    log.debug(" ".join(command))
+    if not dryrun:
+        subprocess.check_call(command)
+    
+
 
 def main():
     """Main function."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dotfiles", default="~/.dotfiles")
-    parser.add_argument("--home", default="~")
+    parser.add_argument("-d", "--dotfiles", default=os.getcwd())
+    parser.add_argument("--no-prezto", dest="prezto", action="store_false", help="Install zprezto")
+    parser.add_argument("--home", default=HOME)
     parser.add_argument("--mode", default="i", help="Set installer mode: [s]kip, [S]kip all, [o]verwrite, [O]verwrite all, [b]ackup, [B]ackup all")
+    parser.add_argument("-n", "--dry-run", dest='dryrun', action='store_true')
+    parser.add_argument("-v", "--verbose", action='count', default=0)
+    
+    
     opt = parser.parse_args()
-    installer = Installer(mode=opt.mode)
-    installer.install(os.path.expanduser(opt.dotfiles), opt.home)
+
+    ll = logging.WARNING
+    ll -= min(10 * opt.verbose, logging.WARNING)
+    
+    logging.basicConfig(level=ll, format="[%(levelname)s] %(message)s")
+    
+    if opt.prezto and not opt.dryrun:
+        install_zprezto(home=opt.home)
+    
+    installer = Installer(os.path.expanduser(opt.dotfiles), opt.home, mode=opt.mode, dryrun=opt.dryrun)
+    installer.run()
     
 if __name__ == '__main__':
     main()

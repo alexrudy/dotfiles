@@ -1,6 +1,11 @@
 [distutils]
-index-servers=pypi
+index-servers=
+    pypi
+    testpypi
 
 [pypi]
-repository = https://pypi.python.org/pypi
 username = Alex.Rudy
+
+[testpypi]
+repository: https://test.pypi.org/legacy/
+username: Alex.Rudy
