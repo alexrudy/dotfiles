@@ -3,8 +3,7 @@ if [[ -d "$HOME/.pyenv" ]]; then
     pathadd "$PYENV_ROOT/bin"
 fi
 
-type pyenv &> /dev/null
-if [[ $? -eq 0 ]]; then
+if command_exists pyenv; then
 	eval "$(pyenv init -)"
 	if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
 fi
