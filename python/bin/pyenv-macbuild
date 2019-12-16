@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+#
+# Summary: Helpers to build python on MacOS 10.14+
+#
+# Usage: pyenv macbuild <arguments>
+#
+# Set environment and build python on macos 10.14+, passing
+# all arguments directly to pyenv install.
+
+set -e
+[ -n "$PYENV_DEBUG" ] && set -x
+
+# Provide pyenv completions
+if [ "$1" = "--complete" ]; then
+  pyenv-install $@
+  exit
+fi
+
+export SDKROOT="$(xcode-select -p)/SDKs/MacOSX.sdk"
+export MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion | awk -F. '{print($1"."$2)}')
+export CFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix readline)/include -I$(xcode-select -p)/SDKs/MacOSX.sdk/usr/include" 
+export CPPFLAGS="-I$(brew --prefix zlib)/include" 
+export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix readline)/lib"
+
+pyenv-install $@
+

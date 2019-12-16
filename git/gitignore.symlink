@@ -33,4 +33,6 @@ Temporary Items
 .mypy_cache
 .vscode
 
+*.ipynb_checkpoints
+
 node_modules/

@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+#
+# Summary: Install jupyter kernels from pyenv virtual environments
+#
+# Usage: pyenv kernel <version>
+#
+# Uses a pyenv python to install a kernel in the jupyter userspace
+# with a name based on the pyenv version.
+
+
+set -e
+[ -n "$PYENV_DEBUG" ] && set -x
+
+# Provide pyenv completions
+if [ "$1" = "--complete" ]; then
+  pyenv-version $@
+  exit
+fi
+
+# Provided as a CLI argument
+VERSION=$1
+KERNEL_NAME=${2:$VERSION}
+
+# Find the full path to python for that version
+PYENVROOT=$(pyenv-root)
+PYTHON="${PYENVROOT}/versions/bin/python"
+
+eval "${PYTHON} -m pip install ipykernel"
+eval "${PYTHON} -m ipykernel install --name=${KERNEL_NAME} --user"

@@ -19,6 +19,6 @@ sudo apt-get install git python-pip make build-essential libssl-dev zlib1g-dev l
 ## Getting pyenv to install things on macOS
 
 ```
-SDKROOT=${XCODE_ROOT}/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk \
+SDKROOT=$(xcode-select -p)/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk \
 MACOSX_DEPLOYMENT_TARGET=10.15
 ```
