@@ -18,7 +18,7 @@
   ci = commit
   last = 'log -1 HEAD'
   branch-name = "!git rev-parse --abbrev-ref HEAD"
-  publish = "!git push -u origin $(git branch-name)"
+  publish = "!f() { REMOTE=${1:-origin} shift; git push -u ${REMOTE} $(git branch-name) $@; }; f"
   b-alex = "!git branch --sort=-committerdate | grep alex/"
   recents = "!git for-each-ref --sort=-committerdate refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex/ | head -n 10"
   mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex/"
@@ -33,6 +33,5 @@
   branch = auto
 [core]
   excludesfile = ~/.gitignore
-  editor = mate -w
 [apply]
   whitespace = nowarn
