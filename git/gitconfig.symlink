@@ -8,25 +8,41 @@
 [jira]
   username = alex.rudy@bit.ly
 [alias]
-  promote = !$DOTFILES/bin/git-promote
+ 
+  # Whats going on?
   wtf     = !$DOTFILES/bin/git-wtf
+  
+  # Contributor rank
   rank-contributers = !$DOTFILES/bin/git-rank-contributers
+  
+  # How many commits
   count   = !git shortlog -sn
   co = checkout
   st = status
   b = branch
   ci = commit
+  
+  # Last commit
   last = 'log -1 HEAD'
+  
+  # Get the name of the current branch.
   branch-name = "!git rev-parse --abbrev-ref HEAD"
+
+  # Publish this branch to a remote, optionally defaulting to origin.
   publish = "!f() { REMOTE=${1:-origin} shift; git push -u ${REMOTE} $(git branch-name) $@; }; f"
-  b-alex = "!git branch --sort=-committerdate | grep alex/"
-  recents = "!git for-each-ref --sort=-committerdate refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex/ | head -n 10"
+
+  # Show only branches
   mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex/"
+	
+  # Graph log
+  glog = log --graph --decorate --oneline
 
   # prune merged branches
   pmb = !git checkout master && git pull -p && git branch --merged master | grep -v \"\\* master\" | xargs -n 1 git branch -d
+
   # Show branches, verbosely, sorted by last touch, with commit messages.
   brv = "!f() { git branch --sort=-creatordate --color=always --format='%(color:reset)%(creatordate:short) %(color:bold white)%(align:2,right)%(upstream:trackshort)%(end)%(color:nobold) %(align:40,left)%(color:yellow)%(refname:short)%(end) %(color:reset)%(contents:subject)'; }; f"
+
 [color]
   diff = auto
   status = auto
