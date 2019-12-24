@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+#
+# Summary: Create a new virtual environment, and set it as the local pyenv version.
+#
+# Usage: pyenv project <version> <virtualenvname>
+#
+# Uses a pyenv python to create a virtual environment.
+
+
+set -e
+[ -n "$PYENV_DEBUG" ] && set -x
+
+# Provide pyenv completions
+if [ "$1" = "--complete" ]; then
+  pyenv-virtualenv $@
+  exit
+fi
+
+PROJECT_NAME=$(basename $(pwd))
+PYENV_TARGET_VERSION=$1
+VIRTUALENV_NAME=${2:-$PROJECT_NAME}
+
+pyenv-virtualenv $PYENV_TARGET_VERSION $VIRTUALENV_NAME
+pyenv-local $VIRTUALENV_NAME
