@@ -1,6 +1,0 @@
-!path=!path+":"+expand_path(".")
-!path=!path+":"+expand_path("+~/Development/Astronomy/IDL")
-!path=!path+":"+expand_path("+~/Development/Astronomy/NIRC2")
-if file_exists,"./IDLStartup.pro" then begin
-	@"IDLStartup.pro"
-endif

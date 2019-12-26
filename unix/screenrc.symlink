@@ -1,7 +1,0 @@
-hardstatus on  
-hardstatus alwayslastline  
-startup_message off
-hardstatus string "%{= kG}%-w%{.rW}%n %t%{-}%+w %=%{..G} %H %{..Y} %m/%d %C%a "
-shell -$SHELL
-defutf8 on
-escape ^gg
