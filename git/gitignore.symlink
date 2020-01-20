@@ -27,6 +27,7 @@ Temporary Items
 
 \.dsync.yml
 \.python-version
+\.ruby-version
 \.envrc
 
 .dropbox
