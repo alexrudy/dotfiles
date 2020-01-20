@@ -1,10 +1,13 @@
 #!/usr/bin/env sh
 #
-# Summary: Create a new virtual environment, and set it as the local pyenv version.
+# Summary: Create a new virtual environment, and set it as the local python version
 #
 # Usage: pyenv project <version> <virtualenvname>
 #
-# Uses a pyenv python to create a virtual environment.
+# Uses a pyenv python to create a virtual environment and set the local python version
+# in the project directory to use the new virtual environment. Run this once, and in
+# the future, when you are in the project directory, pyenv will default to using your
+# virutal environment.
 
 
 set -e

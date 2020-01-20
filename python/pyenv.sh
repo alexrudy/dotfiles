@@ -4,6 +4,8 @@ if [[ -d "$HOME/.pyenv" ]]; then
 fi
 
 if command_exists pyenv; then
-	eval "$(pyenv init -)"
-	if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
+    eval "$(pyenv init -)"
+    if command_exists pyenv-virtualenv; then 
+        eval "$(pyenv virtualenv-init -)"
+    fi
 fi
