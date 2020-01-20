@@ -11,6 +11,6 @@ fi
 if command_exists xcode-select; then
     XCODE_PATH=$(xcode-select -p)
     if [ -d $XCODE_PATH ]; then
-      pathprepend $XCODE_PATH/usr/bin
+      pathadd $XCODE_PATH/usr/bin
     fi
 fi
