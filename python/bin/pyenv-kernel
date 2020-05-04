@@ -19,11 +19,11 @@ fi
 
 # Provided as a CLI argument
 VERSION=$1
-KERNEL_NAME=${2:$VERSION}
+KERNEL_NAME=${2:-$VERSION}
 
 # Find the full path to python for that version
 PYENVROOT=$(pyenv-root)
-PYTHON="${PYENVROOT}/versions/bin/python"
+PYTHON="${PYENVROOT}/versions/$VERSION/bin/python"
 
 eval "${PYTHON} -m pip install ipykernel"
-eval "${PYTHON} -m ipykernel install --name=${KERNEL_NAME} --user"
+eval "${PYTHON} -m ipykernel install --name=${KERNEL_NAME} --user=jupyter"
