@@ -19,7 +19,7 @@ fi
 
 # Provided as a CLI argument
 VERSION=$1
-KERNEL_NAME=${2:$VERSION}
+KERNEL_NAME=${2:-$VERSION}
 
 # Find the full path to python for that version
 PYENVROOT=$(pyenv-root)

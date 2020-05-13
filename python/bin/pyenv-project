@@ -20,7 +20,8 @@ if [ "$1" = "--complete" ]; then
 fi
 
 PROJECT_NAME=$(basename $(pwd))
-PYENV_TARGET_VERSION=$1
+PYENV_LATEST_VERSION=$(pyenv latest -p)
+PYENV_TARGET_VERSION=${1:-$PYENV_LATEST_VERSION}
 VIRTUALENV_NAME=${2:-$PROJECT_NAME}
 
 pyenv-virtualenv $PYENV_TARGET_VERSION $VIRTUALENV_NAME
