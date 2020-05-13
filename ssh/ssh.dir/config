@@ -19,6 +19,5 @@ Host *
   UseKeychain yes
   IdentityFile ~/.ssh/id_rsa
 
-Include linode.config
-Include bitly.config
+Include conf.d/*.config
 
