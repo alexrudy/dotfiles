@@ -38,10 +38,12 @@
   glog = log --graph --decorate --oneline
 
   # prune merged branches
-  pmb = !git checkout master && git pull -p && git branch --merged master | grep -v \"\\* master\" | xargs -n 1 git branch -d
+  pmb = !git checkout master && git pull -p && git branch --merged master | grep -v \"\\* master\" | grep -v \"production\" | xargs -n 1 git branch -d
 
   # Show branches, verbosely, sorted by last touch, with commit messages.
   brv = "!f() { git branch --sort=-creatordate --color=always --format='%(color:reset)%(creatordate:short) %(color:bold white)%(align:2,right)%(upstream:trackshort)%(end)%(color:nobold) %(align:40,left)%(color:yellow)%(refname:short)%(end) %(color:reset)%(contents:subject)'; }; f"
+
+  code-changes = "!git log --format=format: --name-only | egrep -v '^$' | sort | uniq -c | sort -rg | head -10"
 
 [color]
   diff = auto
@@ -51,3 +53,5 @@
   excludesfile = ~/.gitignore
 [apply]
   whitespace = nowarn
+[rerere]
+	enabled = 1
