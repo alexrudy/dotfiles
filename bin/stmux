@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+dest=$1
+shift
+ssh -t $dest tmux -CC a
