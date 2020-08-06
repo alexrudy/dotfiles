@@ -19,5 +19,10 @@ Host *
   UseKeychain yes
   IdentityFile ~/.ssh/id_rsa
 
-Include conf.d/*.config
+Include ./conf.d/*.config
 
+Host notebook.gcp.bitly.org
+  HostName notebook.gcp.bitly.org
+
+Host sokka
+  HostName sokka

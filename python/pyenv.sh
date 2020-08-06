@@ -9,3 +9,5 @@ if command_exists pyenv; then
         eval "$(pyenv virtualenv-init -)"
     fi
 fi
+
+source `dirname $0`/bin/install-pyenv.sh
