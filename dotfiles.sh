@@ -6,13 +6,6 @@ else
 	_DATEFUNC="date"
 fi
 
-# use .localrc for SUPER SECRET CRAP that you don't
-# want in your public, versioned repo.
-if [[ -a ~/.localrc ]]
-then
-  configure_from_file ~/.localrc
-fi
-
 CONFIGURE_FILES=${CONFIGURE_FILES:-''}
 configure_from_file () {
 	start=`$_DATEFUNC +%s.%N`
@@ -32,6 +25,13 @@ configure_from_file () {
 		fi
 	fi
 }
+
+# use .localrc for SUPER SECRET CRAP that you don't
+# want in your public, versioned repo.
+if [[ -a ~/.localrc ]]
+then
+  configure_from_file ~/.localrc
+fi
 
 # First, grab the path manipulation functions, etc.
 for config_file in $DOTFILES/core/*.sh
