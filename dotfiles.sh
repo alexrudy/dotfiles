@@ -6,6 +6,13 @@ else
 	_DATEFUNC="date"
 fi
 
+# use .localrc for SUPER SECRET CRAP that you don't
+# want in your public, versioned repo.
+if [[ -a ~/.localrc ]]
+then
+  configure_from_file ~/.localrc
+fi
+
 CONFIGURE_FILES=${CONFIGURE_FILES:-''}
 configure_from_file () {
 	start=`$_DATEFUNC +%s.%N`
@@ -75,11 +82,4 @@ if [[ -n "$ZSH_NAME" ]]; then
 	do 
 		configure_from_file $config_file
 	done
-fi
-
-# use .localrc for SUPER SECRET CRAP that you don't
-# want in your public, versioned repo.
-if [[ -a ~/.localrc ]]
-then
-  configure_from_file ~/.localrc
 fi
