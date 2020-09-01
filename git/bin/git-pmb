@@ -1,0 +1,16 @@
+
+# Figure out default origin branch
+BRANCH=$(git remote show origin | grep "HEAD branch" | cut -d ":" -f 2)
+PREVIOUS_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+PROTECTED_BRANCHES=$(git config --get core.protected-branches)
+
+if [[ -z $PROTECTED_BRANCHES ]]; then
+    PROTECTED_BRANCHES="$BRANCH,production,develop"
+fi
+
+PATTERN=$(echo $PROTECTED_BRANCHES | tr ',' '|')
+
+git switch $BRANCH
+git pull -p --ff-only
+git branch --merged $BRANCH | egrep -v "$PATTERN" | xargs -n 1 git branch -d
+git switch $PREVIOUS_BRANCH

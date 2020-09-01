@@ -2,11 +2,7 @@
   path = ~/.gitconfig.local
 [user]
   name = Alex Rudy
-  email = alex.rudy@bit.ly
-[github]
-  user = alexrudy
-[jira]
-  username = alex.rudy@bit.ly
+
 [alias]
  
   # Whats going on?
@@ -37,13 +33,11 @@
   # Graph log
   glog = log --graph --decorate --oneline
 
-  # prune merged branches
-  pmb = !git checkout master && git pull -p && git branch --merged master | grep -v \"\\* master\" | grep -v \"production\" | xargs -n 1 git branch -d
-
   # Show branches, verbosely, sorted by last touch, with commit messages.
   brv = "!f() { git branch --sort=-creatordate --color=always --format='%(color:reset)%(creatordate:short) %(color:bold white)%(align:2,right)%(upstream:trackshort)%(end)%(color:nobold) %(align:40,left)%(color:yellow)%(refname:short)%(end) %(color:reset)%(contents:subject)'; }; f"
 
   code-changes = "!git log --format=format: --name-only | egrep -v '^$' | sort | uniq -c | sort -rg | head -10"
+  root = rev-parse --show-toplevel
 
 [color]
   diff = auto
@@ -55,3 +49,7 @@
   whitespace = nowarn
 [rerere]
 	enabled = 1
+[init]
+	defaultBranch = main
+[pull]
+	ff = only
