@@ -9,5 +9,5 @@ ipython.dir/*/db
 ipython.dir/*/log
 ipython.dir/*/pid
 ipython.dir/*/security
-ipython.dir/*/history.sqlite
-ipython.dir/*/history-*.sqlite
+ipython.dir/*/history.sqlite*
+ipython.dir/*/history-*.sqlite*
