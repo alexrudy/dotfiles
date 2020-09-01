@@ -6,7 +6,9 @@ import re
 import tempfile
 import shlex
 import os
+import typing as t
 from pathlib import Path
+from collections import OrderedDict
 
 
 @click.command()
@@ -19,7 +21,8 @@ from pathlib import Path
 @click.option(
     "--key-file", type=str, default="~/.ssh/id_rsa", help="Path to SSH key file"
 )
-def main(name, hostname, username, config, key_file):
+@click.option("--zone", type=str, help="GCE Zone")
+def main(name, hostname, username, config, key_file, zone):
     """Find a GCE box by name and print the IP address for it.
     
     Optionally, update the `HOSTNAME` line in an SSH config
@@ -34,6 +37,9 @@ def main(name, hostname, username, config, key_file):
             f"--ssh-key-file={key_file}",
             "--dry-run",
         ]
+    if zone:
+        args.append(f"--zone={zone}")
+    
     raw_cmd = subprocess.check_output(
         args
     ).decode('utf-8').strip()
@@ -71,43 +77,61 @@ def update_config(config, hostname, config_options):
 
         target_backup.replace(target)
 
+class Entry(t.NamedTuple):
+    line: str
+    match: t.Optional[re.Match]
+
+    @property
+    def key(self) -> t.Optional[str]:
+        return self.match.group('key').lower() if self.match else None
+
+    @property
+    def value(self) -> t.Optional[str]:
+        return self.match.group('value')
+
+    @classmethod
+    def parse(cls, line) -> t.Optional["Entry"]:
+        m = re.match(r"^(?P<indent>\s*)(?P<key>\w+)(?P<sep>=|\s+)(?P<value>\S.+\S?)(?P<comment>\s+#.+)?$", line, flags=re.I)
+        return cls(line, m)
+
+    def replace(self, value: str):
+
+        return self.match.expand("\g<indent>\g<key>\g<sep>") + value + self.match.expand("\g<comment>") + "\n"
 
 def iter_new_config(lines, target_host, new_options):
-    host = None
-    indent = 0
     options = set()
+
+    new_options = {k.lower().strip():v for k,v in new_options.items()}
+
+    # Construct the entire config in memory
+
+    config = OrderedDict()
+    current_hosts = frozenset()
     for line in lines:
-
+        entry = Entry.parse(line)
         
-        m = re.match(r"\s*host(=|\s+)(.+?)(#.+)?", line, flags=re.I)
-        if m:
-            # We are about to change hosts, yield config values for last host first.
-            if host == target_host:
-                for key in new_options.keys() - options:
-                    yield f"{' ' * indent}{key} {value}"
-                options.update(new_options.keys())
-            host = m.group(2)
+        if entry.key == 'host':
+            current_hosts = frozenset(entry.value.split())
+            config[current_hosts] = host_config = OrderedDict()
+            host_config[entry.key] = entry
+        else:
+            host_config[entry.key] = entry
 
-        m = re.match(r"(?P<indent>\s*)(?P<key>\w+)(?P<sep>=|\s+)(?P<value>.+?)(?P<comment>#.+)?", line, flags=re.I)
-        if m and host == target_host:
-            indent = len(m.group('indent'))
-            key = m.group('key')
-            value = m.group('value')
-            
-            if key in new_options:
-                new_value = new_options[key]
-                line = line.replace(value, new_address)
-                options.add(key)
+    # Iterate and retrun modified configuration
+    for hosts, host_config in config.items():
 
-        yield line
+        for entry in host_config.values():
+            line = entry.line
+            if target_host in hosts and entry.key in new_options:
+                new_value = new_options[entry.key]
+                if new_value != entry.value:
+                    line = entry.replace(new_value)
+                options.add(entry.key)
+            yield line
 
-    
-        if host == target_host:
-            for key in new_options.keys() - options:
-                yield f"{' ' * indent}{key} {value}"
-            options.update(new_options.keys())
+    if not options:
+        raise ValueError("No options were replaced")
 
-    
 
 
 if __name__ == "__main__":
