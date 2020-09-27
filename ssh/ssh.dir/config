@@ -23,3 +23,6 @@ Include ./conf.d/*.config
 
 Host sokka
   HostName sokka
+
+Host notebook.gcp.bitly.org
+  HostName notebook.gcp.bitly.org
