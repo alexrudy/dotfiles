@@ -51,7 +51,7 @@ using terms from application "Things3"
       
       -- Add star for Today
       if (id of to dos of list "Today") contains id of thetodo then
-        set todotext to "★ " & todotext
+        set todotext to "⭐️ " & todotext
       end if
       
       -- Collect tags
