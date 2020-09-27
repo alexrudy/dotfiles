@@ -1,0 +1,7 @@
+p () {
+    if [[ -f pyproject.toml ]]; then
+        poetry $@
+    else
+        command p $@
+    fi
+}
