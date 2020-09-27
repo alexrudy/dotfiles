@@ -17,6 +17,11 @@ PROFILE_TIME_THRESHOLD=""
 export ITERM2_SHOULD_DECORATE_PROMPT="1"
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
+# Start ZPREZTO
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
+
 source $DOTFILES/dotfiles.sh
 
 pathadd "/usr/local/bin"
@@ -26,11 +31,6 @@ export PATH
 
 pathadd "$HOME/.rvm/bin" # Add RVM to PATH for scripting
 setopt LOCAL_OPTIONS # allow functions to have local options
-
-# Start ZPREZTO
-if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
-  configure_from_file "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
-fi
 
 # Configure this last to ensure it beats out pyenv
 pathprepend "$HOME/.local/bin"
