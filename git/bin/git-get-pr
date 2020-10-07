@@ -1,0 +1,13 @@
+if [ "$#" -eq 3 ]; then
+    REMOTE=${1}
+    PRID=${2}
+    BRANCHNAME=${3}
+elif [ "$#" -eq 2 ]; then
+    REMOTE='origin'
+    PRID=${1}
+    BRANCHNAME=${2}
+else
+    echo "Usage: $0 [remote] PR new-branch-name"
+fi
+
+git fetch ${REMOTE} pull/${PRID}/head:${BRANCHNAME}
