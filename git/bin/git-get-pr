@@ -11,3 +11,4 @@ else
 fi
 
 git fetch ${REMOTE} pull/${PRID}/head:${BRANCHNAME}
+git checkout ${BRANCHNAME}
