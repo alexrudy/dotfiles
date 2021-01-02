@@ -11,7 +11,6 @@ export ORIGPATH=$PATH
 
 # your project folder that we can `c [tab]` to
 export PROJECTS="$HOME/Development/"
-PROFILE_TIME_THRESHOLD=""
 
 # Enable early so that prompt can find it.
 export ITERM2_SHOULD_DECORATE_PROMPT="1"
@@ -29,15 +28,10 @@ pathadd "$HOME/.bin"
 pathadd "$HOME/.dotfiles/bin"
 export PATH
 
-pathadd "$HOME/.rvm/bin" # Add RVM to PATH for scripting
 setopt LOCAL_OPTIONS # allow functions to have local options
 
 # Configure this last to ensure it beats out pyenv
 pathprepend "$HOME/.local/bin"
 
-
 # {eval `ssh-agent`; ssh-add -A} &> /dev/null
 export LSCOLORS=Gxfxcxdxbxegedabagacad
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

@@ -1,3 +1,0 @@
-[submodule "osx/defaultbrowser"]
-	path = osx/defaultbrowser
-	url = https://github.com/kerma/defaultbrowser.git

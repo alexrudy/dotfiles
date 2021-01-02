@@ -26,3 +26,7 @@ Host sokka
 
 Host notebook.gcp.bitly.org
   HostName notebook.gcp.bitly.org
+
+Host bitly.org
+  HostName bitly.org
+  User root

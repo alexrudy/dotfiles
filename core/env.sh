@@ -1,1 +1,0 @@
-export MPPREFIX=${MPPREFIX:-"/opt/local"}
