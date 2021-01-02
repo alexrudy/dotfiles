@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+target=$1
+shift
+tmux -CC attach -t $target $@

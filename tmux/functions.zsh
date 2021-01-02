@@ -62,7 +62,7 @@ tmux_has_window() {
 
 # Check if tmux has a listed session
 tmux_has_session() {
-  tmux has -t "$1" &> /dev/null;
+  tmux has -t "$1" &> /dev/null
 }
 
 # Create a new window, or respond it.
