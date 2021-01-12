@@ -1,0 +1,6 @@
+#/usr/bin/env sh
+
+/usr/local/bin/gs \
+    -dSAFER -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sPDFPassword= \
+    -dPassThroughJPEGImages=true \
+    -sOutputFile="$1-unlocked.pdf" "$1"
