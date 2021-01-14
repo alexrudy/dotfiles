@@ -9,7 +9,6 @@
 export ORIGPATH=$PATH #So we can put it back later...
 
 export DOTFILES=$HOME/.dotfiles
-export MPPREFIX="/opt/local"
 
 # All of the hard work is done in here!
 source $DOTFILES/dotfiles.sh
