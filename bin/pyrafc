@@ -1,9 +1,0 @@
-#!/bin/bash
-# Small IRAF command to start CL in the current directory
-dir=`pwd` #Current Directory
-irafhome=~/.iraf #iraf Home Directory
-scriptname="startup.cl"
-cd $irafhome
-echo "cd "$dir > $scriptname
-echo "" >> $scriptname
-pyraf

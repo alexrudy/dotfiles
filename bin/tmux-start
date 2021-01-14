@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-if ! tmux has -t "MacPorts" &> /dev/null; then
-    tmux new-session -d -s MacPorts
-    tmux rename-window -t 0 "port"
-fi
-
-if [ -n "$1" ]; then
-    tmux attach-session -t $1
-fi

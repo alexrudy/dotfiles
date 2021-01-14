@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-[[ -f $MPPREFIX/bin/port ]] && $MPPREFIX/bin/screen -dRR $@ || screen -dRR $@
-

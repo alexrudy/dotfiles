@@ -1,2 +1,0 @@
-#compdef cdt
-_files -W $PROJECTS -/
