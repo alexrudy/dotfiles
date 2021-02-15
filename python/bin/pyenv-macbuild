@@ -16,11 +16,11 @@ if [ "$1" = "--complete" ]; then
   exit
 fi
 
-export SDKROOT="$(xcode-select -p)/SDKs/MacOSX.sdk"
+export SDKROOT="$(xcrun --show-sdk-path)"
 export MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion | awk -F. '{print($1"."$2)}')
-export CFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix readline)/include -I$(xcode-select -p)/SDKs/MacOSX.sdk/usr/include" 
-export CPPFLAGS="-I$(brew --prefix zlib)/include" 
-export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix readline)/lib"
+export CFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix readline)/include -I$(brew --prefix bzip2)/include -I${SDKROOT}/usr/include" 
+export CPPFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix zlib)/include -I$(brew --prefix bzip2)/include -I${SDKROOT}/usr/include" 
+export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix readline)/lib -L$(brew --prefix zlib)/lib -L$(xcrun --show-sdk-path)/usr/lib"
 
 pyenv-install $@
 
