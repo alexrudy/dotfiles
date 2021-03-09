@@ -1,7 +1,8 @@
 [include]
   path = ~/.gitconfig.local
 [user]
-  name = Alex Rudy
+	name = Alex Rudy
+	email = opensource@alexrudy.net
 
 [alias]
  
