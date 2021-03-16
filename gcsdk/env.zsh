@@ -1,0 +1,1 @@
+CLOUDSDK_PYTHON="$(brew --prefix python@3.8)/libexec/bin/python"
