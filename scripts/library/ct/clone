@@ -1,0 +1,8 @@
+#!/usr/bin/env zsh
+# Clone a new git repo for cloudtrucks
+REPO="cloudtrucks/$1"
+NAME=$1
+DESTINATION=${HOME}/Development/cloudtrucks/${NAME}
+
+git clone https://github.com/${REPO} ${DESTINATION}
+
