@@ -67,6 +67,8 @@ if [[ -n "$ZSH_NAME" ]]; then
 	do 
 		configure_from_file $config_file
 	done
+
+	autoload -U compinit && compinit
 fi
 
 zprofilecontext_end=dotfiles.sh
