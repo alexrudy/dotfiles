@@ -3,7 +3,9 @@ if [[ -d "$HOME/.pyenv" ]]; then
     pathadd "$PYENV_ROOT/bin"
 
     eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
+    if command_exists pyenv-virtualenv-init; then
+        eval "$(pyenv virtualenv-init -)"
+    fi
 fi
 
 pathadd $DOTFILES/python/bin
