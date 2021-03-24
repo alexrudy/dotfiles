@@ -3,7 +3,7 @@ TM_ORGANIZATION   = "Alexander Rudy"
 TM_GIT		      = /usr/local/bin/git
 PATH              = "$PATH"
 invisiblesMap     = "~ "
-include           = "{$include,.tm_properties,.htaccess,.gitignore,.gitmodules,.travis.yml,.tmuxp.yml,.github}"
+include           = "{$include,.tm_properties,.htaccess,.gitignore,.gitmodules,.travis.yml,.tmuxp.yml,.github,.envrc,.pre-commit-config.yaml}"
 exclude           = "{$exclude,__pycache__,*.pyc}"
 excludeInFileChooser = "{$excludeInFileChooser,build/*,dist/*}"
 
