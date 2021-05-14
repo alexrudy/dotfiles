@@ -1,0 +1,18 @@
+#! /bin/sh
+
+HOST=$1
+
+PROJECT=$(echo $HOST | sed -e 's;.*\.;;')
+PATTERN=$(echo $HOST | sed -e 's;\..*;;')
+
+PORT=$2
+
+NODE=$(gcloud compute instances list --project=$PROJECT  --filter="name~'.*$PATTERN.*'" --limit=1 --format=json | \
+           jq -r '.[0]|.networkInterfaces|.[0]|.networkIP' 2>/dev/null)
+
+if [ $NODE != "null" ]; then
+    exec ssh -q -W $NODE:$PORT vpn.$PROJECT.com
+else
+    echo "No hosts found" >&2
+    exit 1
+fi
