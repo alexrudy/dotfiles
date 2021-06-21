@@ -13,6 +13,6 @@ if command_exists mate; then
             mate $@
         fi
     }
-	export EDITOR='tm'
+	export EDITOR='mate -w'
 	export GIT_EDITOR="mate --name 'Git Commit Message' -w -l 1"
 fi
