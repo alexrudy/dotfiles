@@ -1,3 +1,0 @@
-#compdef ct
-
-_sd ${DOTFILES}/scripts/library/ct
