@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+#
+# Summary: Helpers to upgrade pip in each environment
+#
+# Usage: pyenv upgrade
+#
+# Set environment and build python on macos 10.14+, passing
+# all arguments directly to pyenv install.
+
+
+VERSIONS=$(pyenv versions --bare --skip-aliases)
+
+for VERSION in $VERSIONS; do
+    echo "Upgrade pip in $VERSION"
+    PYENV_VERSION=$VERSION pyenv exec python -m pip install --upgrade $@
+done
