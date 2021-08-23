@@ -1,0 +1,31 @@
+session_name: ct
+windows:
+- focus: 'true'
+  layout: afde,231x60,0,0,1
+  options:
+    window-size: manual
+  panes:
+  - focus: 'true'
+    shell_command: zsh
+  start_directory: /Users/alexrudy/Development/cloudtrucks/ct-schedule-refactor
+  window_name: zsh
+- layout: ac31,231x58,0,0[231x29,0,0,2,231x28,0,30,5]
+  options:
+    window-size: manual
+  panes:
+  - focus: 'true'
+    shell_command:
+    - cd /Users/alexrudy/Development/cloudtrucks/terraform
+    - zsh
+  - shell_command:
+    - cd /Users/alexrudy/Development/cloudtrucks
+    - zsh
+  window_name: zsh
+- layout: afe1,231x60,0,0,4
+  options:
+    window-size: manual
+  panes:
+  - focus: 'true'
+    shell_command: zsh
+  start_directory: /Users/alexrudy/Development/cloudtrucks/ct
+  window_name: zsh
