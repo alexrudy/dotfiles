@@ -1,10 +1,10 @@
 # backend : MacOSX
 
 # Fonts
-# font.serif         : Times, Palatino, New Century Schoolbook, Bookman, Computer Modern Roman
-# font.sans-serif    : Helvetica, Avant Garde, Computer Modern Sans serif, DejaVu Sans
-# font.cursive       : Zapf Chancery
-# font.monospace     : Courier, Computer Modern Typewriter
+font.serif         : Times, Palatino, New Century Schoolbook, Bookman, Computer Modern Roman
+font.sans-serif    : Apple Color Emojii, Helvetica, Avant Garde, Computer Modern Sans serif, DejaVu Sans
+font.cursive       : Zapf Chancery
+font.monospace     : Courier, Computer Modern Typewriter
 
 # Force use of TeX for labels, regarldess of content
 # This makes all the fonts look consistent
