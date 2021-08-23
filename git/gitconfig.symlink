@@ -29,7 +29,7 @@
   publish = "!f() { REMOTE=${1:-origin} shift; git push -u ${REMOTE} $(git branch-name) $@; }; f"
 
   # Show only branches
-  mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex/"
+  mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex | sort"
 	
   # Graph log
   glog = log --graph --decorate --oneline
