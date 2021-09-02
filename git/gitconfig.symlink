@@ -54,3 +54,5 @@
 	defaultBranch = main
 [pull]
 	ff = only
+[includeIf "gitdir:~/Development/cloudtrucks/"]
+  path = ~/.ct.gitconfig
