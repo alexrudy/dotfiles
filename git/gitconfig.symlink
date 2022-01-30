@@ -40,6 +40,14 @@
   code-changes = "!git log --format=format: --name-only | egrep -v '^$' | sort | uniq -c | sort -rg | head -10"
   root = rev-parse --show-toplevel
 
+  # list files which have changed since REVIEW_BASE
+  # (REVIEW_BASE defaults to 'master' in my zshrc)
+  files = !git diff --name-only $(git merge-base HEAD \"$REVIEW_BASE\")
+
+  # Same as above, but with a diff stat instead of just names
+  # (better for interactive use)
+  stat = !git diff --stat $(git merge-base HEAD \"$REVIEW_BASE\")
+
 [color]
   diff = auto
   status = auto
