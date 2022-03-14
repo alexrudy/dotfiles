@@ -12,7 +12,7 @@ NODE=$(gcloud compute instances list --project=$PROJECT  --filter="name~'.*$PATT
            jq -r '.[0]|.networkInterfaces|.[0]|.networkIP' 2>/dev/null)
 
 if [ $NODE != "null" ]; then
-    exec /usr/local/bin/netcat $NODE $PORT
+    exec "$HOMEBREW_PREFIX/bin/netcat" $NODE $PORT
 else
     echo "No hosts found" >&2
     exit 1
