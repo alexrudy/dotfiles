@@ -17,6 +17,7 @@ Host *
   ServerAliveInterval 10
   AddKeysToAgent yes
   UseKeychain yes
-  IdentityFile ~/.ssh/id_rsa
+  IdentityFile ~/.ssh/id_ed25519
+  IdentityFile ~/.ssh/bitly_id_rsa
 
 Include ./conf.d/*.config
