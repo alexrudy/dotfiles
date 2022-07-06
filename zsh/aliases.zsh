@@ -1,4 +1,4 @@
 alias reload='. ~/.zshrc'
 
 # Provided by .zprezto
-unalias p
+(unalias p >& /dev/null);
