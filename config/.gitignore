@@ -1,0 +1,4 @@
+config.dir/gh/hosts.yml
+config.dir/coder/*
+config.dir/code-server/*
+config.dir/configstore/*

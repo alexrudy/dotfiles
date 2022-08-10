@@ -1,0 +1,11 @@
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Inserts a blank line between shell prompts
+add_newline = true
+
+# Increase command timeout, git is slow in discord repo
+command_timeout = 1000
+
+[container]
+format = "[$symbol]($style) "
