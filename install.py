@@ -271,16 +271,31 @@ def install_zprezto(home, dryrun=False):
     if not dryrun:
         subprocess.check_call(command)
 
+    command = ["git", "clone" ,"https://github.com/Aloxaf/fzf-tab", os.path.join(destination, "contrib/fzf-tab")]
+    log.debug(" ".join(command))
+    if not dryrun:
+        subprocess.check_call(command)
+
+def install_starship(dryrun=False):
+    if shutil.which("starship"):
+        log.debug("Skipping starship installation, starship binary exists")
+        return
+
+    command = "curl -sS https://starship.rs/install.sh | sh"
+    log.debug(command)
+    if not dryrun:
+        subprocess.check_call(command, shell=True)
 
 def main():
     """Main function."""
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dotfiles", default=os.getcwd())
     parser.add_argument("--no-prezto", dest="prezto", action="store_false", help="Install zprezto")
+    parser.add_argument("--no-starship", dest="starship", action="store_false", help="Install Starship")
     parser.add_argument("--home", default=HOME)
     parser.add_argument(
         "--mode",
-        default="i",
+        default="i" if sys.stdout.isatty() else "S",
         help="Set installer mode: [s]kip, [S]kip all, [o]verwrite, [O]verwrite all, [b]ackup, [B]ackup all",
     )
     parser.add_argument("-n", "--dry-run", dest="dryrun", action="store_true")
@@ -293,8 +308,10 @@ def main():
 
     logging.basicConfig(level=ll, format="[%(levelname)s] %(message)s")
 
-    if opt.prezto and not opt.dryrun:
-        install_zprezto(home=opt.home)
+    if opt.prezto:
+        install_zprezto(home=opt.home, dryrun=opt.dryrun)
+    if opt.starship:
+        install_starship(dryrun=opt.dryrun)
 
     installer = Installer(os.path.expanduser(opt.dotfiles), opt.home, mode=opt.mode, dryrun=opt.dryrun)
     installer.run()
