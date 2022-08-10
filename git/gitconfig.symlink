@@ -62,11 +62,3 @@
 	defaultBranch = main
 [pull]
 	ff = only
-[includeIf "gitdir:~/Development/cloudtrucks/"]
-  path = ~/.ct.gitconfig
-[credential "https://github.com"]
-	helper = 
-	helper = !/usr/bin/gh auth git-credential
-[credential "https://gist.github.com"]
-	helper = 
-	helper = !/usr/bin/gh auth git-credential
