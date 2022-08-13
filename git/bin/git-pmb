@@ -5,7 +5,7 @@ PREVIOUS_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 PROTECTED_BRANCHES=$(git config --get core.protected-branches)
 
 if [[ -z $PROTECTED_BRANCHES ]]; then
-    PROTECTED_BRANCHES="$BRANCH,main,master,production,develop"
+    PROTECTED_BRANCHES="$BRANCH,main,master,production,develop,preview"
 fi
 
 PATTERN=$(echo $PROTECTED_BRANCHES | tr ',' '|')
