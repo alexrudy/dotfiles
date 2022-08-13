@@ -6,7 +6,12 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # shortcut to this dotfiles path is $ZSH
-export DOTFILES=$HOME/.dotfiles
+if [[ -d "$HOME/.dotfiles" ]]; then
+  export DOTFILES=$HOME/.dotfiles
+elif [[ -d "$HOME/dotfiles" ]]; then
+  export DOTFILES=$HOME/dotfiles
+fi
+
 export ORIGPATH=$PATH
 
 # your project folder that we can `c [tab]` to
