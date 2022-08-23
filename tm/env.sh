@@ -15,4 +15,7 @@ if command_exists mate; then
     }
 	export EDITOR='mate -w'
 	export GIT_EDITOR="mate --name 'Git Commit Message' -w -l 1"
+elif command_exists rmate; then
+	export EDITOR='rmate -w'
+	export GIT_EDITOR="rmate --name 'Git Commit Message' -w -l 1"
 fi
