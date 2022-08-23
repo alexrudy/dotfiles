@@ -13,6 +13,9 @@
 
 Include linode.config
 
+Host coder
+  HostName coder
+
 Host *
   ServerAliveInterval 10
   AddKeysToAgent yes
