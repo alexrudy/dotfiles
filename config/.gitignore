@@ -3,3 +3,5 @@ config.dir/coder/*
 config.dir/code-server/*
 config.dir/configstore/*
 config.dir/clyde/*
+config.dir/gcloud/*
+config.dir/iterm2/
