@@ -63,3 +63,5 @@
 	defaultBranch = main
 [pull]
 	ff = only
+[credential]
+	helper = osxkeychain

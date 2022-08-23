@@ -28,6 +28,7 @@ fi
 
 source $DOTFILES/dotfiles.sh
 
+pathadd "/usr/local/bin"
 pathadd "$HOME/.bin"
 pathadd "$DOTFILES/bin"
 export PATH
