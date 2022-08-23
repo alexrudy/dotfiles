@@ -29,7 +29,7 @@ fi
 source $DOTFILES/dotfiles.sh
 
 pathadd "$HOME/.bin"
-pathadd "$HOME/.dotfiles/bin"
+pathadd "$DOTFILES/bin"
 export PATH
 
 setopt LOCAL_OPTIONS # allow functions to have local options
