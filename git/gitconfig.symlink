@@ -61,7 +61,8 @@
 	defaultBranch = main
 [pull]
 	ff = only
-
+[credential]
+	helper = osxkeychain
 [include]
   path = ~/.gitconfig.local
   path = ~/.config/gitconfig
