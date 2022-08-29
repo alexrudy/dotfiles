@@ -281,7 +281,7 @@ def install_starship(dryrun=False):
         log.debug("Skipping starship installation, starship binary exists")
         return
 
-    command = "curl -sS https://starship.rs/install.sh | sh"
+    command = "curl -sS https://starship.rs/install.sh | sh --yes"
     log.debug(command)
     if not dryrun:
         subprocess.check_call(command, shell=True)
