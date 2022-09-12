@@ -164,8 +164,12 @@ class Installer(object):
                 log.info("Skipping {0}".format(os.path.basename(source)))
                 return ACTION_NOTHING
             elif mode == MODE_MERGE and not os.path.isdir(destination):
-                log.debug("Interactive mode for {0} (mode was 'merge', but this isn't a directory)".format(destination))
-                return ACTION_ASK
+                if sys.stdout.isatty():
+                    log.debug("Interactive mode for {0} (mode was 'merge', but this isn't a directory)".format(destination))
+                    return ACTION_ASK
+                else:
+                    log.debug("Skipping {0} (mode was 'merge', but this isn't a directory)".format(destination))
+                    return ACTION_NOTHING
             elif mode == MODE_MERGE:
                 self.merge(source, destination)
                 return ACTION_SUCCESS
