@@ -26,8 +26,6 @@ Temporary Items
 .apdisk
 
 \.dsync.yml
-\.python-version
-\.ruby-version
 \.envrc
 
 .dropbox
