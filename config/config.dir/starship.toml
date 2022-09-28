@@ -9,3 +9,7 @@ command_timeout = 1000
 
 [container]
 format = "[$symbol]($style) "
+
+# This doesn't add much to my workflow
+[package]
+disabled = true

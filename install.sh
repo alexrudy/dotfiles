@@ -1,7 +1,7 @@
 #!/bin/sh
+set -eu
 
-if [ -n "$CODER_USERNAME" ]; then
-    . `dirname $0`/install-discord.sh
-fi
+DOTFILES=$(readlink -f "$(dirname "$0")")
+export DOTFILES
 
-python3 `dirname $0`/install.py --mode=M
+sh "${DOTFILES}/installers/installer.sh"
