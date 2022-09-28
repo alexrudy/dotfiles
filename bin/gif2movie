@@ -13,7 +13,7 @@ Use 'convert' and 'ffmpeg' to convert an animated GIF to a movie file.
 This script requires 'imagemagic' to be installed to split the animated GIF into frames.
 To create movies, it requires 'ffmpeg' to be installed (with 'mpeg4' support for '.mp4' movies).
 To save the intermediate frames a individual images, use the --image-path argument and the --no-cleanup
-argument. 
+argument.
 
 """
 
@@ -26,7 +26,7 @@ import warnings
 class SubprocessWarning(Warning):
     """Warnings related to SubprocessWarning"""
     pass
-        
+
 def extract_gif(filename, image_format='png', basename=None):
     """Extract a gif into frames."""
     if basename is None:
@@ -39,26 +39,26 @@ def extract_gif(filename, image_format='png', basename=None):
     args = [ 'convert', '-coalesce', filename, "{basename}.%04d.{ext}".format(basename=basename, ext=image_format) ]
     subprocess.check_call(args)
     return glob.glob("{basename}.[0-9]*.{ext}".format(basename=basename, ext=image_format))
-    
+
 ffmpeg_args = {
     'mp4' : ['-vcodec', 'mpeg4'],
     'mpg' : [],
 }
-    
+
 def combine_frames(images, movie_name, movie_format=None, extra_args=[]):
     """Create a movie."""
     "ffmpeg -f image2 -i BlackHole_Lensing.%d.png -vcodec mpeg4 BlackHole_Lensing.mp4"
-    
+
     name, ext = os.path.splitext(images[0])
     basename, number = os.path.splitext(name)
     template = '{basename}.%04d{ext}'.format(basename=basename, ext=ext)
     input_args = [ '-f', 'image2', '-i', template ]
-    
+
     if movie_format is None:
         baseout, movie_format = os.path.splitext(movie_name)
     output_args = ffmpeg_args[movie_format] + extra_args + [ movie_name ]
     subprocess.call(['ffmpeg'] + input_args + output_args)
-    
+
 def cleanup(files):
     """Remove the listed files."""
     for filename in files:
@@ -66,7 +66,7 @@ def cleanup(files):
             os.remove(filename)
         except OSError as e:
             warnings.warn(str(e), Warning)
-    
+
 def main():
     """Main processor"""
     import argparse
@@ -79,20 +79,20 @@ def main():
     parser.add_argument('--no-cleanup', dest='cleanup', action='store_false', help="leave intermediate files in place")
     parser.add_argument('--open', action='store_true', help='open the resulting image.')
     args, extra_args = parser.parse_known_args()
-    
+
     if not os.path.exists(args.input):
         parser.error("input '{input}' doesn't exist!".format(**vars(args)))
-    
+
     if args.output is None:
         basename, ext = os.path.splitext(args.input)
         args.output = '{basename}.{ext}'.format(basename=basename, ext=args.movie_format)
-    
+
     if args.image_path is not None:
         args.cleanup = False
-    
+
     print("Extracting '.{image_format}' files from '{input}'".format(**vars(args)))
     images = extract_gif(args.input, image_format=args.image_format, basename=args.image_path)
-    
+
     print("Combining {n:d} frames into '{output}'".format(n=len(images), **vars(args)))
     if os.path.exists(args.output):
         print("Overwriting '{output}'".format(**vars(args)))
@@ -103,9 +103,9 @@ def main():
         cleanup(images)
     else:
         print("Intermediate images in '{0}'".format(os.path.dirname(images[0])))
-    
+
     if args.open:
         subprocess.check_call(['open', args.output])
-    
+
 if __name__ == '__main__':
     main()

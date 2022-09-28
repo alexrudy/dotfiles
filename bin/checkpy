@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# 
+#
 #  checkpy.sh
 #  .dotfiles
-#  
+#
 #  Created by Alexander Rudy on 2012-10-17.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-# 
+#
 
 files=$(find *)
 
@@ -19,4 +19,3 @@ do
 		echo "${file##*/} belongs to $pport"
 	fi
 done
-	

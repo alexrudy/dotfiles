@@ -15,11 +15,11 @@ class Project(object):
             raise ValueError("Project names can't contain ':'")
         self.name = name
         self.path = path
-    
+
     def __str__(self):
         """Make this project into a string."""
         return "{self.name:s}: '{self.path:s}'".format(self=self)
-        
+
     @classmethod
     def parse(cls, line):
         """Parse a single line."""
@@ -33,7 +33,7 @@ def load(fn):
     with open(fn, 'r') as stream:
         for line in stream:
             yield Project.parse(line)
-            
+
 def save(fn, projects):
     """Save projects to a file"""
     with open(fn, 'w') as stream:

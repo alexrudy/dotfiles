@@ -9,7 +9,7 @@ function nconnections () {
 tell application "Tunnelblick"
 	set connected_configs to every configuration where state = "CONNECTED"
 	return count of connected_configs
-end tell 
+end tell
 EOF
 }
 

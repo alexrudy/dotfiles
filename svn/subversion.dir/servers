@@ -60,8 +60,8 @@
 ### overrides defaults, not explicitly matched server names.
 ###
 ### 'ssl-authority-files' is a semicolon-delimited list of files,
-### each pointing to a PEM-encoded Certificate Authority (CA) 
-### SSL certificate.  See details above for overriding security 
+### each pointing to a PEM-encoded Certificate Authority (CA)
+### SSL certificate.  See details above for overriding security
 ### due to SSL.
 [global]
 # http-proxy-exceptions = *.exception.com, www.internal-site.org

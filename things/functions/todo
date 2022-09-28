@@ -12,7 +12,7 @@ global newline
 set newline to "
 "
 using terms from application "Things3"
-  
+
   on appendTags(thecontainer, thetags)
     if (count of {tags in thecontainer}) is greater than 0 then
       repeat with thistag in (tags of thecontainer)
@@ -23,14 +23,14 @@ using terms from application "Things3"
       end repeat
     end if
   end appendTags
-  
+
   on formatDueDate(thetodo)
     set datetext to ""
     tell application "Things3"
       if due date of thetodo is not equal to missing value then
         set ndays to round (((due date of thetodo) - (current date)) / (3600.0 * 24.0)) rounding up
         set duedate to (due date of thetodo)
-        
+
         if ndays is less than 1 then
           set datetext to " !Due Today"
         else
@@ -44,20 +44,20 @@ using terms from application "Things3"
     end tell
     return datetext
   end formatDueDate
-  
+
   on formatTodo(thetodo, counter)
     tell application "Things3"
       set todotext to name of thetodo
-      
+
       -- Add star for Today
       if (id of to dos of list "Today") contains id of thetodo then
         set todotext to "⭐️ " & todotext
       end if
-      
+
       -- Collect tags
       set thesetags to {}
       appendTags(thetodo, thesetags) of me
-      
+
       -- Add project / area information
       set posttext to ""
       if project of thetodo is not equal to missing value then
@@ -73,13 +73,13 @@ using terms from application "Things3"
           appendTags(area of thetodo, thesetags) of me
         end if
       end if
-      
+
       if (count of thesetags) is greater than 0 then
         set AppleScript's text item delimiters to {" +"}
         set tagtext to " (+" & (thesetags as text) & ")"
         set todotext to todotext & tagtext
       end if
-      
+
       set todotext to todotext & posttext & formatDueDate(thetodo) of me
       set innertodos to {}
       try
@@ -96,7 +96,7 @@ using terms from application "Things3"
     end tell
     return todotext
   end formatTodo
-  
+
   on getTodoCollection(thelistname)
     tell application "Things3"
       if thelistname starts with "+" then
@@ -119,8 +119,8 @@ using terms from application "Things3"
       return todos
     end tell
   end getTodoCollection
-  
-  
+
+
   tell application "Things3"
     set myList to {}
     set thelistname to "$LIST"

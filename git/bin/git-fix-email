@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 # Fix author via filter-branch
 #
-	
+
 FILTER=$(cat <<HERE
 if [ "\$GIT_COMMITTER_EMAIL" = "$1" ]
 then
@@ -13,5 +13,5 @@ then
 fi
 HERE
 )
-			
+
 git filter-branch --env-filter "$FILTER" --tag-name-filter cat -- --branches --tags

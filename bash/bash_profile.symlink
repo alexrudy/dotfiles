@@ -1,11 +1,11 @@
-# 
+#
 #  bash_profile.symlink
 #  .dotfiles
 #  Profile contains things that should appear in visual terminals only
-#  
+#
 #  Created by Alexander Rudy on 2012-10-07.
 #  Copyright 2012 Alexander Rudy. All rights reserved.
-# 
+#
 if [ -f "$HOME/.ucolick_bash_profile" ]; then
 	. $HOME/.ucolick_bash_profile
 fi
@@ -17,7 +17,7 @@ fi
 # Source our profile only stuff!
 if [[ "$-" == *i* ]]; then
 for config_file in $DOTFILES/**/*.pbash
-do 
+do
 	source $config_file
 done
 fi

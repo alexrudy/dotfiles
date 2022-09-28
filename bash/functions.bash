@@ -12,13 +12,13 @@ export LESSCHARSET='utf-8'
 
 function swap()  # Swap 2 filenames around, if they exist
 {                #(from Uzi's bashrc).
-    local TMPFILE=tmp.$$ 
+    local TMPFILE=tmp.$$
 
     [ $# -ne 2 ] && echo "swap: 2 arguments needed" && return 1
     [ ! -e $1 ] && echo "swap: $1 does not exist" && return 1
     [ ! -e $2 ] && echo "swap: $2 does not exist" && return 1
 
-    mv "$1" $TMPFILE 
+    mv "$1" $TMPFILE
     mv "$2" "$1"
     mv $TMPFILE "$2"
 }
@@ -49,10 +49,10 @@ function get_xserver ()
 {
     case $TERM in
        xterm )
-            XSERVER=$(who am i | awk '{print $NF}' | tr -d ')''(' )    
+            XSERVER=$(who am i | awk '{print $NF}' | tr -d ')''(' )
             XSERVER=${XSERVER%%:*}
             ;;
-        aterm | rxvt)           
+        aterm | rxvt)
             ;;
-    esac  
+    esac
 }

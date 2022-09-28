@@ -8,7 +8,7 @@ force=false
 USAGE=<<EOF
 Usage:
     $0 [-f] path
-    
+
 Remove Dropbox conflicted copy files.
 
 arguments:

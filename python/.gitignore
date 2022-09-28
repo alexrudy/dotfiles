@@ -1,10 +1,10 @@
-# 
+#
 #  .gitignore
 #  python
-#  
+#
 #  Created by Jaberwocky on 2013-08-26.
 #  Copyright 2013 Jaberwocky. All rights reserved.
-# 
+#
 ipython.dir/*/db
 ipython.dir/*/log
 ipython.dir/*/pid

@@ -12,6 +12,6 @@ def main():
         print(config['session_name'], end='')
     except KeyError:
         pass
-    
+
 if __name__ == '__main__':
     main()

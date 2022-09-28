@@ -24,7 +24,7 @@ from collections import OrderedDict
 @click.option("--zone", type=str, help="GCE Zone")
 def main(name, hostname, username, config, key_file, zone):
     """Find a GCE box by name and print the IP address for it.
-    
+
     Optionally, update the `HOSTNAME` line in an SSH config
     """
     key_file = os.path.expanduser(key_file)
@@ -39,7 +39,7 @@ def main(name, hostname, username, config, key_file, zone):
         ]
     if zone:
         args.append(f"--zone={zone}")
-    
+
     raw_cmd = subprocess.check_output(
         args
     ).decode('utf-8').strip()
@@ -109,7 +109,7 @@ def iter_new_config(lines, target_host, new_options):
     current_hosts = frozenset()
     for line in lines:
         entry = Entry.parse(line)
-        
+
         if entry.key == 'host':
             current_hosts = frozenset(entry.value.split())
             config[current_hosts] = host_config = OrderedDict()
@@ -136,4 +136,3 @@ def iter_new_config(lines, target_host, new_options):
 
 if __name__ == "__main__":
     main(auto_envvar_prefix="GET_GCP_IP")
-

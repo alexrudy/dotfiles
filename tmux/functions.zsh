@@ -1,10 +1,10 @@
 #
 #  tmux_funcs.sh
 #
-# This file provides some basic helper functions for 
+# This file provides some basic helper functions for
 # working with TMUX from a shell script.
 #
-# Copyright (c) 2015, Alexander Rudy 
+# Copyright (c) 2015, Alexander Rudy
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

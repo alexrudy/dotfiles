@@ -32,39 +32,39 @@ done
 
 if [[ -n "$BASH" ]]; then
 	for config_file in $DOTFILES/*/*.bash
-	do 
+	do
 		configure_from_file $config_file "bash"
 	done
 fi
 
 if [[ -n "$ZSH_NAME" ]]; then
 	for config_file in $DOTFILES/*/*.zsh
-	do 
+	do
 		configure_from_file $config_file "zsh"
 	done
-	
+
 	# initialize autocomplete here, otherwise functions won't be loaded
     # autoload -U compinit
     # compinit
-	
+
 fi
 
 # load every completion after autocomplete loads
 for config_file in $DOTFILES/*/completion.sh
-do 
+do
 	configure_from_file $config_file
 done
 
 if [[ -n "$BASH" ]]; then
 	for config_file in $DOTFILES/*/completion.bash
-	do 
+	do
 		configure_from_file $config_file
 	done
 fi
 
 if [[ -n "$ZSH_NAME" ]]; then
 	for config_file in $DOTFILES/*/completion.zsh
-	do 
+	do
 		configure_from_file $config_file
 	done
 

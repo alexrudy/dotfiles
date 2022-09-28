@@ -82,23 +82,23 @@ def status_message(status, message):
 @click.argument("message", nargs=-1)
 def main(status, message):
     """Send a message via the pushover service.
-    
+
     All positional arguments are concatenated with spaces and sent as the message text.
     The argument `-s` or `--status` will accept an interger, designed to be a return code
     from the previous command. If the return code is 0, then a green emoji checkmark is
     added to the message, otherwise a red emoji X is added. This is designed to be used
     as follows:
-    
+
     \b
         somecommand; pushover -s$? your message goes here
-    
+
     Credentials are discovered via environment variables. Pushover requires a user ID and
     an API token. The following environment variables are checked:
-    
+
     \b
     - PUSHOVER_USER_ID and PUSHOVER_API_TOKEN
     - PUSHOVER_USER_TOKEN and PUSHOVER_APP_TOKEN
-    
+
     """
 
     message = " ".join(message)

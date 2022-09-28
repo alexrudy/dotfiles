@@ -81,7 +81,7 @@ function prompt_alex_async_apple {
           else
               apple_info+="${_prompt_alex_colors[3]}U%f"
           fi
-      fi  
+      fi
       # if [[ $(isactive "Mail") == "true" ]]; then
       #     unread=$(mail-unread)
       #     if [[ $unread -gt 0 ]]; then
@@ -97,9 +97,9 @@ function prompt_alex_async_apple {
 }
 
 function prompt_alex_precmd {
-  
+
   _prompt_alex_pwd=$(prompt_alex_pwd)
-  
+
   # Handle updating git data. We also clear the git prompt data if we're in a
   # different git root now.
   if (( $+functions[git-dir] )); then
@@ -109,21 +109,21 @@ function prompt_alex_precmd {
       _alex_cur_git_root=$new_git_root
     fi
   fi
-  
-  
+
+
   # Check mac applications
-  
+
   # Check for shell login with onepassword
   if [[ -n $OP_SHELL_ACTIVE ]]; then
 	  op_shell_info="${_prompt_alex_colors[2]}●%f"
   fi
-  
+
   if (( $+functions[python-info] )); then
     python-info
   fi
-  
+
   prompt_alex_async_tasks
-  
+
 }
 
 function prompt_alex_setup {
@@ -133,11 +133,11 @@ function prompt_alex_setup {
 
   _prompt_alex_precmd_async_pid=0
   _prompt_alex_precmd_async_data=$(mktemp "${TMPDIR:-/tmp}/alex-prompt-async-XXXXXXXXXX")
-  
+
   # Load required functions.
   autoload -Uz add-zsh-hook
   autoload -Uz async && async
-  
+
   autoload -Uz vcs_info
 
   # Add hook for calling vcs_info before each command.
@@ -161,7 +161,7 @@ function prompt_alex_setup {
       "%F{green}"
     )
   fi
-  
+
   _prompt_alex_pwd=''
   _alex_cur_git_root=''
 
@@ -187,7 +187,7 @@ function prompt_alex_setup {
   zstyle ':vcs_info:*:prompt:*' actionformats "${branch_format}${action_format}"
   zstyle ':vcs_info:*:prompt:*' formats "${branch_format}"
   zstyle ':vcs_info:*:prompt:*' nvcsformats   ""
-  
+
   zstyle ':prezto:module:git:info' verbose 'yes'
   zstyle ':prezto:module:git:info:action' format '%F{7}:%f%%B%F{9}%s%f%%b'
   zstyle ':prezto:module:git:info:added' format ' %%B%F{2}✚%f%%b'
@@ -208,7 +208,7 @@ function prompt_alex_setup {
   if zstyle -T ':prezto:module:prompt' show-return-val; then
     show_return+='%? '
   fi
-  
+
   # Set python-info parameters.
   zstyle ':prezto:module:python:info:virtualenv' format "${_prompt_alex_colors[3]}(%v)%f"
   # Define prompts.

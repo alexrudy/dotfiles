@@ -29,25 +29,25 @@ PKG_CONFIG_PATH="${PKG_CONFIG_PATH}"
 
 for BREW_LIB in $BREW_PROVIDED_LIBS; do
 	BREW_LIB_PREFIX=$(brew --prefix $BREW_LIB)
-	
+
 	if [ -d "${BREW_LIB_PREFIX}/include" ]; then
 		CFLAGS="-I${BREW_LIB_PREFIX}/include ${CFLAGS}"
 	fi
-	
+
 	if [ -d "${BREW_LIB_PREFIX}/lib" ]; then
 		LDFLAGS="-L${BREW_LIB_PREFIX}/lib ${LDFLAGS}"
 		DYLD_LIBRARY_PATH="${BREW_LIB_PREFIX}/lib:$DYLD_LIBRARY_PATH"
-		
+
 	fi
-	
+
 	if [ -d "${BREW_LIB_PREFIX}/bin" ]; then
 		PATH="$(brew --prefix $BREW_LIB)/bin:${PATH}"
 	fi
-		
+
 	if [ -d "${BREW_LIB_PREFIX}/pkgconfig" ]; then
 		PKG_CONFIG_PATH="${BREW_LIB_PREFIX}/pkgconfig ${PKG_CONFIG_PATH}"
 	fi
-	
+
 done
 
 export CFLAGS
@@ -67,4 +67,3 @@ export PYTHON_CONFIGURE_OPTS="--with-tcltk-libs='-L$(brew --prefix tcl-tk)/lib -
 export PYTHON_DECIMAL_WITH_MACHINE="universal"
 
 pyenv-install $@
-

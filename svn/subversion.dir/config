@@ -22,7 +22,7 @@
 [helpers]
 ### Set editor to the command used to invoke your text editor.
 ###   This will override the environment variables that Subversion
-###   examines by default to find this information ($EDITOR, 
+###   examines by default to find this information ($EDITOR,
 ###   et al).
 # editor-cmd = editor (vi, emacs, notepad, etc.)
 ### Set diff-cmd to the absolute path of your 'diff' program.
@@ -100,4 +100,3 @@ global-ignores = *.o *.lo *.la #*# .*.rej *.rej .*~ *~ .#* .DS_Store
 # *.png = svn:mime-type=image/png
 # *.jpg = svn:mime-type=image/jpeg
 # Makefile = svn:eol-style=native
-

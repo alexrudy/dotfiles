@@ -12,9 +12,9 @@ def main(key, profile, config_path):
     """Read value 'key' from a vault"""
     config = configparser.ConfigParser()
     config.read(config_path)
-    
+
     items = []
-    
+
     profile_config = config[profile]
     if key in profile_config:
         items.append((key, profile_config[key].strip()))
@@ -22,7 +22,7 @@ def main(key, profile, config_path):
         for pkey in profile_config.keys():
             if key in pkey:
                 items.append((pkey, profile_config[pkey].strip()))
-    
+
     if not items:
         click.echo("Can't find key={} in profile={}".format(key, profile))
         raise click.Abort()

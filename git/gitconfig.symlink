@@ -4,23 +4,23 @@
 	email = github@alexrudy.net
 
 [alias]
- 
+
   # Whats going on?
   wtf     = !$DOTFILES/bin/git-wtf
-  
+
   # Contributor rank
   rank-contributers = !$DOTFILES/bin/git-rank-contributers
-  
+
   # How many commits
   count   = !git shortlog -sn
   co = checkout
   st = status
   b = branch
   ci = commit
-  
+
   # Last commit
   last = 'log -1 HEAD'
-  
+
   # Get the name of the current branch.
   branch-name = "!git rev-parse --abbrev-ref HEAD"
 
@@ -29,7 +29,7 @@
 
   # Show only branches
   mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex | sort"
-	
+
   # Graph log
   glog = log --graph --decorate --oneline
 

@@ -28,9 +28,9 @@ def main(ctx: click.Context, todo_file: str) -> None:
                     break
                 else:
                     break
-            
+
             todos.append(TodoItem(text=" ".join(tokens), tags=tags))
-    
+
 @main.command(name='t')
 @click.pass_context
 def by_tags(ctx: click.Context):

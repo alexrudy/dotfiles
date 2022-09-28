@@ -1,5 +1,5 @@
 tmuxv () {
-    
+
     # Figure out where the project might be.
     venv=$1
     vproj=$(cat $WORKON_HOME/$1/.project)
