@@ -6,12 +6,12 @@ import fnmatch
 
 import stat
 
-python = '/opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/python'
+python = "/opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/python"
 
 if "VIRTUAL_ENV" not in os.environ:
     raise ValueError("This must be run from an active virtual environment!")
 
-bin_path = os.path.join(os.environ["VIRTUAL_ENV"], 'bin')
+bin_path = os.path.join(os.environ["VIRTUAL_ENV"], "bin")
 
 script_header = """#!{python}
 
@@ -24,32 +24,36 @@ if "VIRTUAL_ENV" in os.environ:
 
 """
 
+
 def get_file_lines(path):
     """docstring for get_file_lines"""
-    with open(path, 'r') as istream:
+    with open(path, "r") as istream:
         first_line = istream.readline()
-        if first_line[:2] == "#!" and first_line[-7:-1] == 'python' and first_line[2:-1] != python:
+        if (
+            first_line[:2] == "#!"
+            and first_line[-7:-1] == "python"
+            and first_line[2:-1] != python
+        ):
             yield script_header.format(python=python)
         else:
             yield first_line
         for line in istream.readlines():
             yield line
 
-skippatterns = set([
- "pip", "pip2", "pip2.7", "easy_install", "easy_install-2.7"
-])
+
+skippatterns = set(["pip", "pip2", "pip2.7", "easy_install", "easy_install-2.7"])
 
 skip = set(["pip*", "easy_install*"])
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     for file in os.listdir(bin_path):
         path = os.path.join(bin_path, file)
         if any(fnmatch.fnmatch(file, skippable) for skippable in skip):
             continue
         if os.path.isfile(path) and os.access(path, os.X_OK):
-            with open(path + '.tmp', 'w') as ostream:
+            with open(path + ".tmp", "w") as ostream:
                 for line in get_file_lines(path):
                     ostream.write(line)
             st = os.stat(path)
-            os.rename(path + '.tmp', path)
+            os.rename(path + ".tmp", path)
             os.chmod(path, st.st_mode | stat.S_IEXEC)

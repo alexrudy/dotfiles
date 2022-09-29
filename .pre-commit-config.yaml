@@ -12,5 +12,22 @@ repos:
     rev: v0.8.0.4
     hooks:
     -   id: shellcheck
-        files: '^installers/.*\.sh$|^install.sh$|^dotfiles.sh$'
+        files: '^installers/|install\.sh|dotfiles\.sh   '
         args: ['-x']
+-   repo: https://github.com/psf/black
+    rev: 22.8.0
+    hooks:
+    -   id: black
+-   repo: https://github.com/pycqa/flake8
+    rev: '5.0.4'
+    hooks:
+    -   id: flake8
+        files: '^installers/'
+-   repo: local
+    hooks:
+    -   id: build-install.sh
+        name: build install.sh
+        entry: python3 installers/build.py
+        files: '^installers/'
+        language: python
+        types: [shell]

@@ -30,19 +30,17 @@ def main(name, hostname, username, config, key_file, zone):
     key_file = os.path.expanduser(key_file)
 
     args = [
-            "gcloud",
-            "compute",
-            "ssh",
-            f"{username}@{name}",
-            f"--ssh-key-file={key_file}",
-            "--dry-run",
-        ]
+        "gcloud",
+        "compute",
+        "ssh",
+        f"{username}@{name}",
+        f"--ssh-key-file={key_file}",
+        "--dry-run",
+    ]
     if zone:
         args.append(f"--zone={zone}")
 
-    raw_cmd = subprocess.check_output(
-        args
-    ).decode('utf-8').strip()
+    raw_cmd = subprocess.check_output(args).decode("utf-8").strip()
     args = shlex.split(raw_cmd)
 
     user, address = args[-1].split("@", 1)
@@ -56,8 +54,8 @@ def main(name, hostname, username, config, key_file, zone):
 
     click.echo(f"IP: {address}")
 
-    config_options['hostname'] = address
-    config_options['user'] = user
+    config_options["hostname"] = address
+    config_options["user"] = user
 
     if config is not None and hostname is not None:
         click.echo(f"Updating {config!s} {hostname}")
@@ -77,31 +75,42 @@ def update_config(config, hostname, config_options):
 
         target_backup.replace(target)
 
+
 class Entry(t.NamedTuple):
     line: str
     match: t.Optional[re.Match]
 
     @property
     def key(self) -> t.Optional[str]:
-        return self.match.group('key').lower() if self.match else None
+        return self.match.group("key").lower() if self.match else None
 
     @property
     def value(self) -> t.Optional[str]:
-        return self.match.group('value')
+        return self.match.group("value")
 
     @classmethod
     def parse(cls, line) -> t.Optional["Entry"]:
-        m = re.match(r"^(?P<indent>\s*)(?P<key>\w+)(?P<sep>=|\s+)(?P<value>\S.+\S?)(?P<comment>\s+#.+)?$", line, flags=re.I)
+        m = re.match(
+            r"^(?P<indent>\s*)(?P<key>\w+)(?P<sep>=|\s+)(?P<value>\S.+\S?)(?P<comment>\s+#.+)?$",
+            line,
+            flags=re.I,
+        )
         return cls(line, m)
 
     def replace(self, value: str):
 
-        return self.match.expand("\g<indent>\g<key>\g<sep>") + value + self.match.expand("\g<comment>") + "\n"
+        return (
+            self.match.expand("\g<indent>\g<key>\g<sep>")
+            + value
+            + self.match.expand("\g<comment>")
+            + "\n"
+        )
+
 
 def iter_new_config(lines, target_host, new_options):
     options = set()
 
-    new_options = {k.lower().strip():v for k,v in new_options.items()}
+    new_options = {k.lower().strip(): v for k, v in new_options.items()}
 
     # Construct the entire config in memory
 
@@ -110,7 +119,7 @@ def iter_new_config(lines, target_host, new_options):
     for line in lines:
         entry = Entry.parse(line)
 
-        if entry.key == 'host':
+        if entry.key == "host":
             current_hosts = frozenset(entry.value.split())
             config[current_hosts] = host_config = OrderedDict()
             host_config[entry.key] = entry
@@ -131,7 +140,6 @@ def iter_new_config(lines, target_host, new_options):
 
     if not options:
         raise ValueError("No options were replaced")
-
 
 
 if __name__ == "__main__":

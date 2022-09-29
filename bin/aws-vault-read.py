@@ -4,10 +4,16 @@ import click
 import configparser
 import os
 
+
 @click.command()
 @click.argument("key")
-@click.option("--profile", default='default', type=str, help='AWS profile to update')
-@click.option("--config", "config_path", default=os.path.expanduser('~/.aws/credentials'), type=click.Path())
+@click.option("--profile", default="default", type=str, help="AWS profile to update")
+@click.option(
+    "--config",
+    "config_path",
+    default=os.path.expanduser("~/.aws/credentials"),
+    type=click.Path(),
+)
 def main(key, profile, config_path):
     """Read value 'key' from a vault"""
     config = configparser.ConfigParser()
@@ -33,5 +39,6 @@ def main(key, profile, config_path):
         key, value = items[0]
         click.echo(value)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

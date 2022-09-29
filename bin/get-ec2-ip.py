@@ -6,8 +6,11 @@ import re
 import tempfile
 from pathlib import Path
 
+
 @click.command()
-@click.option("--name", type=str, help="Name of the EC2 instance to query for.", required=True)
+@click.option(
+    "--name", type=str, help="Name of the EC2 instance to query for.", required=True
+)
 @click.option("--hostname", type=str, help="Hostname in the SSH Config.")
 @click.option("--config", type=str, help="Path to the SSH Config to update.")
 def main(name, hostname, config):
@@ -16,9 +19,9 @@ def main(name, hostname, config):
     Optionally, update the `HOSTNAME` line in an SSH config
     """
 
-    ec2 = boto3.resource('ec2')
+    ec2 = boto3.resource("ec2")
 
-    filters = [{'Name':'tag:Name', 'Values':[name]}]
+    filters = [{"Name": "tag:Name", "Values": [name]}]
     instances = ec2.instances.filter(Filters=filters)
 
     click.echo(f"Name: {name}")
@@ -48,7 +51,6 @@ def update_config(config, hostname, ip_address):
         target_backup.replace(target)
 
 
-
 def iter_new_config(lines, target_host, new_address):
     host = None
     for line in lines:
@@ -64,6 +66,5 @@ def iter_new_config(lines, target_host, new_address):
         yield line
 
 
-
-if __name__ == '__main__':
-    main(auto_envvar_prefix='GET_EC2_IP')
+if __name__ == "__main__":
+    main(auto_envvar_prefix="GET_EC2_IP")

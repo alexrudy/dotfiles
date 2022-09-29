@@ -2,14 +2,15 @@
 # shellcheck disable=SC3043
 set -eu
 
-DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
+
+DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 
 # shellcheck source=installers/functions.sh
 . "${DOTFILES}/installers/functions.sh"
 
 download_dotfiles() {
-    _process "🗂  Acquiring Dotfiles"
+    _process "📦  Acquiring Dotfiles"
    if test -d "${DOTFILES}" ; then
         if command_exists git; then
             if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
@@ -26,7 +27,7 @@ download_dotfiles() {
             _finished "✅ ${DOTFILES} cloned"
        else
             _finished "⚠️  command git not found - falling back to tarball"
-            _process "📦 downloading archive of ${GITHUB_REPO} from github and extracting"
+            _process "🌍 downloading archive of ${GITHUB_REPO} from github and extracting"
             curl -#fLo /tmp/dotfiles.tar.gz "https://github.com/${GITHUB_REPO}/tarball/main"
             mkdir -p "${DOTFILES}"
             tar -zxf /tmp/dotfiles.tar.gz --strip-components 1 -C "${DOTFILES}"
@@ -49,13 +50,13 @@ _target_dir() {
 link_dotfiles() {
 
     _process "🔗 linking .symlink files to home directory"
-    find . -maxdepth 2 -name '*.symlink' | while read -r filename; do
+    find "${DOTFILES}" -maxdepth 2 -name '*.symlink' | while read -r filename; do
         link_dotfile "$filename"
     done
     _finished "✅ linked .symlink files"
 
-    _process "🔗 linking .dir folders to home directory"
-    find . -maxdepth 2 -type d -name '*.dir' | while read -r directory; do
+    _process "🗂  linking .dir folders to home directory"
+    find "${DOTFILES}" -maxdepth 2 -type d -name '*.dir' | while read -r directory; do
         link_dotdir "$directory"
     done
     _finished "✅ linked .dir directories"
@@ -71,7 +72,7 @@ link_dotdir() {
     shortname=$(basename "$target")
 
     if test -L "$target" && test -d "$(readlink -f "$target")" && test "$(readlink -f "$target")" = "$(readlink -f "$dirname")"; then
-        _message "✅ dotdir ${shortname} already linked"
+        true; # _message "✅ dotdir ${shortname} already linked"
     elif test -d "$target"; then
         merge_dotdir "$dirname" "$target" || _message "⛔️  failed to merge dotdir ${shortname} "
     elif test -e "$target"; then
@@ -91,7 +92,7 @@ merge_dotdir() {
 
   _process "✨ merging $shortname"
 
-  mkfifo dotdir_merge_pipe
+  mkfifo dotdir_merge_pipe  > /dev/null 2>&1 || true
   find "$target" -maxdepth 1 > dotdir_merge_pipe &
 
   while read -r entryname; do
@@ -99,8 +100,7 @@ merge_dotdir() {
     targetentry=$entryname
     direntry="$dirname/$(basename "$entryname")"
     if test -e "$direntry" && test "$(readlink -f "$targetentry")" = "$(readlink -f "$direntry")"; then
-      # Do nothing here
-      true
+      true # This entry already copied.
     elif test -e "$direntry"; then
       canreplace="false"
       _message "⚠️  entry ${entryname} would conflict with existing entry"
@@ -129,7 +129,7 @@ link_dotfile() {
     if test -L "$target"; then
 
         if test "$(readlink -f "$target")" = "$(readlink -f "$filename")"; then
-            _message "✅ dotfile ${shortname} already linked"
+            true # _message "✅ dotfile ${shortname} already linked"
         else
             _message "⚠️  dotfile ${shortname} would conflict with file linked to $(readlink -f "$target")"
         fi
@@ -144,23 +144,28 @@ link_dotfile() {
 }
 
 run_installers() {
-    local file
+    local filename
     _process "💾 running stand-alone installers"
-    for file in "${DOTFILES}"/installers/install-*.sh; do
-        case "$(basename "$file")" in
-            installer.sh)
-                ;;
-            *)
-                # shellcheck disable=SC1090
-                . "$file"
-                ;;
-        esac
+
+    find "${DOTFILES}" -maxdepth 3 -name 'install-*.sh' | while read -r filename; do
+        # shellcheck disable=SC1090
+        . "$filename"
     done
     _finished "✅ pre-requisites installed"
 }
 
-echo "$(date) [dotfiles] $0 $*" > "$LOGFILE"
 
-run_installers
-download_dotfiles
-link_dotfiles
+main() {
+    echo "🚧  Installing dotfiles in ${DOTFILES}'"
+
+    cd "${DOTFILES}"
+    echo "$(date) [dotfiles] $0 $*" > "$LOGFILE"
+    echo "$(date) [dotfiles] installing in ${DOTFILES}" >> "$LOGFILE"
+    download_dotfiles
+    run_installers
+    link_dotfiles
+
+    echo "🍾 Installation finshed - you might want to run '. \"\$HOME/.zshrc\"'"
+}
+
+main "$@"

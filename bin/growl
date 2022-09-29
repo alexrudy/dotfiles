@@ -2,9 +2,11 @@
 import sys
 from gntp.notifier import mini
 
+
 def main():
     """Main function for this script."""
     mini(" ".join(sys.argv[1:]))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

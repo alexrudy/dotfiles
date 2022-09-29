@@ -4,14 +4,16 @@ from __future__ import print_function
 import yaml
 import sys
 
+
 def main():
     """docstring for main"""
-    with open(sys.argv[1], 'r') as f:
+    with open(sys.argv[1], "r") as f:
         config = yaml.load(f)
     try:
-        print(config['session_name'], end='')
+        print(config["session_name"], end="")
     except KeyError:
         pass
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

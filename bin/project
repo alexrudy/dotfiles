@@ -7,8 +7,10 @@ from argparse import ArgumentParser
 import re
 import six
 
+
 class Project(object):
     """A single project entity."""
+
     def __init__(self, name, path):
         super(Project, self).__init__()
         if ":" in name:
@@ -28,22 +30,26 @@ class Project(object):
             raise ValueError("Can't parse '{}' as a project.")
         return cls(name=m.group(1), path=m.group(2))
 
+
 def load(fn):
     """Load the projects from a filename"""
-    with open(fn, 'r') as stream:
+    with open(fn, "r") as stream:
         for line in stream:
             yield Project.parse(line)
 
+
 def save(fn, projects):
     """Save projects to a file"""
-    with open(fn, 'w') as stream:
-        "\n".join(map(six.text_type,projects))
+    with open(fn, "w") as stream:
+        "\n".join(map(six.text_type, projects))
+
 
 def parser():
     """Make the argument parser."""
     parser = ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(help="Project actions")
     return (parser, subparsers)
+
 
 def add_open_command():
     """Add an open command to open a given project."""

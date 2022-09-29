@@ -23,11 +23,14 @@ import glob
 import subprocess
 import warnings
 
+
 class SubprocessWarning(Warning):
     """Warnings related to SubprocessWarning"""
+
     pass
 
-def extract_gif(filename, image_format='png', basename=None):
+
+def extract_gif(filename, image_format="png", basename=None):
     """Extract a gif into frames."""
     if basename is None:
         basename, ext = os.path.splitext(filename)
@@ -36,14 +39,23 @@ def extract_gif(filename, image_format='png', basename=None):
             os.makedirs(os.path.dirname(basename))
         except OSError as e:
             pass
-    args = [ 'convert', '-coalesce', filename, "{basename}.%04d.{ext}".format(basename=basename, ext=image_format) ]
+    args = [
+        "convert",
+        "-coalesce",
+        filename,
+        "{basename}.%04d.{ext}".format(basename=basename, ext=image_format),
+    ]
     subprocess.check_call(args)
-    return glob.glob("{basename}.[0-9]*.{ext}".format(basename=basename, ext=image_format))
+    return glob.glob(
+        "{basename}.[0-9]*.{ext}".format(basename=basename, ext=image_format)
+    )
+
 
 ffmpeg_args = {
-    'mp4' : ['-vcodec', 'mpeg4'],
-    'mpg' : [],
+    "mp4": ["-vcodec", "mpeg4"],
+    "mpg": [],
 }
+
 
 def combine_frames(images, movie_name, movie_format=None, extra_args=[]):
     """Create a movie."""
@@ -51,13 +63,14 @@ def combine_frames(images, movie_name, movie_format=None, extra_args=[]):
 
     name, ext = os.path.splitext(images[0])
     basename, number = os.path.splitext(name)
-    template = '{basename}.%04d{ext}'.format(basename=basename, ext=ext)
-    input_args = [ '-f', 'image2', '-i', template ]
+    template = "{basename}.%04d{ext}".format(basename=basename, ext=ext)
+    input_args = ["-f", "image2", "-i", template]
 
     if movie_format is None:
         baseout, movie_format = os.path.splitext(movie_name)
-    output_args = ffmpeg_args[movie_format] + extra_args + [ movie_name ]
-    subprocess.call(['ffmpeg'] + input_args + output_args)
+    output_args = ffmpeg_args[movie_format] + extra_args + [movie_name]
+    subprocess.call(["ffmpeg"] + input_args + output_args)
+
 
 def cleanup(files):
     """Remove the listed files."""
@@ -67,17 +80,51 @@ def cleanup(files):
         except OSError as e:
             warnings.warn(str(e), Warning)
 
+
 def main():
     """Main processor"""
     import argparse
-    parser = argparse.ArgumentParser(description="Convert animated GIF images to movies.", epilog=__doc__)
-    parser.add_argument('input', metavar='source.gif', type=six.text_type, help="input GIF to convert")
-    parser.add_argument('output', metavar='output.mp4', nargs='?', type=six.text_type, help="output movie name")
-    parser.add_argument('--image-format', metavar='ext', type=six.text_type, default='png', help="intermediate image format")
-    parser.add_argument('--movie-format', metavar='ext', type=six.text_type, default='mp4', help="final movie format")
-    parser.add_argument('--image-path', metavar='path', type=six.text_type, help='path for intermediate images')
-    parser.add_argument('--no-cleanup', dest='cleanup', action='store_false', help="leave intermediate files in place")
-    parser.add_argument('--open', action='store_true', help='open the resulting image.')
+
+    parser = argparse.ArgumentParser(
+        description="Convert animated GIF images to movies.", epilog=__doc__
+    )
+    parser.add_argument(
+        "input", metavar="source.gif", type=six.text_type, help="input GIF to convert"
+    )
+    parser.add_argument(
+        "output",
+        metavar="output.mp4",
+        nargs="?",
+        type=six.text_type,
+        help="output movie name",
+    )
+    parser.add_argument(
+        "--image-format",
+        metavar="ext",
+        type=six.text_type,
+        default="png",
+        help="intermediate image format",
+    )
+    parser.add_argument(
+        "--movie-format",
+        metavar="ext",
+        type=six.text_type,
+        default="mp4",
+        help="final movie format",
+    )
+    parser.add_argument(
+        "--image-path",
+        metavar="path",
+        type=six.text_type,
+        help="path for intermediate images",
+    )
+    parser.add_argument(
+        "--no-cleanup",
+        dest="cleanup",
+        action="store_false",
+        help="leave intermediate files in place",
+    )
+    parser.add_argument("--open", action="store_true", help="open the resulting image.")
     args, extra_args = parser.parse_known_args()
 
     if not os.path.exists(args.input):
@@ -85,27 +132,36 @@ def main():
 
     if args.output is None:
         basename, ext = os.path.splitext(args.input)
-        args.output = '{basename}.{ext}'.format(basename=basename, ext=args.movie_format)
+        args.output = "{basename}.{ext}".format(
+            basename=basename, ext=args.movie_format
+        )
 
     if args.image_path is not None:
         args.cleanup = False
 
     print("Extracting '.{image_format}' files from '{input}'".format(**vars(args)))
-    images = extract_gif(args.input, image_format=args.image_format, basename=args.image_path)
+    images = extract_gif(
+        args.input, image_format=args.image_format, basename=args.image_path
+    )
 
     print("Combining {n:d} frames into '{output}'".format(n=len(images), **vars(args)))
     if os.path.exists(args.output):
         print("Overwriting '{output}'".format(**vars(args)))
         cleanup([args.output])
-    combine_frames(images, args.output, args.movie_format, extra_args = extra_args)
-    print("Combined {n:d} frames from '{input}' into '{output}'".format(n=len(images), **vars(args)))
+    combine_frames(images, args.output, args.movie_format, extra_args=extra_args)
+    print(
+        "Combined {n:d} frames from '{input}' into '{output}'".format(
+            n=len(images), **vars(args)
+        )
+    )
     if args.cleanup:
         cleanup(images)
     else:
         print("Intermediate images in '{0}'".format(os.path.dirname(images[0])))
 
     if args.open:
-        subprocess.check_call(['open', args.output])
+        subprocess.check_call(["open", args.output])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

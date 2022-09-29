@@ -37,7 +37,7 @@ _message() {
 _process() {
   message="$*"
   _log "start" "$message"
-  printf "$(_spacer) $(tput setaf 6) %s...$(tput sgr0)\n" "$message"
+  printf "$(_spacer)$(tput setaf 6)%s...$(tput sgr0)\n" "$message"
   LEVEL=$(( LEVEL + 1))
 }
 
@@ -46,7 +46,7 @@ _finished() {
   LEVEL=$(( LEVEL - 1))
   color=$(_color_code "$message")
   _log "finish" "$message"
-  printf "$(_spacer) $(tput setaf "$color") %s $(tput sgr0)\n" "$message"
+  printf "$(_spacer)  $(tput setaf "$color")%s$(tput sgr0)\n" "$message"
 }
 
 _color_code() {

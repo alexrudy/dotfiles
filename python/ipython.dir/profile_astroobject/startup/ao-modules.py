@@ -12,4 +12,5 @@ import AstroObject.spectra as ASpec
 import AstroObject.spectra as AASpec
 import AstroObject.util as AUtil
 from AstroObject.iraftools import UseIRAFTools
+
 ImageStack = UseIRAFTools(AImg.ImageStack)
