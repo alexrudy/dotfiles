@@ -103,13 +103,13 @@ merge_dotdir() {
         targetentry=$entryname
         direntry="$dirname/$(basename "$entryname")"
         if test -e "$direntry" && test "$(readlink -f "$targetentry")" = "$(readlink -f "$direntry")"; then
-        true # This entry already copied.
+            true # This entry already copied.
         elif test -e "$direntry"; then
-        canreplace="false"
-        _message "⚠️  entry ${entryname} would conflict with existing entry"
+            canreplace="false"
+            _message "⚠️  entry ${entryname} would conflict with existing entry"
         else
-        mv "$targetentry" "$dirname/"
-        _message "✅  entry ${entryname} copied into dotfiles"
+            mv "$targetentry" "$dirname/"
+            _message "✅  entry ${entryname} copied into dotfiles"
         fi;
     done  < dotdir_merge_pipe
   fi
