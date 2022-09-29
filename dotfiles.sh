@@ -50,12 +50,14 @@ fi
 # Load completion scripts
 for filename in "$DOTFILES"/*/completion.sh
 do
+	# shellcheck disable=SC1090
 	source "$filename"
 done
 
 if [ -n "$BASH" ]; then
 	for filename in "$DOTFILES"/*/completion.bash
 	do
+		# shellcheck disable=SC1090
 		source "$filename"
 	done
 fi
@@ -63,6 +65,7 @@ fi
 if [ -n "$ZSH_NAME" ]; then
 	for filename in "$DOTFILES"/*/completion.zsh
 	do
+		# shellcheck disable=SC1090
 		source "$filename"
 	done
 
