@@ -2,17 +2,27 @@
 # shellcheck disable=SC3043
 set -eu
 
+###################################
+# /install.sh is a GENERATED FILE #
+###################################
+
+# All changes should be made to /installers/install.sh
+# and included files therin, as the root one is compiled
+
+
 DOTFILES=$(readlink -f "$(dirname "$0")")
 export DOTFILES
 
 cd "${DOTFILES}"
 
 # BEGIN included from /Users/alexrudy/.dotfiles/installers/installer.sh
+
 GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
 
 DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 
 # BEGIN included from /Users/alexrudy/.dotfiles/installers/functions.sh
+
 LOGFILE="${LOGFILE:-${HOME}/.dotfiles-install.log}"
 
 LEVEL=${LEVEL:-0}
@@ -79,6 +89,7 @@ command_exists () {
     type "$1" > /dev/null 2>&1
 }
 # END included from /Users/alexrudy/.dotfiles/installers/functions.sh
+
 download_dotfiles() {
     _process "📦  Acquiring Dotfiles"
    if test -d "${DOTFILES}" ; then
@@ -240,4 +251,3 @@ main() {
 
 main "$@"
 # END included from /Users/alexrudy/.dotfiles/installers/installer.sh
-echo "🍾 Installation finshed - you might want to run '. \"\$HOME/.zshrc\"'"

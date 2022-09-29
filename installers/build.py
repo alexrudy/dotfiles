@@ -43,9 +43,9 @@ def process_includes(
                 # Skip the next line too
                 next(source, None)
                 include = os.path.join(dotfiles, match.group(1))
-                destination.write(f"# BEGIN included from {include}")
+                destination.write(f"# BEGIN included from {include}\n")
                 process_includes(include, destination, dotfiles)
-                destination.write(f"# END included from {include}")
+                destination.write(f"# END included from {include}\n")
             else:
                 destination.write(line)
 
