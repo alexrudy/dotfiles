@@ -23,9 +23,11 @@ if test ! -z "$CODER_USERNAME" ; then
     sudo apt-get --only-upgrade --no-install-recommends install -y google-cloud-sdk-cbt google-cloud-sdk-app-engine-grpc google-cloud-sdk-datalab google-cloud-sdk-kpt google-cloud-sdk-datastore-emulator google-cloud-sdk-app-engine-go google-cloud-sdk-app-engine-python-extras google-cloud-sdk-cloud-build-local google-cloud-sdk-firestore-emulator google-cloud-sdk-app-engine-python google-cloud-sdk-local-extract google-cloud-sdk-terraform-validator google-cloud-sdk-gke-gcloud-auth-plugin google-cloud-sdk-skaffold google-cloud-sdk-spanner-emulator google-cloud-sdk google-cloud-sdk-config-connector google-cloud-sdk-pubsub-emulator google-cloud-sdk-anthos-auth kubectl google-cloud-sdk-app-engine-java google-cloud-sdk-bigtable-emulator google-cloud-sdk-kubectl-oidc google-cloud-sdk-minikube
     _finished "✅ finished apt packages"
 
-    _process "🐍 pipx"
-    python3 -m pip install pipx
-    _finished "✅ finished pipx"
+    if ! command_exists pipx; then
+        _process "🐍 pipx"
+        python3 -m pip install pipx
+        _finished "✅ finished pipx"
+    fi
 
     _finished "✅ Coder Specific Install Steps"
 fi
