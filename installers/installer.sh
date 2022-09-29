@@ -55,7 +55,7 @@ link_dotfiles() {
     _finished "✅ linked .symlink files"
 
     _process "🔗 linking .dir folders to home directory"
-    find . -type d -depth 2 -name '*.dir' | while read -r directory; do
+    find . -depth 2 -type d -name '*.dir' | while read -r directory; do
         link_dotdir "$directory"
     done
     _finished "✅ linked .dir directories"
