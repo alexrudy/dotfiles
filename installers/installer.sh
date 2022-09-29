@@ -49,13 +49,13 @@ _target_dir() {
 link_dotfiles() {
 
     _process "🔗 linking .symlink files to home directory"
-    find . -depth 2 -name '*.symlink' | while read -r filename; do
+    find . -maxdepth 2 -name '*.symlink' | while read -r filename; do
         link_dotfile "$filename"
     done
     _finished "✅ linked .symlink files"
 
     _process "🔗 linking .dir folders to home directory"
-    find . -depth 2 -type d -name '*.dir' | while read -r directory; do
+    find . -maxdepth 2 -type d -name '*.dir' | while read -r directory; do
         link_dotdir "$directory"
     done
     _finished "✅ linked .dir directories"
@@ -93,7 +93,7 @@ merge_dotdir() {
   _process "✨ merging $shortname"
 
   mkfifo dotdir_merge_pipe
-  find "$target" -depth 1 > dotdir_merge_pipe &
+  find "$target" -maxdepth 1 > dotdir_merge_pipe &
 
   while read -r entryname; do
     _message "processing ${entryname}"
