@@ -4,17 +4,11 @@ if ! [ -e "${HOME}/.pyenv" ]; then
     git clone https://github.com/pyenv/pyenv.git "${HOME}/.pyenv"
 fi
 
-# shellcheck source=core/functions.sh
-. "${DOTFILES}/core/functions.sh"
-
-# shellcheck source=python/pyenv.sh
-. "${DOTFILES}/python/pyenv.sh"
-
-if command_exists pyenv; then
-    if [ ! -d "$(pyenv root)/plugins/xxenv-latest" ]; then
-        git clone https://github.com/momo-lab/xxenv-latest.git "$(pyenv root)/plugins/xxenv-latest"
+if [ -e "${HOME}/.pyenv" ]; then
+    if [ ! -d "${HOME}/.pyenv/plugins/xxenv-latest" ]; then
+        git clone https://github.com/momo-lab/xxenv-latest.git "${HOME}/.pyenv/plugins/xxenv-latest"
     fi
-    if [ ! -d "$(pyenv root)/plugins/pyenv-virtualenv" ]; then
-        git clone https://github.com/pyenv/pyenv-virtualenv.git "$(pyenv root)/plugins/pyenv-virtualenv"
+    if [ ! -d "${HOME}/.pyenv/plugins/pyenv-virtualenv" ]; then
+        git clone https://github.com/pyenv/pyenv-virtualenv.git "${HOME}/.pyenv/plugins/pyenv-virtualenv"
     fi
 fi

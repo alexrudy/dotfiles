@@ -122,7 +122,7 @@ run_installers() {
 
     find "${DOTFILES}" -maxdepth 3 -name 'install-*.sh' | while read -r filename; do
         # shellcheck disable=SC1090
-        . "$filename" || true
+        (. "$filename") || true
     done
     _finished "✅ pre-requisites installed"
 }
