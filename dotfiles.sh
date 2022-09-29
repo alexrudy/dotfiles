@@ -3,9 +3,11 @@
 
 configure() {
 	if [ -z "$2" ] || [ "$(basename "$1")" != "completion.$2" ]; then
-		if [ -e "$1" ] && ! [ -x "$1" ]; then
-			# shellcheck disable=SC1090
-			source "$1"
+		if [ "$(dirname "$1")" != "${DOTFILES}/installers" ]; then
+			if [ -e "$1" ] && ! [ -x "$1" ]; then
+				# shellcheck disable=SC1090
+				source "$1"
+			fi
 		fi
 	fi
 }
@@ -26,11 +28,10 @@ done
 # Now grab base shell files.
 for filename in "$DOTFILES"/*/*.sh
 do
-	if [ "$(dirname "$filename")" != "$DOTFILES/installers" ]; then
-		configure "$filename" "sh"
-	fi;
+	configure "$filename" "sh"
 done
 
+# Shell files specific to a shell
 if [ -n "$BASH" ]; then
 	for filename in "$DOTFILES"/*/*.bash
 	do
@@ -43,31 +44,29 @@ if [ -n "$ZSH_NAME" ]; then
 	do
 		configure "$filename" "zsh"
 	done
-
-	# initialize autocomplete here, otherwise functions won't be loaded
-    # autoload -U compinit
-    # compinit
-
 fi
 
-# load every completion after autocomplete loads
+
+# Load completion scripts
 for filename in "$DOTFILES"/*/completion.sh
 do
-	configure "$filename"
+	source "$filename"
 done
 
 if [ -n "$BASH" ]; then
 	for filename in "$DOTFILES"/*/completion.bash
 	do
-		configure "$filename"
+		source "$filename"
 	done
 fi
 
 if [ -n "$ZSH_NAME" ]; then
 	for filename in "$DOTFILES"/*/completion.zsh
 	do
-		configure "$filename"
+		source "$filename"
 	done
 
-	autoload -U compinit && compinit
+	# initialize autocomplete here, otherwise functions won't be loaded
+    autoload -U compinit
+    compinit
 fi
