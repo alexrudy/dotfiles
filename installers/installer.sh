@@ -92,23 +92,27 @@ merge_dotdir() {
 
   _process "✨ merging $shortname"
 
-  mkfifo dotdir_merge_pipe  > /dev/null 2>&1 || true
-  find "$target" -maxdepth 1 > dotdir_merge_pipe &
+  if command_exists rsync; then
+    rsync -avP "${target}/" "${dirname}"
+  else
+    mkfifo dotdir_merge_pipe  > /dev/null 2>&1 || true
+    find "$target" -maxdepth 1 > dotdir_merge_pipe &
 
-  while read -r entryname; do
-    _message "processing ${entryname}"
-    targetentry=$entryname
-    direntry="$dirname/$(basename "$entryname")"
-    if test -e "$direntry" && test "$(readlink -f "$targetentry")" = "$(readlink -f "$direntry")"; then
-      true # This entry already copied.
-    elif test -e "$direntry"; then
-      canreplace="false"
-      _message "⚠️  entry ${entryname} would conflict with existing entry"
-    else
-      mv "$targetentry" "$dirname/"
-      _message "✅  entry ${entryname} copied into dotfiles"
-    fi;
-  done  < dotdir_merge_pipe
+    while read -r entryname; do
+        _message "processing ${entryname}"
+        targetentry=$entryname
+        direntry="$dirname/$(basename "$entryname")"
+        if test -e "$direntry" && test "$(readlink -f "$targetentry")" = "$(readlink -f "$direntry")"; then
+        true # This entry already copied.
+        elif test -e "$direntry"; then
+        canreplace="false"
+        _message "⚠️  entry ${entryname} would conflict with existing entry"
+        else
+        mv "$targetentry" "$dirname/"
+        _message "✅  entry ${entryname} copied into dotfiles"
+        fi;
+    done  < dotdir_merge_pipe
+  fi
   if test -z "$canreplace"; then
     rm -rf "$target"
     ln -s "$(readlink -f "$dirname")" "$target"
