@@ -25,6 +25,9 @@ DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 
 # BEGIN included from /Users/alex.rudy/.dotfiles/installers/functions.sh
 
+# Library of functions useful for installing.
+# Everything here should be POSIX sh
+
 LOGFILE="${LOGFILE:-${HOME}/.dotfiles-install.log}"
 
 LEVEL=${LEVEL:-0}
@@ -135,5 +138,7 @@ main "$@"
 
 # END included from /Users/alex.rudy/.dotfiles/installers/download.sh
 
+# This does not get literally included, so that running an old copy of `install.sh`
+# will effectively self-update, grabbing the latest version from here.
 # shellcheck source=installers/installer.sh # no-include
 . "${DOTFILES}/installers/installer.sh"

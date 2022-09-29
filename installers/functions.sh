@@ -2,6 +2,9 @@
 # shellcheck disable=SC3043
 set -eu
 
+# Library of functions useful for installing.
+# Everything here should be POSIX sh
+
 LOGFILE="${LOGFILE:-${HOME}/.dotfiles-install.log}"
 
 LEVEL=${LEVEL:-0}
