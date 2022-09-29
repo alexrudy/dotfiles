@@ -89,7 +89,7 @@ merge_dotdir() {
   dirname=$1
   target=$2
   shortname=$(basename "$target")
-
+  canreplace=""
   _process "✨ merging $shortname"
 
   if command_exists rsync; then
@@ -131,7 +131,6 @@ link_dotfile() {
     shortname="$(basename "$target")"
 
     if test -L "$target"; then
-
         if test "$(readlink -f "$target")" = "$(readlink -f "$filename")"; then
             true # _message "✅ dotfile ${shortname} already linked"
         else
