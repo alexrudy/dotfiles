@@ -6,13 +6,13 @@ DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
 
 # shellcheck source=installers/functions.sh
-. "$(dirname "$0")/functions.sh"
+. "${DOTFILES}/installers/functions.sh"
 
 download_dotfiles() {
     _process "🗂  Acquiring Dotfiles"
    if test -d "${DOTFILES}" ; then
         if command_exists git; then
-            if git pull > /dev/null 2>&1 ; then
+            if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
                 _message "🐙 updated git repo"
             else
                 _message "⚠️  failed to update git repo"

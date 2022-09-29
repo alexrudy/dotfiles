@@ -2,7 +2,7 @@
 set -eu
 
 # shellcheck source=installers/functions.sh
-. "$(dirname "$0")/functions.sh"
+. "${DOTFILES}/installers/functions.sh"
 
 if ! command_exists fzf && ! test -f ~/.fzf.zsh && ! command_exists brew; then
     git clone --depth 1 https://github.com/junegunn/fzf.git "${HOME}/.fzf"

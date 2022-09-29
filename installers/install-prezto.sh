@@ -2,7 +2,7 @@
 set -eu
 
 # shellcheck source=installers/functions.sh
-. "$(dirname "$0")/functions.sh"
+. "${DOTFILES}/installers/functions.sh"
 
 if ! test -e "${ZDOTDIR:-$HOME}/.zprezto"; then
     git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"

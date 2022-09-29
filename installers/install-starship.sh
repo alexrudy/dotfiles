@@ -2,7 +2,7 @@
 set -eu
 
 # shellcheck source=installers/functions.sh
-. "$(dirname "$0")/functions.sh"
+. "${DOTFILES}/installers/functions.sh"
 
 if ! command_exists starship; then
     curl -sS https://starship.rs/install.sh | sh -s -- --yes

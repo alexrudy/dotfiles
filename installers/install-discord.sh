@@ -2,7 +2,7 @@
 set -eu
 
 # shellcheck source=installers/functions.sh
-. "$(dirname "$0")/functions.sh"
+. "${DOTFILES}/installers/functions.sh"
 
 CODER_USERNAME=${CODER_USERNAME:-}
 
