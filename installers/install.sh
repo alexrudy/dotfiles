@@ -15,5 +15,8 @@ export DOTFILES
 
 cd "${DOTFILES}"
 
-# source=installers/installer.sh
+# source=installers/download.sh
+. "${DOTFILES}/installers/download.sh"
+
+# shellcheck source=installers/installer.sh # no-include
 . "${DOTFILES}/installers/installer.sh"

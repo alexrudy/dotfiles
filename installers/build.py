@@ -18,7 +18,7 @@ def main():
         process_includes(source, destination, dotfiles, prelude=True)
 
 
-SOURCE = re.compile(r"^#.*?source=(\w\S+)")
+SOURCE = re.compile(r"^#.*?source=(\w\S+)(\s+.*$)")
 PRELUDE_END = re.compile(r"^set -eu\s*$")
 
 
@@ -40,12 +40,16 @@ def process_includes(
                 break
             match = re.match(SOURCE, line)
             if match:
-                # Skip the next line too
-                next(source, None)
-                include = os.path.join(dotfiles, match.group(1))
-                destination.write(f"# BEGIN included from {include}\n")
-                process_includes(include, destination, dotfiles)
-                destination.write(f"# END included from {include}\n")
+                tags = match.group(2)
+                if "no-include" in tags:
+                    destination.write(line)
+                else:
+                    # Skip the next line too
+                    next(source, None)
+                    include = os.path.join(dotfiles, match.group(1))
+                    destination.write(f"\n# BEGIN included from {include}\n")
+                    process_includes(include, destination, dotfiles)
+                    destination.write(f"\n# END included from {include}\n")
             else:
                 destination.write(line)
 

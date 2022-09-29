@@ -1,4 +1,4 @@
-# Some basic fucntions required for configuraiton
+# Some basic functions required for configuraiton
 pathadd () {
     if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
         pathdemote $1

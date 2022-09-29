@@ -4,6 +4,10 @@ if ! [ -e "${HOME}/.pyenv" ]; then
     git clone https://github.com/pyenv/pyenv.git "${HOME}/.pyenv"
 fi
 
+# shellcheck source=core/functions.sh
+. "${DOTFILES}/core/functions.sh"
+
+# shellcheck source=python/pyenv.sh
 . "${DOTFILES}/python/pyenv.sh"
 
 if command_exists pyenv; then
