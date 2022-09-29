@@ -73,8 +73,7 @@ link_dotdir() {
     if test -L "$target" && test -d "$(readlink -f "$target")" && test "$(readlink -f "$target")" = "$(readlink -f "$dirname")"; then
         _message "✅ dotdir ${shortname} already linked"
     elif test -d "$target"; then
-        merge_dotdir "$dirname" "$target"
-        # _message "⚠️  dotdir ${shortname} would conflict with existing directory"
+        merge_dotdir "$dirname" "$target" || _message "⛔️  failed to merge dotdir ${shortname} "
     elif test -e "$target"; then
         _message "⛔️ dotdir ${shortname} would conflict with existing directory entry"
     else
