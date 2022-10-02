@@ -16,14 +16,14 @@ export DOTFILES
 cd "${DOTFILES}"
 
 
-# BEGIN included from /Users/alex.rudy/.dotfiles/installers/download.sh
+# BEGIN included from /Users/alexrudy/.dotfiles/installers/download.sh
 
 GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
 
 DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 
 
-# BEGIN included from /Users/alex.rudy/.dotfiles/installers/functions.sh
+# BEGIN included from /Users/alexrudy/.dotfiles/installers/functions.sh
 
 # Library of functions useful for installing.
 # Everything here should be POSIX sh
@@ -93,10 +93,10 @@ command_exists () {
     type "$1" > /dev/null 2>&1
 }
 
-# END included from /Users/alex.rudy/.dotfiles/installers/functions.sh
+# END included from /Users/alexrudy/.dotfiles/installers/functions.sh
 
 download_dotfiles() {
-    _process "📦  Acquiring Dotfiles"
+    _process "📦 Acquiring Dotfiles"
    if test -d "${DOTFILES}" ; then
         if command_exists git; then
             if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
@@ -136,7 +136,7 @@ main() {
 
 main "$@"
 
-# END included from /Users/alex.rudy/.dotfiles/installers/download.sh
+# END included from /Users/alexrudy/.dotfiles/installers/download.sh
 
 # This does not get literally included, so that running an old copy of `install.sh`
 # will effectively self-update, grabbing the latest version from here.

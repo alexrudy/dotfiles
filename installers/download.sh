@@ -10,7 +10,7 @@ DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 . "${DOTFILES}/installers/functions.sh"
 
 download_dotfiles() {
-    _process "📦  Acquiring Dotfiles"
+    _process "📦 Acquiring Dotfiles"
    if test -d "${DOTFILES}" ; then
         if command_exists git; then
             if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
