@@ -13,6 +13,9 @@ set -eu
 DOTFILES=$(readlink -f "$(dirname "$0")")
 export DOTFILES
 
+TERM="${TERM:-dumb}"
+export TERM
+
 cd "${DOTFILES}"
 
 # source=installers/download.sh
