@@ -114,7 +114,7 @@ download_dotfiles() {
        else
             _finished "⚠️  command git not found - falling back to tarball"
             _process "🌍 downloading archive of ${GITHUB_REPO} from github and extracting"
-            curl -#fLo /tmp/dotfiles.tar.gz "https://github.com/${GITHUB_REPO}/tarball/main"
+            curl -fsLo /tmp/dotfiles.tar.gz "https://github.com/${GITHUB_REPO}/tarball/main"
             mkdir -p "${DOTFILES}"
             tar -zxf /tmp/dotfiles.tar.gz --strip-components 1 -C "${DOTFILES}"
             rm -rf /tmp/dotfiles.tar.gz
