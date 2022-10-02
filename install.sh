@@ -21,6 +21,9 @@ cd "${DOTFILES}"
 GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
 
 DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
+if [ "$DOTFILES" = "/" ]; then
+    DOTFILES="${HOME}/.dotfiles/"
+fi
 
 
 # BEGIN included from /Users/alexrudy/.dotfiles/installers/functions.sh
