@@ -26,28 +26,44 @@ download_dotfiles() {
    else
        if command_exists git; then
             _process "🐙 cloning ${GITHUB_REPO} from github"
-            git clone "git@github.com/${GITHUB_REPO}.git" "${DOTFILES}"
+            git clone "https://github.com/${GITHUB_REPO}.git" "${DOTFILES}"
             _finished "✅ ${DOTFILES} cloned"
        else
+
             _finished "⚠️  command git not found - falling back to tarball"
-            _process "🌍 downloading archive of ${GITHUB_REPO} from github and extracting"
-            curl -fsLo /tmp/dotfiles.tar.gz "https://github.com/${GITHUB_REPO}/tarball/main"
-            mkdir -p "${DOTFILES}"
-            tar -zxf /tmp/dotfiles.tar.gz --strip-components 1 -C "${DOTFILES}"
-            rm -rf /tmp/dotfiles.tar.gz
-            _finished "✅ ${DOTFILES} created, repository downloaded and extracted"
+            download_tarball
        fi;
    fi;
+}
+
+download_tarball() {
+    if ! command_exists curl; then
+        if command_exists apt-get; then
+            DEBIAN_FRONTEND=noninteractive
+            export DEBIAN_FRONTEND
+            apt-get update -y
+            apt-get install --no-install-recommends -y curl
+        else
+            _message "🛑 can't find git or curl, aborting!"
+            exit 1
+        fi
+    fi
+
+    _process "🌍 downloading archive of ${GITHUB_REPO} from github and extracting"
+    curl -fsLo /tmp/dotfiles.tar.gz "https://github.com/${GITHUB_REPO}/tarball/main"
+    mkdir -p "${DOTFILES}"
+    tar -zxf /tmp/dotfiles.tar.gz --strip-components 1 -C "${DOTFILES}"
+    rm -rf /tmp/dotfiles.tar.gz
+    _finished "✅ ${DOTFILES} created, repository downloaded and extracted"
 }
 
 main() {
     echo "🌐  Downloading dotfiles to ${DOTFILES}'"
 
-
     echo "$(date) [dotfiles] $0 $*" > "$LOGFILE"
     echo "$(date) [dotfiles] installing in ${DOTFILES}" >> "$LOGFILE"
 
-    download_dotfiles
+    download_tarball
 
 }
 
