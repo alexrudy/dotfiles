@@ -11,15 +11,10 @@
 #
 # For more information about ssh options, see `man ssh`.
 
-Include linode.config
-
-Host coder
-  HostName coder
-
 Host *
   ServerAliveInterval 10
   AddKeysToAgent yes
   UseKeychain yes
   IdentityFile ~/.ssh/id_ed25519
 
-Include ./conf.d/*.config
+Include conf.d/*.config
