@@ -13,3 +13,6 @@ format = "[$symbol]($style) "
 # This doesn't add much to my workflow
 [package]
 disabled = true
+
+[ruby]
+disabled = true
