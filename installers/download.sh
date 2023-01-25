@@ -63,7 +63,7 @@ main() {
     echo "$(date) [dotfiles] $0 $*" > "$LOGFILE"
     echo "$(date) [dotfiles] installing in ${DOTFILES}" >> "$LOGFILE"
 
-    download_tarball
+    download_dotfiles
 
 }
 
