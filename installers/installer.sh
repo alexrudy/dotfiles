@@ -129,7 +129,7 @@ run_installers() {
 
 
 main() {
-    echo "🚧  Installing dotfiles in ${DOTFILES}'"
+    echo "🚧  Installing dotfiles in ${1:-DOTFILES}'"
 
     run_installers
     link_dotfiles
