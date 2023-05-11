@@ -124,12 +124,12 @@ run_installers() {
         # shellcheck disable=SC1090
         (. "$filename") || true
     done
-    _finished "✅ pre-requisites installed"
+    _finished "✅ stand-alone items installed"
 }
 
 
 main() {
-    echo "🚧  Installing dotfiles in ${1:-DOTFILES}'"
+    echo "🚧  Installing dotfiles in ${1:-DOTFILES}"
 
     run_installers
     link_dotfiles

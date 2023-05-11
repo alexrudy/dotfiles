@@ -111,7 +111,7 @@ download_dotfiles() {
                 _message "⚠️  failed to update git repo"
             fi
         fi
-        _finished "✅ ${DOTFILES} exists. Skipping download."
+        _finished "✅ ${DOTFILES} exists."
    else
        if command_exists git; then
             _process "🐙 cloning ${GITHUB_REPO} from github"

@@ -25,7 +25,7 @@ repos:
         files: '^installers/'
 -   repo: local
     hooks:
-    -   id: build-install.sh
+    -   id: build-install-sh
         name: build install.sh
         entry: python3 installers/build.py
         files: '^installers/'
