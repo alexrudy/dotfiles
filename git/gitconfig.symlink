@@ -47,6 +47,13 @@
   # (better for interactive use)
   stat = !git diff --stat $(git merge-base HEAD \"$REVIEW_BASE\")
 
+  # Watch github actions runs
+  runs = "!f() { \
+        watch_gha_runs \
+            \"$(git remote get-url origin)\" \
+            \"$(git rev-parse --abbrev-ref HEAD)\"; \
+    }; f"
+
 [color]
   diff = auto
   status = auto
