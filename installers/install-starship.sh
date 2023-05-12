@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
-# shellcheck source=installers/functions.sh
-. "${DOTFILES}/installers/functions.sh"
+# shellcheck source=installers/prelude.sh
+. "${DOTFILES}/installers/prelude.sh"
 
 if ! command_exists starship; then
     _process "🚀 install starship"

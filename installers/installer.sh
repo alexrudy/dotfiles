@@ -2,8 +2,8 @@
 # shellcheck disable=SC3043
 set -eu
 
-# shellcheck source=installers/functions.sh
-. "${DOTFILES}/installers/functions.sh"
+# shellcheck source=installers/prelude.sh
+. "${DOTFILES}/installers/prelude.sh"
 
 _target_filename() {
     name="$(basename "${1%.symlink}")"

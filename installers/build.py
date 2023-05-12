@@ -94,18 +94,17 @@ class Script:
                 raise ValueError(f"{filename} contained no content after prelude")
 
             # Use while-true here becasue we might want to skip multiple lines.
-            blank_line = False
+            previous_blank_line = False
             while True:
                 line = next(source, None)
                 if line is None:
                     # All done here
                     break
                 if line.strip() == "":
-                    blank_line = True
+                    previous_blank_line = True
                     # Skip blank lines
                     continue
-                if blank_line:
-                    blank_line = False
+                if previous_blank_line and line.strip() != "":
                     self.write_line("")
                 match = re.match(SOURCE, line)
                 if match:
@@ -121,19 +120,17 @@ class Script:
                         if include_relpath in self.imports:
                             self.write_line(f"# Already included {include_relpath}")
                             self.write(line)
-                            self.write_line("")
                         else:
                             self.imports.add(include_relpath)
-                            self.write_line("")
+                            if not previous_blank_line:
+                                self.write_line("")
                             self.write_line(f"# BEGIN included from {include_relpath}")
-                            self.write_line("")
                             self.process(include)
-                            self.write_line("")
                             self.write_line(f"# END included from {include_relpath}")
-                            self.write_line("")
                         self.indents.pop()
                 else:
                     self.write(line)
+                    previous_blank_line = line.strip() == ""
 
 
 if __name__ == "__main__":

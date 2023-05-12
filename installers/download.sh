@@ -5,8 +5,8 @@ set -eu
 # source=installers/configure.sh
 . "${DOTFILES}/installers/configure.sh"
 
-# shellcheck source=installers/functions.sh
-. "${DOTFILES}/installers/functions.sh"
+# shellcheck source=installers/prelude.sh
+. "${DOTFILES}/installers/prelude.sh"
 
 download_dotfiles() {
     _process "📦 Acquiring Dotfiles"

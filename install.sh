@@ -9,9 +9,11 @@ set -eu
 # All changes should be made to installers/install.sh
 # and included files therin, as the root one is compiled
 
+# BEGIN included from installers/prelude.sh
+
+# Prelude which includes necessary scripts for the dotfiles installer to run
 
 # BEGIN included from installers/configure.sh
-
 
 # Initialize DOTFILES and related configuration variables
 GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
@@ -38,13 +40,9 @@ TERM="${TERM:-dumb}"
 export TERM
 
 cd "${DOTFILES}"
-
 # END included from installers/configure.sh
 
-
-
 # BEGIN included from installers/functions.sh
-
 
 # Library of functions useful for installing.
 # Everything here should be POSIX sh
@@ -147,133 +145,118 @@ _color_code() {
 command_exists () {
     type "$1" > /dev/null 2>&1
 }
-
 # END included from installers/functions.sh
+# END included from installers/prelude.sh
 
+install_dotfiles() {
+    _log_init "$0"
 
-_log_init "$0"
+    # BEGIN included from installers/download.sh
 
+    # Already included installers/configure.sh
+    # source=installers/configure.sh
 
-# BEGIN included from installers/download.sh
+    # Already included installers/prelude.sh
+    # shellcheck source=installers/prelude.sh
 
+    download_dotfiles() {
+        _process "📦 Acquiring Dotfiles"
+       if test -d "${DOTFILES}" ; then
 
-# Already included installers/configure.sh
-# source=installers/configure.sh
+            # BEGIN included from installers/downloaders/download-git-pull.sh
 
+            # Already included installers/prelude.sh
+            # shellcheck source=installers/prelude.sh
 
-# Already included installers/functions.sh
-# shellcheck source=installers/functions.sh
-
-
-download_dotfiles() {
-    _process "📦 Acquiring Dotfiles"
-   if test -d "${DOTFILES}" ; then
-
-        # BEGIN included from installers/downloaders/download-git-pull.sh
-
-
-        # Already included installers/functions.sh
-        # shellcheck source=installers/functions.sh
-
-
-        download_git_pull() {
-            if test -d "${DOTFILES}" ; then
-                if command_exists git; then
-                    if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
-                        _message "🐙 Updated dotfiles git repo"
-                    else
-                        # Not a hard failure
-                        _message "⚠️  Failed to update git repo"
+            download_git_pull() {
+                if test -d "${DOTFILES}" ; then
+                    if command_exists git; then
+                        if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
+                            _message "🐙 Updated dotfiles git repo"
+                        else
+                            # Not a hard failure
+                            _message "⚠️  Failed to update git repo"
+                        fi
                     fi
-                fi
-            else
-                exit 1
-            fi
-        }
-
-        download_git_pull
-
-        # END included from installers/downloaders/download-git-pull.sh
-
-        _finished "✅ ${DOTFILES} exists."
-   else
-       if command_exists git; then
-
-            # BEGIN included from installers/downloaders/download-git-clone.sh
-
-
-            # Already included installers/functions.sh
-            # shellcheck source=installers/functions.sh
-
-
-            download_git_clone() {
-                if command_exists git; then
-                    _process "🐙 cloning ${GITHUB_REPO} from github"
-                    git clone "https://github.com/${GITHUB_REPO}.git" "${DOTFILES}"
                 else
                     exit 1
                 fi
             }
 
-            download_git_clone
-
-            # END included from installers/downloaders/download-git-clone.sh
-
-            _finished "✅ ${DOTFILES} cloned"
+            download_git_pull
+            # END included from installers/downloaders/download-git-pull.sh
+            _finished "✅ ${DOTFILES} exists."
        else
-            _message "⚠️  command git not found - falling back to tarball"
+           if command_exists git; then
 
-            # BEGIN included from installers/downloaders/download-tarball.sh
+                # BEGIN included from installers/downloaders/download-git-clone.sh
 
+                # Already included installers/prelude.sh
+                # shellcheck source=installers/prelude.sh
 
-            # Already included installers/functions.sh
-            # shellcheck source=installers/functions.sh
-
-
-            download_tarball() {
-                if ! command_exists curl; then
-                    if command_exists apt-get; then
-                        apt-get update -y
-                        apt-get install --no-install-recommends -y curl
+                download_git_clone() {
+                    if command_exists git; then
+                        _process "🐙 cloning ${GITHUB_REPO} from github"
+                        git clone "https://github.com/${GITHUB_REPO}.git" "${DOTFILES}"
                     else
-                        _message "🛑 can't find git or curl, aborting!"
                         exit 1
                     fi
-                fi
+                }
 
-                _process "🌍 downloading archive of ${GITHUB_REPO} from github and extracting"
-                curl -fsLo /tmp/dotfiles.tar.gz "https://github.com/${GITHUB_REPO}/tarball/main"
-                mkdir -p "${DOTFILES}"
-                tar -zxf /tmp/dotfiles.tar.gz --strip-components 1 -C "${DOTFILES}"
-                rm -rf /tmp/dotfiles.tar.gz
-                _finished "✅ ${DOTFILES} created, repository downloaded and extracted"
-            }
+                download_git_clone
+                # END included from installers/downloaders/download-git-clone.sh
+                _finished "✅ ${DOTFILES} cloned"
+           else
+                _message "⚠️  command git not found - falling back to tarball"
 
-            download_tarball
+                # BEGIN included from installers/downloaders/download-tarball.sh
 
-            # END included from installers/downloaders/download-tarball.sh
+                # Already included installers/prelude.sh
+                # shellcheck source=installers/prelude.sh
 
-            _finished "✅ ${DOTFILES} downloaded."
+                download_tarball() {
+                    if ! command_exists curl; then
+                        if command_exists apt-get; then
+                            apt-get update -y
+                            apt-get install --no-install-recommends -y curl
+                        else
+                            _message "🛑 can't find git or curl, aborting!"
+                            exit 1
+                        fi
+                    fi
+
+                    _process "🌍 downloading archive of ${GITHUB_REPO} from github and extracting"
+                    curl -fsLo /tmp/dotfiles.tar.gz "https://github.com/${GITHUB_REPO}/tarball/main"
+                    mkdir -p "${DOTFILES}"
+                    tar -zxf /tmp/dotfiles.tar.gz --strip-components 1 -C "${DOTFILES}"
+                    rm -rf /tmp/dotfiles.tar.gz
+                    _finished "✅ ${DOTFILES} created, repository downloaded and extracted"
+                }
+
+                download_tarball
+                # END included from installers/downloaders/download-tarball.sh
+                _finished "✅ ${DOTFILES} downloaded."
+           fi;
        fi;
-   fi;
+    }
+
+    download() {
+        echo "$(date) [dotfiles] $0 $*" > "$LOGFILE"
+        echo "$(date) [dotfiles] installing in ${DOTFILES}" >> "$LOGFILE"
+
+        _process "🌐  Downloading dotfiles to ${DOTFILES}'"
+        download_dotfiles
+        _finished "✅ ${DOTFILES} created, repository downloaded and extracted"
+
+    }
+
+    download "$@"
+    # END included from installers/download.sh
+
+    # This does not get literally included, so that running an old copy of `install.sh`
+    # will effectively self-update, grabbing the latest version from here.
+    # shellcheck source=installers/installer.sh # no-include
+    . "${DOTFILES}/installers/installer.sh"
 }
 
-download() {
-    echo "$(date) [dotfiles] $0 $*" > "$LOGFILE"
-    echo "$(date) [dotfiles] installing in ${DOTFILES}" >> "$LOGFILE"
-
-    _process "🌐  Downloading dotfiles to ${DOTFILES}'"
-    download_dotfiles
-    _finished "✅ ${DOTFILES} created, repository downloaded and extracted"
-
-}
-
-download "$@"
-
-# END included from installers/download.sh
-
-
-# This does not get literally included, so that running an old copy of `install.sh`
-# will effectively self-update, grabbing the latest version from here.
-# shellcheck source=installers/installer.sh # no-include
-. "${DOTFILES}/installers/installer.sh"
+install_dotfiles "$@"

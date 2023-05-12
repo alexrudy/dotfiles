@@ -9,9 +9,11 @@ set -eu
 # All changes should be made to installers/update.sh
 # and included files therin, as the root one is compiled
 
+# BEGIN included from installers/prelude.sh
+
+# Prelude which includes necessary scripts for the dotfiles installer to run
 
 # BEGIN included from installers/configure.sh
-
 
 # Initialize DOTFILES and related configuration variables
 GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
@@ -38,13 +40,9 @@ TERM="${TERM:-dumb}"
 export TERM
 
 cd "${DOTFILES}"
-
 # END included from installers/configure.sh
 
-
-
 # BEGIN included from installers/functions.sh
-
 
 # Library of functions useful for installing.
 # Everything here should be POSIX sh
@@ -147,9 +145,8 @@ _color_code() {
 command_exists () {
     type "$1" > /dev/null 2>&1
 }
-
 # END included from installers/functions.sh
-
+# END included from installers/prelude.sh
 
 update () {
     _log_init "$0"
@@ -158,14 +155,8 @@ update () {
 
         # BEGIN included from installers/git-overlay.sh
 
-
-        # Already included installers/configure.sh
-        # shellcheck source=installers/configure.sh
-
-
-        # Already included installers/functions.sh
-        # shellcheck source=installers/functions.sh
-
+        # Already included installers/prelude.sh
+        # shellcheck source=installers/prelude.sh
 
         git_overlay() {
             if ! test -d "${DOTFILES}/.git"; then
@@ -179,18 +170,13 @@ update () {
         }
 
         git_overlay
-
         # END included from installers/git-overlay.sh
-
     fi
-
 
     # BEGIN included from installers/downloaders/download-git-pull.sh
 
-
-    # Already included installers/functions.sh
-    # shellcheck source=installers/functions.sh
-
+    # Already included installers/prelude.sh
+    # shellcheck source=installers/prelude.sh
 
     download_git_pull() {
         if test -d "${DOTFILES}" ; then
@@ -208,11 +194,10 @@ update () {
     }
 
     download_git_pull
-
     # END included from installers/downloaders/download-git-pull.sh
 
-
     # shellcheck source=installers/installer.sh # no-include
+
     . "${DOTFILES}/installers/installer.sh"
 
 }

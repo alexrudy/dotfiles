@@ -2,11 +2,8 @@
 # shellcheck disable=SC3043
 set -eu
 
-# shellcheck source=installers/configure.sh
-. "${DOTFILES}/installers/configure.sh"
-
-# shellcheck source=installers/functions.sh
-. "${DOTFILES}/installers/functions.sh"
+# shellcheck source=installers/prelude.sh
+. "${DOTFILES}/installers/prelude.sh"
 
 git_overlay() {
     if ! test -d "${DOTFILES}/.git"; then

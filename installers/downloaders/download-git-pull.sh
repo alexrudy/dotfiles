@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
-# shellcheck source=installers/functions.sh
-. "${DOTFILES}/installers/functions.sh"
+# shellcheck source=installers/prelude.sh
+. "${DOTFILES}/installers/prelude.sh"
 
 download_git_pull() {
     if test -d "${DOTFILES}" ; then
