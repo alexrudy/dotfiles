@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-
-import re
 import os.path
+import re
+from typing import List
+from typing import Optional
+from typing import Set
 
 
 def main():
@@ -43,11 +45,11 @@ class Dotfiles:
 class Script:
     def __init__(self, dotfiles: str, destination: str):
         self.include_prelude = True
-        self.imports = set()
+        self.imports: Set[str] = set()
         self.dotfiles = dotfiles
         self.destination_file = open(destination, "w")
         self.destination = os.path.relpath(destination, self.dotfiles)
-        self.indents = []
+        self.indents: List[str] = []
 
     def write(self, line: str) -> None:
         if line.strip() == "":
@@ -75,6 +77,7 @@ class Script:
         )
 
     def process(self, filename: str) -> None:
+        line: Optional[str]
         with open(filename, "r") as source:
             for line in source:
                 if self.include_prelude:
