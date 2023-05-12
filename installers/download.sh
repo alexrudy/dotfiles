@@ -2,12 +2,8 @@
 # shellcheck disable=SC3043
 set -eu
 
-GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
-
-DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
-if [ "$DOTFILES" = "/" ]; then
-    DOTFILES="${HOME}/.dotfiles/"
-fi
+# source=installers/configure.sh
+. "${DOTFILES}/installers/configure.sh"
 
 # shellcheck source=installers/functions.sh
 . "${DOTFILES}/installers/functions.sh"

@@ -5,6 +5,11 @@ set -eu
 # source=installers/configure.sh
 . "${DOTFILES}/installers/configure.sh"
 
+# source=installers/functions.sh
+. "${DOTFILES}/installers/functions.sh"
+
+_log_init "$0"
+
 # source=installers/download.sh
 . "${DOTFILES}/installers/download.sh"
 

@@ -43,17 +43,6 @@ cd "${DOTFILES}"
 
 
 
-# BEGIN included from installers/download.sh
-
-
-GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
-
-DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
-if [ "$DOTFILES" = "/" ]; then
-    DOTFILES="${HOME}/.dotfiles/"
-fi
-
-
 # BEGIN included from installers/functions.sh
 
 
@@ -76,12 +65,21 @@ _spacer() {
     echo "$spacer"
 }
 
+_log_timestamp() {
+    date +%H:%M:%S
+}
+
+_log_init() {
+    printf "$(_log_timestamp) [%-10.10s]: %s\n" "init" "$1" > "$LOGFILE"
+    printf "$(_log_timestamp) [%-10.10s]: %s\n" "init" "$(date)" >> "$LOGFILE"
+    printf "$(_log_timestamp) [%-10.10s]: %s\n" "init" "installing in ${DOTFILES}" >> "$LOGFILE"
+
+}
+
 _log() {
   local message
-  message=$(printf '%s' "$2" | cut -c 1)
-
-  message="$(echo "$message" | xargs)"
-  printf "$(date) [%-8.8s]: %s\n" "$1" "${message}" >> "$LOGFILE"
+  message=$(echo "$2" | perl -pe's/[[:space:]]*[[:^ascii:]]+[[:space:]]*//' )
+  printf "$(_log_timestamp) [%-10.10s]: %s\n" "$1" "${message}" >> "$LOGFILE"
 }
 
 _print() {
@@ -89,6 +87,12 @@ _print() {
   message="$1"
   color="$2"
   printf "$(_spacer)$(tput setaf "$color")%s$(tput sgr0)\n" "$message"
+}
+
+_debug() {
+  local message color
+  message="$*"
+  _log "debug" "$message"
 }
 
 _message() {
@@ -101,17 +105,30 @@ _message() {
 
 _process() {
   message="$*"
-  _log "start" "$message"
+  _log "start(${LEVEL})" "$message"
   _print "$message" "7"
   LEVEL=$(( LEVEL + 1))
+  trap '_cleanup "$message"' EXIT
 }
 
 _finished() {
   message="$*"
   LEVEL=$(( LEVEL - 1))
   color=$(_color_code "$message")
-  _log "finish" "$message"
+  _log "finish(${LEVEL})" "$message"
   _print "$message" "$color"
+  trap - EXIT
+}
+
+_error() {
+  message="$*"
+  LEVEL=$(( LEVEL - 1))
+  _log "error" "$message"
+  _print "$message" "1"
+}
+
+_cleanup() {
+  _error "⛔️ Install step $1 encountered an error"
 }
 
 _color_code() {
@@ -132,6 +149,20 @@ command_exists () {
 }
 
 # END included from installers/functions.sh
+
+
+_log_init "$0"
+
+
+# BEGIN included from installers/download.sh
+
+
+# Already included installers/configure.sh
+# source=installers/configure.sh
+
+
+# Already included installers/functions.sh
+# shellcheck source=installers/functions.sh
 
 
 download_dotfiles() {

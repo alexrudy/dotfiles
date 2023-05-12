@@ -121,6 +121,7 @@ run_installers() {
     _process "💾 running stand-alone installers"
 
     find "${DOTFILES}" -maxdepth 3 -name 'install-*.sh' | while read -r filename; do
+        _debug "🚀 running ${filename}"
         # shellcheck disable=SC1090
         (. "$filename") || true
     done
