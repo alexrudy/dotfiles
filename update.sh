@@ -9,13 +9,6 @@ set -eu
 # All changes should be made to installers/update.sh
 # and included files therin, as the root one is compiled
 
-###################################
-# /update.sh is a GENERATED FILE #
-###################################
-
-# All changes should be made to /installers/install.sh
-# and included files therin, as the root one is compiled
-
 
 # BEGIN included from installers/configure.sh
 
@@ -64,7 +57,7 @@ _spacer() {
     spacer=""
 
     j=0
-    while [ $j -le "$LEVEL" ]; do
+    while [ $j -lt "$LEVEL" ]; do
       spacer="$spacer  "
       j=$(( j + 1 ))
     done
@@ -80,18 +73,25 @@ _log() {
   printf "$(date) [%-8.8s]: %s\n" "$1" "${message}" >> "$LOGFILE"
 }
 
+_print() {
+  local message color
+  message="$1"
+  color="$2"
+  printf "$(_spacer)$(tput setaf "$color")%s$(tput sgr0)\n" "$message"
+}
+
 _message() {
   local message color
   message="$*"
   color=$(_color_code "$message")
   _log "debug" "$message"
-  printf "$(_spacer) $(tput setaf "$color") %s $(tput sgr0)\n" "$message"
+  _print "$message" "$color"
 }
 
 _process() {
   message="$*"
   _log "start" "$message"
-  printf "$(_spacer)$(tput setaf 6)%s...$(tput sgr0)\n" "$message"
+  _print "$message" "7"
   LEVEL=$(( LEVEL + 1))
 }
 
@@ -100,7 +100,7 @@ _finished() {
   LEVEL=$(( LEVEL - 1))
   color=$(_color_code "$message")
   _log "finish" "$message"
-  printf "$(_spacer)  $(tput setaf "$color")%s$(tput sgr0)\n" "$message"
+  _print "$message" "$color"
 }
 
 _color_code() {
@@ -124,34 +124,61 @@ command_exists () {
 
 
 if ! test -d "${DOTFILES}/.git"; then
-    _message "⛔️ ${DOTFILES} does not appear to be a git repo"
-    exit 2
+
+    # BEGIN included from installers/git-overlay.sh
+
+
+    # Already included installers/configure.sh
+    # shellcheck source=installers/configure.sh
+
+
+    # Already included installers/functions.sh
+    # shellcheck source=installers/functions.sh
+
+
+    git_overlay() {
+        if ! test -d "${DOTFILES}/.git"; then
+            _process "🎛️  Adding git repository overlay"
+            git init --quiet
+            git remote add origin "https://github.com/${GITHUB_REPO}/"
+            git fetch --quiet
+            git checkout --quiet -ft "origin/${GIT_BRANCH}"
+            _finished "✅ Converted ${DOTFILES} to a git repository"
+        fi
+    }
+
+    git_overlay
+
+    # END included from installers/git-overlay.sh
+
 fi
 
 
-# BEGIN included from installers/git-overlay.sh
-
-
-# Already included installers/configure.sh
-# shellcheck source=installers/configure.sh
+# BEGIN included from installers/downloaders/download-git-pull.sh
 
 
 # Already included installers/functions.sh
 # shellcheck source=installers/functions.sh
 
 
-git_overlay() {
-    _process "🎛️ Adding git repository overlay"
-    git init --quiet
-    git remote add origin "https://github.com/${GITHUB_REPO}/"
-    git fetch --quiet
-    git checkout --quiet -ft "origin/${GIT_BRANCH}"
-    _finished "✅ Converted ${DOTFILES} to a git repository"
+download_git_pull() {
+    if test -d "${DOTFILES}" ; then
+        if command_exists git; then
+            if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
+                _message "🐙 Updated dotfiles git repo"
+            else
+                # Not a hard failure
+                _message "⚠️  Failed to update git repo"
+            fi
+        fi
+    else
+        exit 1
+    fi
 }
 
-git_overlay
+download_git_pull
 
-# END included from installers/git-overlay.sh
+# END included from installers/downloaders/download-git-pull.sh
 
 
 # shellcheck source=installers/installer.sh # no-include

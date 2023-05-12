@@ -129,12 +129,12 @@ run_installers() {
 
 
 main() {
-    echo "🚧  Installing dotfiles in ${1:-DOTFILES}"
+    _process "🚧 Installing dotfiles in ${1:-DOTFILES}"
 
     run_installers
     link_dotfiles
 
-    echo "🍾 Installation finshed - you might want to run '. \"\$HOME/.zshrc\"'"
+    _finished "🍾 Installation finshed - you might want to run '. \"\$HOME/.zshrc\"'"
 }
 
 main "$@"

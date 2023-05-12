@@ -8,10 +8,10 @@ download_git_pull() {
     if test -d "${DOTFILES}" ; then
         if command_exists git; then
             if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
-                _message "🐙 updated git repo"
+                _message "🐙 Updated dotfiles git repo"
             else
                 # Not a hard failure
-                _message "⚠️  failed to update git repo"
+                _message "⚠️  Failed to update git repo"
             fi
         fi
     else

@@ -13,7 +13,7 @@ _spacer() {
     spacer=""
 
     j=0
-    while [ $j -le "$LEVEL" ]; do
+    while [ $j -lt "$LEVEL" ]; do
       spacer="$spacer  "
       j=$(( j + 1 ))
     done
@@ -29,18 +29,25 @@ _log() {
   printf "$(date) [%-8.8s]: %s\n" "$1" "${message}" >> "$LOGFILE"
 }
 
+_print() {
+  local message color
+  message="$1"
+  color="$2"
+  printf "$(_spacer)$(tput setaf "$color")%s$(tput sgr0)\n" "$message"
+}
+
 _message() {
   local message color
   message="$*"
   color=$(_color_code "$message")
   _log "debug" "$message"
-  printf "$(_spacer) $(tput setaf "$color") %s $(tput sgr0)\n" "$message"
+  _print "$message" "$color"
 }
 
 _process() {
   message="$*"
   _log "start" "$message"
-  printf "$(_spacer)$(tput setaf 6)%s...$(tput sgr0)\n" "$message"
+  _print "$message" "7"
   LEVEL=$(( LEVEL + 1))
 }
 
@@ -49,7 +56,7 @@ _finished() {
   LEVEL=$(( LEVEL - 1))
   color=$(_color_code "$message")
   _log "finish" "$message"
-  printf "$(_spacer)  $(tput setaf "$color")%s$(tput sgr0)\n" "$message"
+  _print "$message" "$color"
 }
 
 _color_code() {
