@@ -15,56 +15,32 @@ fi
 download_dotfiles() {
     _process "📦 Acquiring Dotfiles"
    if test -d "${DOTFILES}" ; then
-        if command_exists git; then
-            if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
-                _message "🐙 updated git repo"
-            else
-                _message "⚠️  failed to update git repo"
-            fi
-        fi
+        # shellcheck source=installers/downloaders/download-git-pull.sh
+        . "${DOTFILES}/installers/downloaders/download-git-pull.sh"
         _finished "✅ ${DOTFILES} exists."
    else
        if command_exists git; then
-            _process "🐙 cloning ${GITHUB_REPO} from github"
-            git clone "https://github.com/${GITHUB_REPO}.git" "${DOTFILES}"
+            # shellcheck source=installers/downloaders/download-git-clone.sh
+            . "${DOTFILES}/installers/downloaders/download-git-clone.sh"
             _finished "✅ ${DOTFILES} cloned"
        else
-
-            _finished "⚠️  command git not found - falling back to tarball"
-            download_tarball
+            _message "⚠️  command git not found - falling back to tarball"
+            # shellcheck source=installers/downloaders/download-tarball.sh
+            . "${DOTFILES}/installers/downloaders/download-tarball.sh"
+            _finished "✅ ${DOTFILES} downloaded."
        fi;
    fi;
 }
 
-download_tarball() {
-    if ! command_exists curl; then
-        if command_exists apt-get; then
-            DEBIAN_FRONTEND=noninteractive
-            export DEBIAN_FRONTEND
-            apt-get update -y
-            apt-get install --no-install-recommends -y curl
-        else
-            _message "🛑 can't find git or curl, aborting!"
-            exit 1
-        fi
-    fi
 
-    _process "🌍 downloading archive of ${GITHUB_REPO} from github and extracting"
-    curl -fsLo /tmp/dotfiles.tar.gz "https://github.com/${GITHUB_REPO}/tarball/main"
-    mkdir -p "${DOTFILES}"
-    tar -zxf /tmp/dotfiles.tar.gz --strip-components 1 -C "${DOTFILES}"
-    rm -rf /tmp/dotfiles.tar.gz
-    _finished "✅ ${DOTFILES} created, repository downloaded and extracted"
-}
-
-main() {
-    echo "🌐  Downloading dotfiles to ${DOTFILES}'"
-
+download() {
     echo "$(date) [dotfiles] $0 $*" > "$LOGFILE"
     echo "$(date) [dotfiles] installing in ${DOTFILES}" >> "$LOGFILE"
 
+    _process "🌐  Downloading dotfiles to ${DOTFILES}'"
     download_dotfiles
+    _finished "✅ ${DOTFILES} created, repository downloaded and extracted"
 
 }
 
-main "$@"
+download "$@"

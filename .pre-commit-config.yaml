@@ -1,33 +1,33 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
-    hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
--   repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.8.0.4
-    hooks:
-    -   id: shellcheck
-        files: '^(installers/)|(install\.sh)|(install-\w+\.sh)|(dotfiles\.sh)'
-        args: ['-x']
--   repo: https://github.com/psf/black
-    rev: 22.8.0
-    hooks:
-    -   id: black
--   repo: https://github.com/pycqa/flake8
-    rev: '5.0.4'
-    hooks:
-    -   id: flake8
-        files: '^installers/'
--   repo: local
-    hooks:
-    -   id: build-install-sh
-        name: build install.sh
-        entry: python3 installers/build.py
-        files: '^installers/'
-        language: python
-        types: [shell]
+    - repo: local
+      hooks:
+          - id: build-install-sh
+            name: build install.sh
+            entry: python3 installers/build.py
+            files: "^installers/"
+            language: python
+            types: [shell]
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v3.2.0
+      hooks:
+          - id: trailing-whitespace
+          - id: end-of-file-fixer
+          - id: check-yaml
+          - id: check-added-large-files
+    - repo: https://github.com/shellcheck-py/shellcheck-py
+      rev: v0.8.0.4
+      hooks:
+          - id: shellcheck
+            files: '^(installers/)|(install\.sh)|(install-\w+\.sh)|(dotfiles\.sh)'
+            args: ["-x"]
+    - repo: https://github.com/psf/black
+      rev: 22.8.0
+      hooks:
+          - id: black
+    - repo: https://github.com/pycqa/flake8
+      rev: "5.0.4"
+      hooks:
+          - id: flake8
+            files: "^installers/"
