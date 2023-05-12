@@ -15,7 +15,9 @@ install_atuin() {
             # Allow sed; sometimes it's more readable than ${variable//search/replace}
             # shellcheck disable=SC2001
             ATUIN_LATEST_VERSION=$(echo "$ATUIN_LATEST_RELEASE" | sed -e 's/.*"tag_name":"v\([^"]*\)".*/\1/')
-            sudo apt-get install --no-install-recommends "https://github.com/ellie/atuin/releases/download/v$ATUIN_LATEST_VERSION/atuin_${ATUIN_LATEST_VERSION}_amd64.deb"
+
+            # Looking for https://github.com/ellie/atuin/releases/download/v14.0.1/atuin_14.0.1_amd64.deb
+            sudo apt install "https://github.com/ellie/atuin/releases/download/v$ATUIN_LATEST_VERSION/atuin_${ATUIN_LATEST_VERSION}_amd64.deb"
         fi
         if command_exists atuin; then
             atuin import auto
