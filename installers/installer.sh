@@ -2,8 +2,6 @@
 # shellcheck disable=SC3043
 set -eu
 
-DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
-
 # shellcheck source=installers/functions.sh
 . "${DOTFILES}/installers/functions.sh"
 
