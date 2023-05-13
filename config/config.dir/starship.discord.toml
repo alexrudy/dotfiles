@@ -31,3 +31,10 @@ disabled = true
 
 [python]
 python_binary = ['python3', 'python', 'python2']
+
+[gcloud]
+format = "on [$symbol$project]($style) "
+
+[gcloud.project_aliases]
+discord-ai-prd = "ai-prd"
+discord-ai-stg = "ai-stg"
