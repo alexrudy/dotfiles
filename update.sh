@@ -137,6 +137,8 @@ _color_code() {
             echo 3;;
         ⛔️*)
             echo 1;;
+        ❌*)
+            echo 1;;
         *)
             echo 7;;
     esac

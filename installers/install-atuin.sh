@@ -12,13 +12,15 @@ install_atuin() {
             brew install atuin
         elif command_exists cargo; then
             CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
-            export CARGO_REGISTRIES_CRATES_IO_PROTOCOL 
+            export CARGO_REGISTRIES_CRATES_IO_PROTOCOL
             cargo install atuin
         fi
         if command_exists atuin; then
             atuin import auto
+            _finished "✅ atuin installed"
+        else
+            _finished "❌ atuin not installed"
         fi
-        _message "✅ atuin installed"
     fi
 }
 
