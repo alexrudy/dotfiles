@@ -10,7 +10,7 @@ install_zprezto() {
 
     if ! test -e "$ZPREZTO"; then
         _process "⛽️ Install zprezto"
-        git clone --recursive https://github.com/sorin-ionescu/prezto.git
+        git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZPREZTO}"
         _finished "✅ Installed prezto"
     else
         _process "🚛 Update zprezto"
@@ -20,7 +20,7 @@ install_zprezto() {
 
     if ! test -e "${ZPREZTO}/contrib/fzf-tab"; then
         _process "📟 Install fzf-tab"
-        git clone https://github.com/Aloxaf/fzf-tab "${ZPREZTO}/.zprezto/contrib/fzf-tab"
+        git clone https://github.com/Aloxaf/fzf-tab "${ZPREZTO}/contrib/fzf-tab"
         _finished "✅ Installed fzf-tab"
     fi
 
