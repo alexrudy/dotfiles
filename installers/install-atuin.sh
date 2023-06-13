@@ -14,7 +14,10 @@ install_atuin() {
             CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
             export CARGO_REGISTRIES_CRATES_IO_PROTOCOL
             cargo install atuin
+        else
+            curl https://raw.githubusercontent.com/ellie/atuin/main/install.sh | bash
         fi
+
         if command_exists atuin; then
             atuin import auto
             _finished "✅ atuin installed"
