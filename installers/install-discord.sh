@@ -19,8 +19,30 @@ if test ! -z "$CODER_USERNAME" ; then
 
     _process "📦 apt packages"
     sudo apt-get update -y
+
+    # Python dev/build dependencies
+    sudo apt install --no-install-recommends -y \
+        build-essential \
+        libssl-dev \
+        zlib1g-dev \
+        libbz2-dev \
+        libreadline-dev \
+        libsqlite3-dev curl \
+        libncursesw5-dev \
+        xz-utils \
+        tk-dev \
+        libxml2-dev \
+        libxmlsec1-dev \
+        libffi-dev \
+        liblzma-dev
+    
+    # Basic tools
     sudo apt-get install --no-install-recommends -y gh tree python3-pip python3-venv autojump ruby direnv
+
+    # Docker + K8S
     sudo apt-get install --no-install-recommends -y kubectl docker docker-compose-plugin
+
+    # Google Cloud
     sudo apt-get --only-upgrade --no-install-recommends install -y \
         google-cloud-sdk-cbt \
         google-cloud-sdk-app-engine-grpc \
