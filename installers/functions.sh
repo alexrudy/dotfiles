@@ -8,6 +8,7 @@ set -eu
 LOGFILE="${LOGFILE:-${HOME}/.dotfiles-install.log}"
 
 LEVEL=${LEVEL:-0}
+DEBUG=${DEBUG:-0}
 
 _spacer() {
     spacer=""
@@ -49,6 +50,9 @@ _debug() {
   local message color
   message="$*"
   _log "debug" "$message"
+  if [ "$DEBUG" -eq "1" ]; then
+    _print "$message" "4"
+  fi
 }
 
 _message() {
@@ -56,7 +60,7 @@ _message() {
   message="$*"
   color=$(_color_code "$message")
   _log "debug" "$message"
-  _print "$message" "$color"
+  _print "$message" "7"
 }
 
 _process() {
