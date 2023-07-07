@@ -5,7 +5,7 @@ set -eu
 . "${DOTFILES}/installers/prelude.sh"
 
 update_pyenv() {
-    cd "${HOME}/.pyenv" 
+    cd "${HOME}/.pyenv"
     (git pull) > /dev/null
     cd - > /dev/null
 }
@@ -26,6 +26,7 @@ if [ -e "${HOME}/.pyenv" ]; then
     fi
 fi
 
-pyenv install -s $(cat "${DOTFILES}/python/python-versions.txt")
-pyenv global $(cat "${DOTFILES}/python/python-versions.txt") system
+PYTHON_VERSIONS=$(cat "${DOTFILES}/python/python-versions.txt")
+pyenv install -s "$PYTHON_VERSIONS"
+pyenv global "$PYTHON_VERSIONS" system
 _finished "✅ finished pyenv"

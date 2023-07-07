@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 set -eu
 
 # shellcheck source=installers/prelude.sh
@@ -16,20 +16,24 @@ apt_packages() {
     _process "📦 apt packages"
     sudo apt-get --quiet update -y  > /dev/null
 
+    APT_INSTALL=$(cat "${DOTFILES}/discord/apt-install.txt")
     # Python dev/build dependencies
     sudo apt-get --quiet install --no-install-recommends -y \
-        $(< ${DOTFILES}/discord/apt-install.txt) > /dev/null
+        "${APT_INSTALL}" > /dev/null
+
+    APT_UPGRADE=$(cat "${DOTFILES}/discord/apt-upgrade.txt")
 
     sudo apt-get --quiet install --only-upgrade --no-install-recommends -y \
-        $(< ${DOTFILES}/discord/apt-upgrade.txt) > /dev/null
+        "${APT_UPGRADE}" > /dev/null
 
     _finished "✅ finished apt packages"
 
 }
 
 CODER_USERNAME=${CODER_USERNAME:-}
+CODER=${CODER:-}
 
-if test ! -z "$CODER_USERNAME" ; then
+if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
     # Discord-specific installation steps
 
     _process "👾 Coder Specific Install Steps"
@@ -38,13 +42,17 @@ if test ! -z "$CODER_USERNAME" ; then
 
     apt_packages()
 
-    (. ${DOTFILES}/python/bin/install-pyenv.sh)
+    (. "${DOTFILES}/python/bin/install-pyenv.sh")
 
     _process "🐍 pyenv for discord"
     DISCORD_PYTHON="${DISCORD_PYTHON:-3.7.5}"
+
+    # shellcheck disable=SC2031
+    PYTHON_VERSIONS=$(cat "${DOTFILES}/python/python-versions.txt")
+
     _debug "👾 Installing discord python ${DISCORD_PYTHON}"
     pyenv install -s "$DISCORD_PYTHON"
-    pyenv global $(< "${DOTFILES}/python/python-versions.txt") "$DISCORD_PYTHON" system
+    pyenv global "$PYTHON_VERSIONS" "$DISCORD_PYTHON" system
     _finished "✅ finished pyenv"
 
 
