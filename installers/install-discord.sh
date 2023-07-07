@@ -42,9 +42,10 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
 
     github_cli
 
-    apt_packages()
+    apt_packages
 
-    (. "${DOTFILES}/python/bin/install-pyenv.sh")
+    # shellcheck source=python/bin/install-pyenv.sh
+    . "${DOTFILES}/python/bin/install-pyenv.sh"
 
     _process "🐍 pyenv for discord"
     DISCORD_PYTHON="${DISCORD_PYTHON:-3.7.5}"
