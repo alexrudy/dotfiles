@@ -14,7 +14,8 @@ _process "🐍 pyenv"
 if ! [ -e "${HOME}/.pyenv" ]; then
     git clone https://github.com/pyenv/pyenv.git "${HOME}/.pyenv"
 else
-    update_pyenv
+    # Its possible that pyenv didn't come from git.
+    update_pyenv || true
 fi
 
 if [ -e "${HOME}/.pyenv" ]; then
@@ -27,6 +28,10 @@ if [ -e "${HOME}/.pyenv" ]; then
 fi
 
 PYTHON_VERSIONS=$(tr '\n' ' ' < "${DOTFILES}/python/python-versions.txt")
-pyenv install -s "$PYTHON_VERSIONS"
-pyenv global "$PYTHON_VERSIONS" system
+
+# shellcheck disable=SC2086
+pyenv install -s ${PYTHON_VERSIONS}
+# shellcheck disable=SC2086
+pyenv global ${PYTHON_VERSIONS} system
+
 _finished "✅ finished pyenv"

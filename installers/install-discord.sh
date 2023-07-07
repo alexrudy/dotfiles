@@ -18,13 +18,15 @@ apt_packages() {
 
     APT_INSTALL=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-install.txt")
     # Python dev/build dependencies
+    # shellcheck disable=SC2086
     sudo apt-get --quiet install --no-install-recommends -y \
-        "${APT_INSTALL}" > /dev/null
+        ${APT_INSTALL} > /dev/null
 
     APT_UPGRADE=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-upgrade.txt")
 
+    # shellcheck disable=SC2086
     sudo apt-get --quiet install --only-upgrade --no-install-recommends -y \
-        "${APT_UPGRADE}" > /dev/null
+        ${APT_UPGRADE} > /dev/null
 
     _finished "✅ finished apt packages"
 
@@ -52,7 +54,8 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
 
     _debug "👾 Installing discord python ${DISCORD_PYTHON}"
     pyenv install -s "$DISCORD_PYTHON"
-    pyenv global "$PYTHON_VERSIONS" "$DISCORD_PYTHON" system
+    # shellcheck disable=SC2086
+    pyenv global ${PYTHON_VERSIONS} "$DISCORD_PYTHON" system
     _finished "✅ finished pyenv"
 
 
