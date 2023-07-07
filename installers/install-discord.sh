@@ -16,12 +16,12 @@ apt_packages() {
     _process "📦 apt packages"
     sudo apt-get --quiet update -y  > /dev/null
 
-    APT_INSTALL=$(cat "${DOTFILES}/discord/apt-install.txt")
+    APT_INSTALL=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-install.txt")
     # Python dev/build dependencies
     sudo apt-get --quiet install --no-install-recommends -y \
         "${APT_INSTALL}" > /dev/null
 
-    APT_UPGRADE=$(cat "${DOTFILES}/discord/apt-upgrade.txt")
+    APT_UPGRADE=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-upgrade.txt")
 
     sudo apt-get --quiet install --only-upgrade --no-install-recommends -y \
         "${APT_UPGRADE}" > /dev/null
@@ -48,7 +48,7 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
     DISCORD_PYTHON="${DISCORD_PYTHON:-3.7.5}"
 
     # shellcheck disable=SC2031
-    PYTHON_VERSIONS=$(cat "${DOTFILES}/python/python-versions.txt")
+    PYTHON_VERSIONS=$(tr '\n' ' ' < "${DOTFILES}/python/python-versions.txt")
 
     _debug "👾 Installing discord python ${DISCORD_PYTHON}"
     pyenv install -s "$DISCORD_PYTHON"
