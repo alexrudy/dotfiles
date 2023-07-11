@@ -14,6 +14,8 @@ github_cli() {
 
 apt_packages() {
     _process "📦 apt packages"
+    sudo add-apt-repository -y ppa:git-core/ppa > /dev/null
+
     sudo apt-get --quiet update -y  > /dev/null
 
     APT_INSTALL=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-install.txt")
@@ -23,7 +25,6 @@ apt_packages() {
         ${APT_INSTALL} > /dev/null
 
     APT_UPGRADE=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-upgrade.txt")
-
     # shellcheck disable=SC2086
     sudo apt-get --quiet install --only-upgrade --no-install-recommends -y \
         ${APT_UPGRADE} > /dev/null

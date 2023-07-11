@@ -7,6 +7,7 @@ set -eu
 download_git_pull() {
     if test -d "${DOTFILES}" ; then
         if command_exists git; then
+            _message "🐙 Pull latest dotfiles from github"
             if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
                 _message "🐙 Updated dotfiles git repo"
             else

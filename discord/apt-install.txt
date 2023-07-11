@@ -21,3 +21,4 @@ direnv
 kubectl
 docker
 docker-compose-plugin
+autojump
