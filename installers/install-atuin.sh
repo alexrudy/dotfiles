@@ -20,6 +20,7 @@ install_atuin() {
         fi
 
         if command_exists atuin; then
+            export HISTFILE="${HISTFILE:-${HOME}/.zsh_history}"
             atuin import auto
             _finished "✅ atuin installed"
         else
