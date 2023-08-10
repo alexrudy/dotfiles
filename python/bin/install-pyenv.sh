@@ -29,14 +29,17 @@ fi
 
 # setup pyenv so it works.
 
-# shellcheck source=python/pyenv.sh
-. "${DOTFILES}/python/pyenv.sh"
+if ! command_exists pyenv ; then
+    export PYENV="${HOME}/.pyenv/bin/pyenv"
+else
+    export PYENV="pyenv"
+fi
 
 PYTHON_VERSIONS=$(tr '\n' ' ' < "${DOTFILES}/python/python-versions.txt")
 
 # shellcheck disable=SC2086
-pyenv install -s ${PYTHON_VERSIONS}
+exec "$PYENV" install -s ${PYTHON_VERSIONS}
 # shellcheck disable=SC2086
-pyenv global ${PYTHON_VERSIONS} system
+exec "$PYENV" global ${PYTHON_VERSIONS} system
 
 _finished "✅ finished pyenv"

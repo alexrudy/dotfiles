@@ -97,12 +97,11 @@ link_dotfile() {
     filename="$1"
     target="$(_target_filename "$filename")"
     shortname="$(basename "$target")"
-    force="${DOTFILES_OVERWRITE:-}"
 
     if test -L "$target"; then
         if test "$(readlink -f "$target")" = "$(readlink -f "$filename")"; then
             true # _message "✅ dotfile ${shortname} already linked"
-        elif test -z "$force" ; then
+        elif test -z "${DOTFILES_OVERWRITE:-}" ; then
             _message "⚠️  dotfile ${shortname} would conflict with file linked to $(readlink -f "$target")"
         else
             mv "$target" "$target.backup"
