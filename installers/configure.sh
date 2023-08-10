@@ -7,14 +7,18 @@ GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
 GIT_BRANCH="main"
 export GITHUB_REPO GIT_BRANCH
 
+DOWNLOAD=${DOWNLOAD:-}
+
 DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 if [ "$DOTFILES" = "/" ]; then
     DOTFILES="${HOME}/.dotfiles/"
 fi
 
-if ! test -d "${DOTFILES}"; then
-    DOTFILES=$(readlink -f "$(dirname "$0")")
-    export DOTFILES
+if test -z "${DOWNLOAD}"; then
+    if ! test -d "${DOTFILES}"; then
+        DOTFILES=$(readlink -f "$(dirname "$0")")
+        export DOTFILES
+    fi
 fi
 
 NONINTERACTIVE=1
@@ -26,4 +30,6 @@ export DEBIAN_FRONTEND
 TERM="${TERM:-dumb}"
 export TERM
 
-cd "${DOTFILES}"
+if test -z "${DOWNLOAD}"; then
+    cd "${DOTFILES}"
+fi

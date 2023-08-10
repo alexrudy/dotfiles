@@ -2,15 +2,11 @@
 # shellcheck disable=SC3043
 set -eu
 
-# source=installers/configure.sh
-. "${DOTFILES}/installers/configure.sh"
 
-# shellcheck source=installers/prelude.sh
-. "${DOTFILES}/installers/prelude.sh"
 
 download_dotfiles() {
     _process "📦 Acquiring Dotfiles"
-   if test -d "${DOTFILES}" ; then
+   if test -d "${DOTFILES}/.git" ; then
         # shellcheck source=installers/downloaders/download-git-pull.sh
         . "${DOTFILES}/installers/downloaders/download-git-pull.sh"
         _finished "✅ ${DOTFILES} exists."
@@ -32,6 +28,14 @@ download_dotfiles() {
 download() {
     echo "$(date) [dotfiles] $0 $*" > "$LOGFILE"
     echo "$(date) [dotfiles] installing in ${DOTFILES}" >> "$LOGFILE"
+
+    export DOWNLOAD=1
+
+     # source=installers/configure.sh
+     . "${DOTFILES}/installers/configure.sh"
+
+     # shellcheck source=installers/prelude.sh
+     . "${DOTFILES}/installers/prelude.sh"
 
     _process "🌐  Downloading dotfiles to ${DOTFILES}'"
     download_dotfiles
