@@ -27,6 +27,11 @@ if [ -e "${HOME}/.pyenv" ]; then
     fi
 fi
 
+# setup pyenv so it works.
+
+# shellcheck source=python/pyenv.sh
+. "${DOTFILES}/python/pyenv.sh"
+
 PYTHON_VERSIONS=$(tr '\n' ' ' < "${DOTFILES}/python/python-versions.txt")
 
 # shellcheck disable=SC2086
