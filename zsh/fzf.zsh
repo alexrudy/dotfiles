@@ -3,7 +3,7 @@ command_exists () {
 }
 
 # Add fzf to path
-if [ -f "${HOME}/.fzf/bin" ]; then
+if [ -d "${HOME}/.fzf/bin" ]; then
     pathadd "${HOME}/.fzf/bin"
 fi
 
