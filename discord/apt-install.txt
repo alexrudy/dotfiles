@@ -23,4 +23,3 @@ docker
 docker-compose-plugin
 autojump
 git
-ripgrep

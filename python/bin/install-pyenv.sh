@@ -11,11 +11,10 @@ update_pyenv() {
 }
 
 _process "🐍 pyenv"
-if ! [ -e "${HOME}/.pyenv" ]; then
+if ! [ -d "${HOME}/.pyenv/" ]; then
     git clone https://github.com/pyenv/pyenv.git "${HOME}/.pyenv"
-else
-    # Its possible that pyenv didn't come from git.
-    update_pyenv || true
+elif [ -d "${HOME}/.pyenv/.git" ]; then
+    update_pyenv
 fi
 
 if [ -e "${HOME}/.pyenv" ]; then
