@@ -7,7 +7,7 @@ repos:
         name: build install.sh
         entry: python3 installers/build.py
         files: "^installers/"
-        language: python
+        language: script
         types: [shell]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0
