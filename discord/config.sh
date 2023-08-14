@@ -1,9 +1,12 @@
 CODER_USERNAME=${CODER_USERNAME:-}
+CODER=${CODER:-}
 
-if test ! -z "$CODER_USERNAME" ; then
+if test -n "$CODER_USERNAME" || test -n "$CODER" ; then
     # Discord Coder specific configuration
     export STARSHIP_CONFIG="${HOME}/.config/starship.discord.toml"
 fi
+
+
 
 ssh-coder() {
     CODER="${1:-alex-builds-small-machines}"
