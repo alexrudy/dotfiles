@@ -1,0 +1,9 @@
+DISCORD_ROOT=$(expand_path .)
+DIR_COMMON_PY=$DISCORD_ROOT/discord_common/py
+
+export DISCORD_ROOT
+
+path_add PYTHONPATH $DISCORD_ROOT
+path_add PYTHONPATH $DIR_COMMON_PY
+
+PATH_add $DISCORD_ROOT/.local/bin
