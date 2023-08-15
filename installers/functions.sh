@@ -1,9 +1,11 @@
 #!/usr/bin/env sh
-# shellcheck disable=SC3043
+# shellcheck disable=SC3043,SC2317
 set -eu
 
 # Library of functions useful for installing.
 # Everything here should be POSIX sh
+
+# Allow shellcheck to ignore unused functions
 
 LOGFILE="${LOGFILE:-${HOME}/.dotfiles-install.log}"
 

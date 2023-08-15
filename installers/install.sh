@@ -2,6 +2,11 @@
 # shellcheck disable=SC3043
 set -eu
 
+# Tells the configuration to not worry
+# that it might not find a dotfiles directory, and
+# that it should make one instead.
+export DOTFILES_INSTALLER=1
+
 # shellcheck source=installers/prelude.sh
 . "${DOTFILES}/installers/prelude.sh"
 

@@ -98,7 +98,6 @@ class Entry(t.NamedTuple):
         return cls(line, m)
 
     def replace(self, value: str):
-
         return (
             self.match.expand("\g<indent>\g<key>\g<sep>")
             + value
@@ -128,7 +127,6 @@ def iter_new_config(lines, target_host, new_options):
 
     # Iterate and retrun modified configuration
     for hosts, host_config in config.items():
-
         for entry in host_config.values():
             line = entry.line
             if target_host in hosts and entry.key in new_options:

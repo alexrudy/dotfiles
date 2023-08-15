@@ -1,0 +1,11 @@
+DIR_COMMON_PY=$DISCORD_ROOT/discord_common/py
+DIR_ANALYTICS=$DISCORD_ROOT/discord_analytics
+
+export DISCORD_ROOT
+
+path_add PYTHONPATH $DISCORD_ROOT
+path_add PYTHONPATH $DIR_ANALYTICS/airflow
+path_add PYTHONPATH $DIR_COMMON_PY
+
+PATH_add $DISCORD_ROOT/.local/bin
+PATH_add ~/.virtualenvs/discord_ai/bin

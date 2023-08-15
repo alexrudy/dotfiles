@@ -9,6 +9,11 @@ set -eu
 # All changes should be made to installers/install.sh
 # and included files therin, as the root one is compiled
 
+# Tells the configuration to not worry
+# that it might not find a dotfiles directory, and
+# that it should make one instead.
+export DOTFILES_INSTALLER=1
+
 # BEGIN included from installers/prelude.sh
 
 # Prelude which includes necessary scripts for the dotfiles installer to run
@@ -20,16 +25,20 @@ GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
 GIT_BRANCH="main"
 export GITHUB_REPO GIT_BRANCH
 
-DOWNLOAD=${DOWNLOAD:-}
+DOTFILES_INSTALLER=${DOTFILES_INSTALLER:-}
 
 DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 if [ "$DOTFILES" = "/" ]; then
     DOTFILES="${HOME}/.dotfiles/"
 fi
 
-if test -z "${DOWNLOAD}"; then
+if test -z "${DOTFILES_INSTALLER}"; then
     if ! test -d "${DOTFILES}"; then
         DOTFILES=$(readlink -f "$(dirname "$0")")
+        if test "${DOTFILES}" -eq "${HOME}"; then
+            echo "ERROR: DOTFILES cannot be found."
+            exit 1
+        fi
         export DOTFILES
     fi
 fi
@@ -52,6 +61,8 @@ fi
 
 # Library of functions useful for installing.
 # Everything here should be POSIX sh
+
+# Allow shellcheck to ignore unused functions
 
 LOGFILE="${LOGFILE:-${HOME}/.dotfiles-install.log}"
 

@@ -7,16 +7,20 @@ GITHUB_REPO="${GITHUB_REPO:-alexrudy/dotfiles}"
 GIT_BRANCH="main"
 export GITHUB_REPO GIT_BRANCH
 
-DOWNLOAD=${DOWNLOAD:-}
+DOTFILES_INSTALLER=${DOTFILES_INSTALLER:-}
 
 DOTFILES="${DOTFILES:-${HOME}/.dotfiles/}"
 if [ "$DOTFILES" = "/" ]; then
     DOTFILES="${HOME}/.dotfiles/"
 fi
 
-if test -z "${DOWNLOAD}"; then
+if test -z "${DOTFILES_INSTALLER}"; then
     if ! test -d "${DOTFILES}"; then
         DOTFILES=$(readlink -f "$(dirname "$0")")
+        if test "${DOTFILES}" -eq "${HOME}"; then
+            echo "ERROR: DOTFILES cannot be found."
+            exit 1
+        fi
         export DOTFILES
     fi
 fi
