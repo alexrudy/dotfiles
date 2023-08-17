@@ -1,2 +1,6 @@
+# shellcheck shell=sh
+
 WD=$(pwd)
-cd $DOTFILES && git pull && cd $WD
+cd "$DOTFILES" || exit
+./update.sh
+cd "$WD"
