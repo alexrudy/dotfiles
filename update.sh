@@ -9,6 +9,8 @@ set -eu
 # All changes should be made to installers/update.sh
 # and included files therin, as the root one is compiled
 
+export DOTFILES_INSTALLER=""
+
 # BEGIN included from installers/prelude.sh
 
 # Prelude which includes necessary scripts for the dotfiles installer to run
@@ -47,7 +49,7 @@ export DEBIAN_FRONTEND
 TERM="${TERM:-dumb}"
 export TERM
 
-if test -z "${DOWNLOAD}"; then
+if test -z "${DOTFILES_INSTALLER}"; then
     cd "${DOTFILES}"
 fi
 # END included from installers/configure.sh

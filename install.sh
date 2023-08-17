@@ -52,7 +52,7 @@ export DEBIAN_FRONTEND
 TERM="${TERM:-dumb}"
 export TERM
 
-if test -z "${DOWNLOAD}"; then
+if test -z "${DOTFILES_INSTALLER}"; then
     cd "${DOTFILES}"
 fi
 # END included from installers/configure.sh

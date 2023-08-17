@@ -2,6 +2,8 @@
 # shellcheck disable=SC3043
 set -eu
 
+export DOTFILES_INSTALLER=""
+
 # shellcheck source=installers/prelude.sh
 . "${DOTFILES}/installers/prelude.sh"
 

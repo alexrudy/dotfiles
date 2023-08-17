@@ -5,7 +5,7 @@ set -eu
 . "${DOTFILES}/installers/prelude.sh"
 
 install_ripgrep() {
-    if ! command_exists ripgrep; then
+    if ! command_exists rg; then
         if command_exists dpkg && command_exists curl; then
             _process "🏄 Install ripgrep"
             workdir="$(mktemp -d)"
