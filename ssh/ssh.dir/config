@@ -11,6 +11,7 @@
 #
 # For more information about ssh options, see `man ssh`.
 
+Include ~/.orbstack/ssh/config
 Include ./conf.d/*.config
 
 Host *

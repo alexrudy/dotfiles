@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+set -eu
 #
 # Summary: Helpers to upgrade pip in each environment
 #
@@ -7,10 +8,25 @@
 # Set environment and build python on macos 10.14+, passing
 # all arguments directly to pyenv install.
 
+# shellcheck source=installers/prelude.sh
+. "${DOTFILES}/installers/prelude.sh"
 
-VERSIONS=$(pyenv versions --bare --skip-aliases)
+if ! command_exists pyenv ; then
+    export PYENV="${HOME}/.pyenv/bin/pyenv"
+else
+    export PYENV="pyenv"
+fi
 
-for VERSION in $VERSIONS; do
-    echo "Upgrade pip in $VERSION"
-    PYENV_VERSION=$VERSION pyenv exec python -m pip install --upgrade $@
+PYTHON_VERSIONS=$(tr '\n' ' ' < "${DOTFILES}/python/python-versions.txt")
+
+# shellcheck disable=SC2086
+for VERSION in $PYTHON_VERSIONS; do
+    PYTHON_VERSION=$(pyenv latest -k "$VERSION")
+    if [ "$PYTHON_VERSION" = $(pyenv latest "$VERSION") ]; then
+        continue
+    fi
+    echo "Upgrade python $VERSION to $PYTHON_VERSION"
+    (exec "$PYENV" install -s ${PYTHON_VERSION})
 done
+
+exec "$PYENV" global ${PYTHON_VERSIONS} system
