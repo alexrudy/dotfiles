@@ -18,19 +18,20 @@ epath () {
     done
 }
 
-pathpromote () {
-    path=($1 ${(@)path:#$1})
-}
+if [[ -z "$ZSH_VERSION" ]]; then
+    pathpromote () {
+        path=($1 ${(@)path:#$1})
+    }
 
 
-pathdemote () {
-    path=(${(@)path:#$1} $1)
-}
+    pathdemote () {
+        path=(${(@)path:#$1} $1)
+    }
 
-pathdrop () {
-    path=(${(@)path:#$1})
-}
-
+    pathdrop () {
+        path=(${(@)path:#$1})
+    }
+fi
 
 command_exists () {
     type "$1" &> /dev/null ;
