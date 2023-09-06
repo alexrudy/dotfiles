@@ -14,6 +14,12 @@ github_cli() {
 
 apt_packages() {
     _process "📦 apt packages"
+
+    _message "💾 apt update"
+    sudo apt-get --quiet update -y  > /dev/null
+    sudo apt install software-properties-common
+
+    _message "💾 add ppa repositories"
     sudo add-apt-repository -y ppa:git-core/ppa > /dev/null
     sudo add-apt-repository -y ppa:deadsnakes/ppa > /dev/null
 
@@ -23,14 +29,14 @@ apt_packages() {
         APT_UPGRADE=$(tr '\n' ' ' < "${DOTFILES}/apt/packages/apt-upgrade.txt")
         # shellcheck disable=SC2086
         sudo apt-get --quiet install --only-upgrade --no-install-recommends -y \
-            ${APT_UPGRADE} > /dev/null
+            ${APT_UPGRADE} &> /dev/null
     fi
 
     if test -f "${DOTFILES}/apt/packages/apt-install.txt"; then
         APT_INSTALL=$(tr '\n' ' ' < "${DOTFILES}/apt/packages/apt-install.txt")
         # shellcheck disable=SC2086
         sudo apt-get --quiet install --no-install-recommends -y \
-            ${APT_INSTALL} > /dev/null
+            ${APT_INSTALL} &> /dev/null
     fi
 
     _finished "✅ finished apt packages"
