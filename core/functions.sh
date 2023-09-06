@@ -18,7 +18,7 @@ epath () {
     done
 }
 
-if [[ -z "$ZSH_VERSION" ]]; then
+if [[ -n "$ZSH_VERSION" ]]; then
     pathpromote () {
         path=($1 ${(@)path:#$1})
     }
