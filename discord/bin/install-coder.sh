@@ -33,7 +33,17 @@ apt_packages() {
 
 
     _finished "✅ finished apt packages"
+}
 
+personalize() {
+    if test $(readlink "${HOME}/personalize") = "${DOTFILES}/discord/bin/coder-personalize.sh"; then
+        _debug "✅ already personalized"
+    else
+        _process "🧑🏼‍🎤 setting up ~/personalize"
+        ln -s "${DOTFILES}/discord/bin/coder-personalize.sh" "${HOME}/personalize"
+        chmod +x "${HOME}/personalize"
+        _finished "✅ finished setting up ~/personalize"
+    fi
 }
 
 CODER_USERNAME=${CODER_USERNAME:-}
@@ -43,6 +53,8 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
     # Discord-specific installation steps
 
     _process "👾 Coder Specific Install Steps"
+
+    personalize
 
     github_cli
 
