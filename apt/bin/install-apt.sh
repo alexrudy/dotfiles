@@ -16,12 +16,12 @@ apt_packages() {
     _process "📦 apt packages"
 
     _message "💾 apt update"
-    sudo apt-get --quiet update -y  > /dev/null
-    sudo apt-get install --no-install-recommends --quiet -y software-properties-common
+    # sudo apt-get --quiet update -y  > /dev/null
+    # sudo apt-get install --no-install-recommends --quiet -y software-properties-common
 
-    _message "💾 add ppa repositories"
-    sudo add-apt-repository -y ppa:git-core/ppa > /dev/null
-    sudo add-apt-repository -y ppa:deadsnakes/ppa > /dev/null
+    # _message "💾 add ppa repositories"
+    # sudo add-apt-repository -y ppa:git-core/ppa > /dev/null
+    # sudo add-apt-repository -y ppa:deadsnakes/ppa > /dev/null
 
     sudo apt-get --quiet update -y  > /dev/null
 
