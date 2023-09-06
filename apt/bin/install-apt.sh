@@ -17,7 +17,7 @@ apt_packages() {
 
     _message "💾 apt update"
     sudo apt-get --quiet update -y  > /dev/null
-    sudo apt install software-properties-common
+    sudo apt-get install --no-install-recommends --quiet -y software-properties-common
 
     _message "💾 add ppa repositories"
     sudo add-apt-repository -y ppa:git-core/ppa > /dev/null
