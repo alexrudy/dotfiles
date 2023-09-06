@@ -35,8 +35,9 @@ apt_packages() {
     _finished "✅ finished apt packages"
 }
 
+
 personalize() {
-    if test $(readlink "${HOME}/personalize") = "${DOTFILES}/discord/bin/coder-personalize.sh"; then
+    if test "$(readlink "${HOME}/personalize")" = "${DOTFILES}/discord/bin/coder-personalize.sh"; then
         _debug "✅ already personalized"
     else
         _process "🧑🏼‍🎤 setting up ~/personalize"

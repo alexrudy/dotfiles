@@ -4,6 +4,9 @@ CODER=${CODER:-}
 if test -n "$CODER_USERNAME" || test -n "$CODER" ; then
     # Discord Coder specific configuration
     export STARSHIP_CONFIG="${HOME}/.config/starship.discord.toml"
+
+    export EDITOR='code -w'
+    export GIT_EDITOR="code --wait"
 fi
 
 
