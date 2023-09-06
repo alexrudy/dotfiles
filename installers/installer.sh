@@ -131,7 +131,7 @@ run_installers() {
 
 
 main() {
-    _process "🚧 Installing dotfiles in ${1:-DOTFILES}"
+    _process "🚧 Installing dotfiles in ${1:-${DOTFILES}}"
 
     run_installers
     link_dotfiles
