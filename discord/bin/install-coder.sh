@@ -47,6 +47,22 @@ personalize() {
     fi
 }
 
+install_buildifier() {
+    BUILDIFIER_VERSION="v6.3.3"
+    BUILDIFIER_URL="https://github.com/bazelbuild/buildtools/releases/download/${BUILDIFIER_VERSION}/buildifier-linux-amd64"
+
+    if ! command_exists buildifier; then
+        _process "🔨 buildifier"
+        curl -fsSL "${BUILDIFIER_URL}" -o "${HOME}/bin/buildifier"
+        chmod +x "${HOME}/.bin/buildifier"
+        _finished "✅ finished buildifier"
+    else
+        _debug "✅ already installed buildifier"
+        type buildifier
+    fi
+
+}
+
 CODER_USERNAME=${CODER_USERNAME:-}
 CODER=${CODER:-}
 
@@ -60,6 +76,8 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
     github_cli
 
     apt_packages
+
+    install_buildifier
 
     # shellcheck source=python/bin/install-pyenv.sh
     . "${DOTFILES}/python/bin/install-pyenv.sh"
