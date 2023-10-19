@@ -12,9 +12,10 @@ if test -n "$CODER_USERNAME" || test -n "$CODER" ; then
 else
     # Configuration for local machines
     ssh-coder() {
-        CODER="${1:-alex-builds-small-machines}"
+        CODER="${1:-bshm}"
         echo "connecting to coder.$CODER"
         ssh "coder.$CODER" -t 'tmux -CC new-session -A -s main'
     }
 
+    alias ssc='ssh-coder'
 fi

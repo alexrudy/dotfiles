@@ -19,7 +19,7 @@
   ci = commit
 
   # Show recent branches in fzf
-  ch = !git checkout $(git reflog show --pretty=format:'%gs ~ %gd' --date=relative | grep 'checkout:' | grep -oE '[^ ]+ ~ .*' | awk -F~ '!seen[$    1]++' | head -n 20 | cut -d '~' -f 1 | fzf)
+  sw = !git switch $(git reflog show --pretty=format:'%gs ~ %gd' --date=relative | grep 'checkout:' | grep -oE '[^ ]+ ~ .*' | awk -F~ '!seen[$    1]++' | head -n 20 | cut -d '~' -f 1 | fzf)
 
   # Last commit
   last = 'log -1 HEAD'
@@ -28,7 +28,7 @@
   branch-name = "!git rev-parse --abbrev-ref HEAD"
 
   # Publish this branch to a remote, optionally defaulting to origin.
-  publish = "!f() { REMOTE=${1:-origin} shift; git push -u ${REMOTE} $(git branch-name) $@; }; f"
+  publish = "!f() { REMOTE=${1:-origin} shift || true; git push -u ${REMOTE} $(git branch-name) $@; }; f"
 
   # Show only branches
   mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex | sort"
@@ -58,7 +58,7 @@
     }; f"
 
   # Fast forward main
-  ffmain = git fetch origin main:main
+  ff = !git fetch origin $1:$1
 
 [color]
   diff = auto
