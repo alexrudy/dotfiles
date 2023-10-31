@@ -60,6 +60,8 @@
   # Fast forward main
   ff = !git fetch origin $1:$1
 
+  reboot = !git ff main && git switch main
+
 [color]
   diff = auto
   status = auto
