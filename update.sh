@@ -99,7 +99,12 @@ _print() {
   local message color
   message="$1"
   color="$2"
-  printf "$(_spacer)$(tput setaf "$color")%s$(tput sgr0)\n" "$message"
+
+  if [ -t 0 ] && [ -t 1  ]; then
+    printf "$(_spacer)$(tput setaf "$color")%s$(tput sgr0)\n" "$message"
+  else
+    printf "$(_spacer)%s\n" "$message"
+  fi
 }
 
 _debug() {
