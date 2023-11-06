@@ -100,11 +100,11 @@ _print() {
   message="$1"
   color="$2"
 
-  if [ -t 0 ] && [ -t 1  ]; then
-    printf "$(_spacer)$(tput setaf "$color")%s$(tput sgr0)\n" "$message"
-  else
+  # if [ -t 0 ] && [ -t 1  ]; then
+  #   printf "$(_spacer)$(tput setaf "$color")%s$(tput sgr0)\n" "$message"
+  # else
     printf "$(_spacer)%s\n" "$message"
-  fi
+  # fi
 }
 
 _debug() {
