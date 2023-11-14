@@ -21,15 +21,15 @@ apt_packages() {
 
     APT_UPGRADE=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-upgrade.txt")
     # shellcheck disable=SC2086
-    sudo apt-get --quiet install --only-upgrade --no-install-recommends -y \
-        ${APT_UPGRADE} > /dev/null
+    sudo apt --quiet install --only-upgrade --no-install-recommends -y \
+        ${APT_UPGRADE}
 
 
     APT_INSTALL=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-install.txt")
     # Python dev/build dependencies
     # shellcheck disable=SC2086
-    sudo apt-get --quiet install --no-install-recommends -y \
-        ${APT_INSTALL} > /dev/null
+    sudo apt --quiet install --no-install-recommends -y \
+        ${APT_INSTALL}
 
 
     _finished "✅ finished apt packages"
