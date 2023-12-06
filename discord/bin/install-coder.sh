@@ -14,6 +14,14 @@ github_cli() {
 
 apt_packages() {
     _process "📦 apt packages"
+
+    # Currently, this causes an error when updating apt sources.
+    if [ -f "/etc/apt/sources.list.d/postgresql.list" ]; then
+        if ! grep -E '^# deb' "/etc/apt/sources.list.d/postgresql.list"; then
+            sed -i '/^(.*)$/# \1/' "/etc/apt/sources.list.d/postgresql.list"
+        fi
+    fi
+
     sudo add-apt-repository -y ppa:git-core/ppa > /dev/null
     sudo add-apt-repository -y ppa:deadsnakes/ppa > /dev/null
 
