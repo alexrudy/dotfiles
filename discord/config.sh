@@ -5,8 +5,12 @@ if test -n "$CODER_USERNAME" || test -n "$CODER" ; then
     # Discord Coder specific configuration
     export STARSHIP_CONFIG="${HOME}/.config/starship.discord.toml"
 
-    export EDITOR='code -w'
-    export GIT_EDITOR="code --wait"
+    if command_exists code; then
+        export EDITOR='code -w'
+        export GIT_EDITOR="code --wait"
+    fi
+
+    pathprepend "${DOTFILES}/discord/bin"
 
     alias discord='cd ~/dev/discord/discord'
 else
