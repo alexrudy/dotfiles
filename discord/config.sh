@@ -22,4 +22,12 @@ else
     }
 
     alias ssc='ssh-coder'
+
+    clyde-login() {
+        clyde login gcloud -w "$1" > /dev/null 2>&1 &
+        clyde login tsh -w "$1" > /dev/null 2>&1 &
+        wait
+    }
+
+    alias cl='clyde-login'
 fi
