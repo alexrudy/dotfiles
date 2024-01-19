@@ -81,3 +81,5 @@
   path = ~/.config/gitconfig
 [push]
 	autoSetupRemote = true
+[includeIf "gitdir:~/*/discord/discord/"]
+  path = ~/.gitconfig.discord
