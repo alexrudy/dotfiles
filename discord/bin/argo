@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+ARGO_ENV=${ARGO_ENV:-prd}
+
+export ARGO_SERVER="argo-workflows-ai-${ARGO_ENV}.discord.tools:443"
+export ARGO_HTTP1=true
+export ARGO_SECURE=true
+export ARGO_BASE_HREF=
+export ARGO_TOKEN=''
+export ARGO_NAMESPACE=argo
+export ARGO_INSECURE_SKIP_VERIFY=true
+# export KUBECONFIG=/dev/null
+
+/usr/local/bin/argo -H "cf-access-token:$(cloudflared access token -app https://${ARGO_SERVER})" "$@"

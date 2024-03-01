@@ -6,4 +6,5 @@ export DISCORD_ROOT
 path_add PYTHONPATH $DISCORD_ROOT
 path_add PYTHONPATH $DIR_COMMON_PY
 
+PATH_add $DISCORD_ROOT/misc/users/alexrudy/scripts/
 PATH_add $DISCORD_ROOT/.local/bin
