@@ -14,7 +14,7 @@ install_atuin() {
             # Add me back when sparse registries stabilize
             # CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
             # export CARGO_REGISTRIES_CRATES_IO_PROTOCOL
-            cargo install atuin
+            cargo install atuin --locked
         else
             curl https://raw.githubusercontent.com/ellie/atuin/main/install.sh | bash
         fi
