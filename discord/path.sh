@@ -8,3 +8,7 @@ if [ -e "$HOME/Development/discord/discord/clyde" ]; then
         ln -s "$HOME/Development/discord/discord/clyde" "$DOTFILES/discord/bin/clyde"
     fi
 fi
+
+if [ -d "$HOME/dev/discord/discord/.git" ]; then
+    pathprepend "$DOTFILES/discord/bin"
+fi

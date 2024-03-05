@@ -1,6 +1,7 @@
 #!/home/discord/.virtualenvs/discord_ai/bin/python
 
-from typing import Any
+from typing import Any, Callable, TypeVar, Union
+import concurrent.futures
 import click
 import os
 import subprocess
@@ -27,7 +28,26 @@ def handle_subprocess_errors():
     except subprocess.CalledProcessError as e:
         emsg = click.style("ERROR", fg="red")
         click.echo(f"{emsg}: {e!s}", err=True)
+        if e.stdout:
+            click.echo("stdout:")
+            click.echo()
+            show_stream(e.stdout)
+            click.echo()
+        if e.stderr:
+            click.echo("stderr:")
+            click.echo()
+            show_stream(e.stderr)
+            click.echo()
         raise click.Abort()
+
+
+def show_stream(stream: Union[str, bytes]) -> None:
+    if not stream:
+        return
+    if isinstance(stream, str):
+        click.echo(stream)
+    else:
+        click.echo(stream.decode("utf-8"))
 
 
 @click.group()
@@ -47,49 +67,61 @@ def terraform_apply_options(func) -> Any:
         help="Whether to run terraform init before applying",
     )(func)
     click.option(
+        "--plan/--apply", default=False, is_flag=True, help="Run plan, not apply"
+    )(func)
+    return func
+
+
+T = TypeVar("T")
+
+
+def tf_env_option() -> Callable[[T], T]:
+    return click.option(
         "-e",
         "--env",
         "--environment",
         default="prd",
         help="The environment to apply the project to. Defaults to prd.",
-    )(func)
-    return func
+    )
 
 
 @main.command()
 @click.argument("project")
+@tf_env_option()
 @terraform_apply_options
 @handle_subprocess_errors()
 def apply(
-    project: str, env: str = None, init: bool = True, upgrade: bool = True
+    project: str, env: str, init: bool = True, upgrade: bool = True, plan: bool = False
 ) -> None:
     """Apply a terraform project"""
     module = find_project(project, env)
 
     if init:
+        args = ["init"]
         if upgrade:
-            args = (
-                "init",
-                "-upgrade",
-            )
-        else:
-            args = ("init",)
-        bzl(module, env, *args)
+            args += ["-upgrade"]
 
-    bzl(module, env, "apply")
+        bzl_run_tf(module, env, *args)
+
+    if plan:
+        bzl_run_tf(module, env, "plan")
+    else:
+        bzl_run_tf(module, env, "apply")
 
 
 @main.command()
 @click.argument("ucg")
+@tf_env_option()
 @terraform_apply_options
 @handle_subprocess_errors()
 @click.pass_context
 def ucg(
     ctx: click.Context,
     ucg: str,
-    env: str = None,
+    env: str,
     init: bool = True,
     upgrade: bool = True,
+    plan: bool = False,
 ) -> None:
     """Apply terraform for a single data UCG."""
     project = f"discord-data-{ucg}"
@@ -98,33 +130,88 @@ def ucg(
             project=click.style(project, bold=True), env=click.style(env, bold=True)
         )
     )
-    ctx.invoke(apply, project=project, env=env, init=init, upgrade=upgrade)
+    ctx.invoke(apply, project=project, env=env, init=init, upgrade=upgrade, plan=plan)
 
 
 @main.command(name="all-ucgs")
+@tf_env_option()
 @terraform_apply_options
 @handle_subprocess_errors()
 @click.pass_context
 def all_ucgs(
-    ctx: click.Context, env: str = None, init: bool = True, upgrade: bool = True
+    ctx: click.Context,
+    env: str,
+    init: bool = True,
+    upgrade: bool = True,
+    plan: bool = False,
 ) -> None:
     """Apply terraform for all data UCGs in sequence."""
     for ucg_name in ("analytics", "modeling", "reporting", "tns"):
-        ctx.invoke(ucg, ucg=ucg_name, env=env, init=init, upgrade=upgrade)
+        ctx.invoke(ucg, ucg=ucg_name, env=env, init=init, upgrade=upgrade, plan=plan)
 
 
-def bzl(module: str, target: str, *args: str) -> None:
+@main.command()
+@click.argument("project")
+@handle_subprocess_errors()
+def lint(project: str) -> None:
+    """Lint some terraform"""
+
+    if "data" in project:
+        queries = [
+            "//discord_devops/terraform/modules/data/...",
+            "//discord_devops/terraform/data/...",
+        ]
+    else:
+        queries = [f"//discord_devops/terraform/{project}/..."]
+        modules = f"/discord_devops/terraform/modules/{project}"
+        if os.path.isdir(modules):
+            queries.append(f"/{modules}/...")
+
+    procs = [
+        bzl(
+            "query",
+            f"kind('_tf_module', {query})",
+            "--output=label",
+            capture_output=True,
+            text=True,
+        )
+        for query in queries
+    ]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+        linters = {}
+        for proc in procs:
+            for line in proc.stdout.splitlines():
+                label = line.strip()
+                if "/execution-projects/discord-data-bqexec" in label:
+                    continue
+                if label not in linters:
+                    linters[label] = pool.submit(bzl_lint, label, capture_output=True)
+        for fut in concurrent.futures.as_completed(linters.values(), timeout=600):
+            fut.result(timeout=0.1)
+
+    click.echo("DONE!")
+
+
+def bzl_lint(label, **options: Any) -> None:
+    bzl("run", f"{label}.lint", **options)
+
+
+def bzl_run_tf(module: str, target: str, *args: str) -> None:
     if not (module.startswith("//") or module.startswith("@")):
         module = f"//{module}"
+    bzl("run", f"{module}:{target}", "--", *args)
 
-    command = ["bzl", "run", f"{module}:{target}", "--", *args]
 
+def bzl(*args: str, **options: Any) -> subprocess.CompletedProcess:
+    options.setdefault("check", True)
+    command = ["bzl", *args]
     indicator = click.style(">", fg="blue", bold=True)
-    args = click.style("bzl run", bold=True)
-    args += " ".join(command[2:])
-    click.echo(f"{indicator} {args}")
-
-    subprocess.run(command, check=True)
+    cmd = click.style(" ".join(command[:2]), bold=True)
+    if len(command) > 2:
+        cmd += " "
+        cmd += " ".join(command[2:])
+    click.echo(f"{indicator} {cmd}")
+    return subprocess.run(command, **options)
 
 
 def find_project(name: str, environment: str) -> str:
