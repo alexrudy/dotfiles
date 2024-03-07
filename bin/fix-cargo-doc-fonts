@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+
+from typing import Iterable
+import glob
+import re
+
+
+def main():
+    """Fix all cargo doc .html files locally by stripping preload tags"""
+    for docfile in glob.iglob("target/doc/**/*.html", recursive=True):
+        print(f"Fixing {docfile}")
+        process(docfile)
+
+
+def _strip_preload_tags(html: Iterable[str]) -> Iterable[str]:
+    """Strip the preload tag from the given html"""
+    pattern = re.compile(r'<link rel="preload" as="font" ([^>]+)>')
+
+    for line in html:
+        yield pattern.sub(r"<link \1>", line)
+
+
+def process(path: str):
+    """Process the given path"""
+
+    with open(path, "r") as f:
+        html = f.read()
+
+    html = "\n".join(_strip_preload_tags(html.splitlines()))
+
+    with open(path, "w") as f:
+        f.write(html)
+
+
+if __name__ == "__main__":
+    main()

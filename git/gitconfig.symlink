@@ -83,3 +83,5 @@
 	autoSetupRemote = true
 [includeIf "gitdir:~/*/discord/discord/"]
   path = ~/.gitconfig.discord
+[includeIf "gitdir:/Users/"]
+  path = ~/.config/git/gitconfig.macos.config
