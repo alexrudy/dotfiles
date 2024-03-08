@@ -1,0 +1,7 @@
+talon.dir/user
+talon.dir/.sys
+talon.dir/.venv
+talon.dir/bin
+talon.dir/*.log
+talon.dir/plugins
+talon.dir/draconity.toml
