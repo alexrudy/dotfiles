@@ -194,7 +194,7 @@ install_dotfiles() {
                 if test -d "${DOTFILES}" ; then
                     if command_exists git; then
                         _message "🐙 Pull latest dotfiles from github"
-                        if git -C "$DOTFILES" pull > /dev/null 2>&1 ; then
+                        if git -C "$DOTFILES" pull --quiet --recurse-submodules > /dev/null 2>&1 ; then
                             _message "🐙 Updated dotfiles git repo"
                         else
                             # Not a hard failure
@@ -220,7 +220,7 @@ install_dotfiles() {
                 download_git_clone() {
                     if command_exists git; then
                         _process "🐙 cloning ${GITHUB_REPO} from github"
-                        git clone "https://github.com/${GITHUB_REPO}.git" "${DOTFILES}"
+                        git clone --recursive "https://github.com/${GITHUB_REPO}.git" "${DOTFILES}"
                     else
                         exit 1
                     fi
