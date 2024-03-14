@@ -5,18 +5,8 @@
 
 [alias]
 
-  # Whats going on?
-  wtf     = !$DOTFILES/bin/git-wtf
-
-  # Contributor rank
-  rank-contributers = !$DOTFILES/bin/git-rank-contributers
-
   # How many commits
   count   = !git shortlog -sn
-  co = checkout
-  st = status
-  b = branch
-  ci = commit
 
   # Show recent branches in fzf
   sw = !git switch $(git reflog show --pretty=format:'%gs ~ %gd' --date=relative | grep 'checkout:' | grep -oE '[^ ]+ ~ .*' | awk -F~ '!seen[$    1]++' | head -n 20 | cut -d '~' -f 1 | fzf)
@@ -34,7 +24,7 @@
   mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex | sort"
 
   # Graph log
-  glog = log --graph --decorate --oneline
+  graph = log --graph --decorate --oneline
 
   # Show branches, verbosely, sorted by last touch, with commit messages.
   brv = "!f() { git branch --sort=-creatordate --color=always --format='%(color:reset)%(creatordate:short) %(color:bold white)%(align:2,right)%(upstream:trackshort)%(end)%(color:nobold) %(align:40,left)%(color:yellow)%(refname:short)%(end) %(color:reset)%(contents:subject)'; }; f"
@@ -59,8 +49,9 @@
 
   # Fast forward main
   ff = !git fetch origin $1:$1
-
+  ff-this = !git fetch origin main:main && git rebase main
   reboot = !git ff main && git switch main
+	aliases = "!git config --get-regexp '^alias\\.' | sed -r 's/(alias\\.\\S+)/\\1 \\#/1; s/\\#(.{50}).*/\\#\\1.../' | column '-ts\\#'"
 
 [color]
   diff = auto
