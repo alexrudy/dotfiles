@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import urllib.parse
+import contextlib
+import collections
 import dataclasses as dc
 import re
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Self, TypeVar, Iterable
 
 try:
     import requests
@@ -21,8 +23,11 @@ FIND_OWNER_LINK: re.Pattern = re.compile(
 )
 
 
+R = TypeVar("R", bound="Resource")
+
+
 class Links(dict):
-    def __getitem__(self, key: str) -> Dict[str, str]:
+    def __getitem__(self, key: str) -> str:
         return super().__getitem__(key)["href"]
 
     def __repr__(self) -> str:
@@ -64,7 +69,9 @@ class Github:
             urllib.parse.urljoin(self.base_url, endpoint), **kwargs
         )
 
-    def get_paginated_data(self, endpoint: str, **kwargs: Any) -> Any:
+    def get_paginated_data(
+        self, endpoint: str, **kwargs: Any
+    ) -> Iterable[Dict[str, Any]]:
         response = self.get(endpoint, **kwargs)
         response.raise_for_status()
         yield from response.json()
@@ -72,6 +79,12 @@ class Github:
             response = self.get(response.links["next"]["url"])
             response.raise_for_status()
             yield from response.json()
+
+    def get_paginated_resource(
+        self, cls: type[R], endpoint: str, **kwargs: Any
+    ) -> Iterable[R]:
+        for item in self.get_paginated_data(endpoint=endpoint, **kwargs):
+            yield cls(item)
 
 
 @dc.dataclass(init=False)
@@ -84,7 +97,7 @@ class Resource:
         self._links = links or {}
 
     @classmethod
-    def from_response(cls, response: requests.Response) -> "Resource":
+    def from_response(cls, response: requests.Response) -> "Self":
         return cls(response.json(), response.links)
 
     def __getitem__(self, key: str) -> Any:
@@ -100,10 +113,10 @@ class Resource:
 
 class Notification(Resource):
     def nosiy(self, repo: str) -> bool:
-        return (
-            self._data["repository"]["full_name"] == repo
-            and self._data["reason"] == "review_requested"
-        )
+        return self.repo() == repo and self["reason"] == "review_requested"
+
+    def repo(self) -> str:
+        return self._data["repository"]["full_name"]
 
     def thread(self) -> str:
         return self._data["id"]
@@ -131,6 +144,27 @@ class Comment(Resource):
 
     def user(self) -> str:
         return self._data["user"]["login"]
+
+
+class UnprocessableComment(Exception):
+    def __init__(self, comment: Comment) -> None:
+        self.msg = f"Unprocessed {comment.user()} comment"
+
+    def __str__(self) -> str:
+        lines = [f"Unprocessed {comment.user()} comment:"]
+        lines.extend(comment.body().splitlines())
+        lines.append(pr.links["html"])
+
+        return "\n".join(lines)
+
+
+@contextlib.contextmanager
+def handle_unprocessable_comment():
+    try:
+        yield
+    except UnprocessableComment as exc:
+        print(str(exc))
+        raise SystemExit(1)
 
 
 @dc.dataclass
@@ -163,12 +197,14 @@ class CodeOwners:
                 elif m.group("emoji") == "information_source":
                     optional.append(m.group("team").strip())
 
+        if not any((required, optional, completed)):
+            raise UnprocessableComment(comment)
+
         return cls(required, optional, completed)
 
 
 if __name__ == "__main__":
     import argparse
-    import sys
     import concurrent.futures
     import contextlib
 
@@ -178,16 +214,30 @@ if __name__ == "__main__":
         "--repo", help="Repository to unsubscribe from", default="discord/discord"
     )
     parser.add_argument(
+        "--organization",
+        help="Github Organization to consider (others will be skipped)",
+        default="discord",
+    )
+    parser.add_argument(
         "--bot", help="Bot to unsubscribe from", default="discord-ci-app[bot]"
+    )
+    parser.add_argument("--team", help="Github team to target", default="ML Platform")
+    parser.add_argument(
+        "--owners-team",
+        help="Team name from codeowners",
+        default="Machine Learning Platform",
     )
     args = parser.parse_args()
 
     github = Github(args.token)
+    stats: collections.Counter[str] = collections.Counter()
     unsubs = set()
     with contextlib.ExitStack() as stack:
         executor = stack.enter_context(
             concurrent.futures.ThreadPoolExecutor(max_workers=10)
         )
+
+        stack.enter_context(handle_unprocessable_comment())
 
         progress = stack.enter_context(
             Progress(
@@ -201,51 +251,107 @@ if __name__ == "__main__":
         task_notifications = progress.add_task("Notifications", total=None)
         unsubscribes = progress.add_task("Unsubscribes", total=None)
 
+        def update_unsubscribes(*args) -> None:
+            progress.update(unsubscribes, advance=1)
+            stats["threads"] += 1
+
         def unsubscribe(notification):
             future = executor.submit(notification.unsubscribe, github)
-            future.add_done_callback(lambda _: progress.update(unsubscribes, advance=1))
+            future.add_done_callback(update_unsubscribes)
 
-        for notification in (
-            Notification(data) for data in github.get_paginated_data("notifications")
+        for notification in github.get_paginated_resource(
+            Notification, "notifications"
         ):
             progress.update(task_notifications, advance=1)
-            repo = notification["repository"]["full_name"]
+            stats["notifications"] += 1
 
-            if repo != args.repo and repo.startswith("discord/"):
-                if repo not in unsubs:
-                    print(f"Unsubscribing from {repo}")
-                    github.delete(f"/repos/{repo}/subscription")
-                    unsubs.add(repo)
+            if notification.repo() != args.repo and notification.repo().startswith(
+                f"{args.organization}/"
+            ):
+                if notification.repo() not in unsubs:
+                    print(f"Unsubscribing from {notification.repo()}")
+                    github.delete(f"/repos/{notification.repo()}/subscription")
+                    unsubs.add(notification.repo())
                 unsubscribe(notification)
+                stats["other-discord-repo"] += 1
                 continue
 
             if notification.nosiy(args.repo):
                 pr = PullRequest.from_response(github.get(notification.subject_url()))
                 if "alexrudy" in pr.requested_reviewers():
+                    stats["personally-requested"] += 1
                     continue
 
                 # PR isn't open, unsubscribe
                 if pr["state"] != "open":
+                    stats["closed"] += 1
                     unsubscribe(notification)
                     continue
 
                 # Team isn't a requested reviewer, unsubscribe
-                if "ML Platform" not in pr.requested_teams():
+                if args.team not in pr.requested_teams():
+                    stats["no-longer-requested"] += 1
                     unsubscribe(notification)
                     continue
 
-                comments = (
-                    Comment(data)
-                    for data in github.get_paginated_data(pr.links["comments"])
-                )
-                for comment in comments:
-                    if comment.user() == "discord-ci-app[bot]":
+                for comment in github.get_paginated_resource(
+                    Comment, pr.links["comments"]
+                ):
+                    if comment.user() == args.bot:
+                        stats["codeowners-comments"] += 1
                         codeowners = CodeOwners.parse(comment)
                         if codeowners is not None:
-                            if "Machine Learning Platform" in codeowners.mentioned:
+                            if args.owners_team in codeowners.mentioned:
+                                stats["team-codeowners"] += 1
                                 unsubscribe(notification)
-                            else:
-                                print(f"Unprocessed {comment.user()} comment:")
-                                print(comment.body())
-                                print(pr.links["html"])
-                                sys.exit(1)
+            elif notification.repo() == args.repo:
+                stats[f"reason-{notification['reason']}"] += 1
+            else:
+                stats["repo-{}".format(notification.repo())] += 1
+
+    print("Overall stats:")
+    print("Processed {} notifications".format(stats["notifications"]))
+    if stats["threads"]:
+        print("Unsubscribed from {} threads".format(stats["threads"]))
+        print(" {} were closed".format(stats["closed"]))
+        print(" {} did not request ML Platform".format(stats["no-longer-requested"]))
+        print(
+            " {} requested ML-platform via Codeowners".format(stats["team-codeowners"])
+        )
+
+    print("{} notifications were processed".format(stats["notifications"]))
+    if stats["codeowners-comments"]:
+        print(
+            "{} codeowners comments (from {}) were processed".format(
+                stats["codeowners-comments"], args.bot
+            )
+        )
+
+    for key, value in stats.items():
+        if key.startswith("reason-"):
+            reason = key.removeprefix("reason-")
+            print(" {} were triggered because {}".format(value, reason))
+    print(" {} requested me persoanlly".format(stats["personally-requested"]))
+    if unsubs:
+        print(
+            " {} belonged to other {}/ repos".format(
+                stats["other-repo"], args.organization
+            )
+        )
+
+    not_discord = 0
+    for key, value in stats.items():
+        if key.startswith("repo-"):
+            repo = key.removeprefix("repo-")
+            if not repo.startswith(f"{args.organization}/"):
+                not_discord += value
+            else:
+                print(" {} belonged to {}".format(value, repo))
+    if not_discord:
+        print(
+            " {} belonged to repos outside the {}/ organization".format(
+                not_discord, args.organization
+            )
+        )
+    print("")
+    print(f"Unsubscribed from {len(unsubs)} repos")
