@@ -255,7 +255,7 @@ if __name__ == "__main__":
             progress.update(unsubscribes, advance=1)
             stats["threads"] += 1
 
-        def unsubscribe(notification):
+        def unsubscribe(notification: Notification) -> None:
             future = executor.submit(notification.unsubscribe, github)
             future.add_done_callback(update_unsubscribes)
 
