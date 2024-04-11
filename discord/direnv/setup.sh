@@ -7,9 +7,9 @@ add_envrc() {
 
     HERE=$(realpath "$(dirname "$0")")
 
-    ENVRCS=$(find "$HERE" -name envrc)
+    ENVRCS=($(find "$HERE" -name envrc))
 
-    for ENVRC in $ENVRCS; do
+    for ENVRC in "${ENVRCS[@]}"; do
         TARGET="${DISCORD_ROOT}${ENVRC#${HERE}}"
         TARGET="${TARGET%envrc}.envrc"
         if ! test -f $TARGET; then
