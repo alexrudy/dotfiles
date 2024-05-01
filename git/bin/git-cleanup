@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+
+import sys
+import functools
+import re
+import argparse
+import subprocess
+from typing import Any, Optional, Iterator
+
+
+def command(message: str) -> Any:
+    def decorator(func: Any) -> Any:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except subprocess.CalledProcessError as e:
+                print("Error: {}".format(message), file=sys.stderr)
+                print(e.stderr.decode(), file=sys.stderr)
+                raise
+
+        return wrapper
+
+    return decorator
+
+
+def handler() -> Any:
+    def decorator(func: Any) -> Any:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except subprocess.CalledProcessError:
+                raise SystemExit(1)
+
+        return wrapper
+
+    return decorator
+
+
+def git(*args: str) -> subprocess.CompletedProcess:
+    print("> git {}".format(" ".join(args)))
+    return subprocess.run(["git"] + list(args), check=False, capture_output=True)
+
+
+@command("determine primary branch")
+def git_remote_primary_branch(remote: str = "origin") -> Optional[str]:
+    pattern = re.compile(r"^\s*HEAD branch: (.+)$")
+    cmd = git("remote", "show", remote, "-n")
+
+    if cmd.returncode != 0:
+        return None
+
+    for line in cmd.stdout.decode().splitlines():
+        match = pattern.match(line)
+        if match:
+            branch = match.group(1)
+            if branch.startswith("(") and branch.endswith(")"):
+                return None
+            return branch
+
+    return None
+
+
+@command("fetch remote")
+def fetch(remote: str = "origin", branch: str = "main") -> None:
+    git("fetch", remote, "--prune", f"{branch}:{branch}").check_returncode()
+
+
+@command("local branches")
+def local_branches() -> Iterator[str]:
+    cmd = git("branch", "--format", "%(refname:short)")
+    cmd.check_returncode()
+    for line in cmd.stdout.decode().splitlines():
+        yield line.strip()
+
+
+@command("merged branches")
+def merged_branches(primary_branch: str, remote: Optional[str] = None) -> Iterator[str]:
+    if remote:
+        cmd = git("branch", "--remote", "--merged", primary_branch)
+    else:
+        cmd = git("branch", "--merged", primary_branch)
+
+    cmd.check_returncode()
+    for line in cmd.stdout.decode().splitlines():
+        branch = line.strip()
+        if " " in branch:
+            continue
+        if branch == primary_branch:
+            continue
+        if remote and branch.startswith(f"{remote}/"):
+            branch = branch[len(f"{remote}/") :]
+
+        yield branch
+
+
+@command("dangling branches")
+def find_dangling_branches() -> Iterator[str]:
+    cmd = git("branch", "--format", "%(refname:short) %(upstream:track)")
+    cmd.check_returncode()
+
+    for line in cmd.stdout.decode().splitlines():
+        branch = line.strip()
+        parts = list(branch.split())
+        if len(parts) != 2:
+            continue
+        if parts[-1] == "[gone]":
+            yield parts[0]
+
+
+def delete_branches(branches: Iterator[str], dry_run: bool = False) -> None:
+    for branch in branches:
+        delete_branch(branch, dry_run=dry_run)
+
+
+@command("delete branch")
+def delete_branch(branch: str, dry_run: bool = False) -> None:
+    if dry_run:
+        print(f"Would delete branch {branch}")
+    else:
+        git("branch", "-D", branch).check_returncode()
+
+
+@handler()
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Clean up merged branches")
+    parser.add_argument("--dry-run", action="store_true", help="Do not delete branches")
+    parser.add_argument(
+        "--no-fetch", dest="fetch", action="store_false", help="Do not fetch remote"
+    )
+    parser.add_argument("--fetch", action="store_true", help="Fetch remote")
+    parser.add_argument(
+        "--primary-branch", default="main", help="Default Primary branch"
+    )
+    parser.add_argument("--remote", default="origin", help="Remote name")
+
+    args = parser.parse_args()
+
+    primary_branch = git_remote_primary_branch(args.remote) or args.primary_branch
+
+    if primary_branch is None:
+        print("Could not determine primary branch")
+        return 1
+
+    if args.fetch:
+        fetch(args.remote, primary_branch)
+
+    branches = set()
+    branches.update(merged_branches(primary_branch))
+    branches.update(merged_branches(primary_branch, remote=args.remote))
+    branches.update(find_dangling_branches())
+    branches.intersection_update(local_branches())
+    branches.discard(primary_branch)
+
+    delete_branches(branches, dry_run=args.dry_run)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

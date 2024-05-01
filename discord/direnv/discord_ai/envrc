@@ -4,6 +4,7 @@ DIR_ANALYTICS=$DISCORD_ROOT/discord_analytics
 
 export DISCORD_ROOT
 
+path_add PYTHONPATH $DISCORD_ROOT/discord_ai/serving-framework/src/
 path_add PYTHONPATH $DISCORD_ROOT
 path_add PYTHONPATH $DIR_ANALYTICS/airflow
 path_add PYTHONPATH $DIR_COMMON_PY
