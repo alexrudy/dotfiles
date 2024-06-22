@@ -5,7 +5,7 @@ import functools
 import re
 import argparse
 import subprocess
-from typing import Any, Optional, Iterator
+from typing import Any, Optional, Iterator, Iterable
 
 
 def command(message: str) -> Any:
@@ -64,7 +64,15 @@ def git_remote_primary_branch(remote: str = "origin") -> Optional[str]:
 
 @command("fetch remote")
 def fetch(remote: str = "origin", branch: str = "main") -> None:
-    git("fetch", remote, "--prune", f"{branch}:{branch}").check_returncode()
+    cmd = git("rev-parse", "--abbrev-ref", "HEAD")
+    cmd.check_returncode()
+    current_branch = cmd.stdout.decode().strip()
+
+    if current_branch == branch:
+        git("fetch", remote, "--prune").check_returncode()
+        git("pull", "--ff-only", remote, branch).check_returncode()
+    else:
+        git("fetch", remote, "--prune", f"{branch}:{branch}").check_returncode()
 
 
 @command("local branches")
@@ -109,7 +117,7 @@ def find_dangling_branches() -> Iterator[str]:
             yield parts[0]
 
 
-def delete_branches(branches: Iterator[str], dry_run: bool = False) -> None:
+def delete_branches(branches: Iterable[str], dry_run: bool = False) -> None:
     for branch in branches:
         delete_branch(branch, dry_run=dry_run)
 
@@ -126,10 +134,13 @@ def delete_branch(branch: str, dry_run: bool = False) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Clean up merged branches")
     parser.add_argument("--dry-run", action="store_true", help="Do not delete branches")
-    parser.add_argument(
+
+    fetch_group = parser.add_mutually_exclusive_group()
+    fetch_group.add_argument(
         "--no-fetch", dest="fetch", action="store_false", help="Do not fetch remote"
     )
-    parser.add_argument("--fetch", action="store_true", help="Fetch remote")
+    fetch_group.add_argument("--fetch", action="store_true", help="Fetch remote")
+
     parser.add_argument(
         "--primary-branch", default="main", help="Default Primary branch"
     )
@@ -144,16 +155,23 @@ def main() -> int:
         return 1
 
     if args.fetch:
+        print("Fetching remote")
         fetch(args.remote, primary_branch)
 
-    branches = set()
+    print("Finding merged and dangling branches")
+    branches: set[str] = set()
     branches.update(merged_branches(primary_branch))
     branches.update(merged_branches(primary_branch, remote=args.remote))
     branches.update(find_dangling_branches())
     branches.intersection_update(local_branches())
     branches.discard(primary_branch)
 
+    if not branches:
+        print("No branches to delete")
+        return 0
+    print("Deleting branches")
     delete_branches(branches, dry_run=args.dry_run)
+    return 0
 
 
 if __name__ == "__main__":
