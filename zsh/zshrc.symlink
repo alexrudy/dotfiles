@@ -6,13 +6,6 @@ if [[ -z "$TZ" ]] && [[ -d "/usr/share/zoneinfo/" ]]; then
   export TZ="/usr/share/zoneinfo/America/Pacific"
 fi
 
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block, everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
 # shortcut to this dotfiles path is $ZSH
 if [[ -d "$HOME/.dotfiles" ]]; then
   export DOTFILES=$HOME/.dotfiles
@@ -46,5 +39,4 @@ setopt LOCAL_OPTIONS # allow functions to have local options
 # Configure this last to ensure it beats out pyenv
 pathprepend "$HOME/.local/bin"
 
-# {eval `ssh-agent`; ssh-add -A} &> /dev/null
 export LSCOLORS=Gxfxcxdxbxegedabagacad

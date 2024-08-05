@@ -1,6 +1,6 @@
 #!/home/discord/.virtualenvs/discord_ai/bin/python
 
-from typing import Any, Callable, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union, IO
 import concurrent.futures
 import click
 import os
@@ -17,7 +17,7 @@ class ProjectNotFound(click.ClickException):
     def __str__(self):
         return f"Could not find project {self.name} for environment {self.environment}"
 
-    def show(self, file: Any = ...) -> None:
+    def show(self, file: Optional[IO[str]] = None) -> None:
         click.echo(str(self), file=file)
 
 
@@ -55,21 +55,24 @@ def main():
     """CLI helpers for terraform-in-bazel"""
 
 
-def terraform_apply_options(func) -> Any:
-    click.option(
-        "--upgrade/--no-upgrade",
-        default=True,
-        help="Whether to run terraform init with the -upgrade flag",
-    )(func)
-    click.option(
-        "--init/--no-init",
-        default=True,
-        help="Whether to run terraform init before applying",
-    )(func)
-    click.option(
-        "--plan/--apply", default=False, is_flag=True, help="Run plan, not apply"
-    )(func)
-    return func
+def terraform_apply_options(plan: bool = False) -> Any:
+    def _decorator(func) -> Any:
+        click.option(
+            "--upgrade/--no-upgrade",
+            default=True,
+            help="Whether to run terraform init with the -upgrade flag",
+        )(func)
+        click.option(
+            "--init/--no-init",
+            default=True,
+            help="Whether to run terraform init before applying",
+        )(func)
+        click.option(
+            "--plan/--apply", default=plan, is_flag=True, help="Run plan, not apply"
+        )(func)
+        return func
+
+    return _decorator
 
 
 T = TypeVar("T")
@@ -88,7 +91,7 @@ def tf_env_option() -> Callable[[T], T]:
 @main.command()
 @click.argument("project")
 @tf_env_option()
-@terraform_apply_options
+@terraform_apply_options()
 @handle_subprocess_errors()
 def apply(
     project: str, env: str, init: bool = True, upgrade: bool = True, plan: bool = False
@@ -110,9 +113,31 @@ def apply(
 
 
 @main.command()
+@click.argument("project")
+@tf_env_option()
+@terraform_apply_options(plan=True)
+@handle_subprocess_errors()
+@click.pass_context
+def plan(
+    ctx: click.Context,
+    project: str,
+    env: str,
+    init: bool = True,
+    upgrade: bool = True,
+    plan: bool = True,
+) -> None:
+    """Plan a terraform project"""
+    if not plan:
+        click.echo("The plan command is a no-op when --apply is passed")
+        return
+
+    ctx.invoke(apply, project=project, env=env, init=init, upgrade=upgrade, plan=plan)
+
+
+@main.command()
 @click.argument("ucg")
 @tf_env_option()
-@terraform_apply_options
+@terraform_apply_options()
 @handle_subprocess_errors()
 @click.pass_context
 def ucg(
@@ -135,7 +160,7 @@ def ucg(
 
 @main.command(name="all-ucgs")
 @tf_env_option()
-@terraform_apply_options
+@terraform_apply_options()
 @handle_subprocess_errors()
 @click.pass_context
 def all_ucgs(
@@ -214,16 +239,24 @@ def bzl(*args: str, **options: Any) -> subprocess.CompletedProcess:
     return subprocess.run(command, **options)
 
 
+def is_bazel_target(path: str) -> bool:
+    if os.path.exists(os.path.join(path, "BUILD")):
+        return True
+    if os.path.exists(os.path.join(path, "BUILD.bazel")):
+        return True
+    return False
+
+
 def find_project(name: str, environment: str) -> str:
     if not name.startswith("discord-"):
         name = f"discord-{name}"
 
-    default = f"discord-devops/terraform/{name}/{environment}"
-    if os.path.isfile(os.path.join(default, "BUILD")):
+    default = f"discord_devops/terraform/{name}/{environment}"
+    if is_bazel_target(default):
         return default
 
     data = f"discord_devops/terraform/data/{name}/{environment}"
-    if os.path.isfile(os.path.join(data, "BUILD")):
+    if is_bazel_target(data):
         return data
 
     raise ProjectNotFound(name, environment)

@@ -53,6 +53,8 @@
   reboot = !git ff main && git switch main
 	aliases = "!git config --get-regexp '^alias\\.' | sed -r 's/(alias\\.\\S+)/\\1 \\#/1; s/\\#(.{50}).*/\\#\\1.../' | column '-ts\\#'"
 
+  changed = "!git diff $(git merge-base main $1) $1"
+
 [color]
   diff = auto
   status = auto

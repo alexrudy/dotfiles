@@ -3,9 +3,12 @@
 import sys
 import functools
 import re
+import enum
+import shlex
+import shelve
 import argparse
 import subprocess
-from typing import Any, Optional, Iterator, Iterable
+from typing import Any, Optional, Iterator
 
 
 def command(message: str) -> Any:
@@ -38,8 +41,31 @@ def handler() -> Any:
     return decorator
 
 
+class Style(enum.IntEnum):
+    BOLD = 1
+    DIM = 2
+
+    RED = 31
+    GREEN = 32
+    YELLOW = 33
+    BLUE = 34
+    MAGENTA = 35
+    CYAN = 36
+
+
+def ansi(text: str, *styles: Style) -> str:
+    style = ";".join(str(style.value) for style in styles)
+    return f"\033[{style}m{text}\033[0m"
+
+
+def _show_git(*args: str) -> None:
+    print(
+        f"{ansi('>', Style.BOLD)} {ansi('git', Style.BOLD)} {' '.join(shlex.quote(arg) for arg in args)}"
+    )
+
+
 def git(*args: str) -> subprocess.CompletedProcess:
-    print("> git {}".format(" ".join(args)))
+    _show_git(*args)
     return subprocess.run(["git"] + list(args), check=False, capture_output=True)
 
 
@@ -98,7 +124,7 @@ def merged_branches(primary_branch: str, remote: Optional[str] = None) -> Iterat
         if branch == primary_branch:
             continue
         if remote and branch.startswith(f"{remote}/"):
-            branch = branch[len(f"{remote}/") :]
+            branch = branch[len(f"{remote}/") :]  # noqa: E203
 
         yield branch
 
@@ -117,7 +143,94 @@ def find_dangling_branches() -> Iterator[str]:
             yield parts[0]
 
 
-def delete_branches(branches: Iterable[str], dry_run: bool = False) -> None:
+def merge_base(base: str, this: str) -> str:
+    cmd = git("merge-base", base, this)
+    cmd.check_returncode()
+    return cmd.stdout.decode().strip()
+
+
+def resolve(branch: str) -> str:
+    cmd = git("rev-parse", branch)
+    cmd.check_returncode()
+    return cmd.stdout.decode().strip()
+
+
+def get_patch_id(base: str, this: str) -> Optional[str]:
+    with subprocess.Popen(
+        ["git", "diff", "--no-color", "--patch", base, this],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    ) as diff:
+        cmd = subprocess.run(
+            ["git", "patch-id", "--stable"], stdin=diff.stdout, capture_output=True
+        )
+        cmd.check_returncode()
+
+    if not cmd.stdout:
+        return None
+
+    patch_id, _ = cmd.stdout.decode().split(" ", 1)
+    return patch_id
+
+
+def get_primary_patches(
+    branch: str, primary_commit: str, shelf: shelve.Shelf
+) -> Iterator[str]:
+    cmd = git("rev-list", f"{branch}..{primary_commit}")
+    cmd.check_returncode()
+
+    commits = cmd.stdout.decode().splitlines()
+    n = len(commits)
+    hits = 0
+    misses = 0
+
+    for i, line in enumerate(commits, start=1):
+        commit = line.strip()
+        print(f"  {i}/{n}: {commit[:8]} ", end="")
+        try:
+            patch_id = shelf[commit]
+        except KeyError:
+            patch_id = get_patch_id(f"{commit}~", commit)
+            shelf[commit] = patch_id
+            print("( )" + " " * 5 + "\r", end="")
+            misses += 1
+            if misses % 1000 == 0:
+                shelf.sync()
+        else:
+            hits += 1
+            print("(c)" + " " * 5 + "\r", end="")
+
+        yield patch_id
+
+    shelf.sync()
+    print(f"  {hits} hits, {misses} misses" + " " * 15)
+
+
+def is_squashed_branch(branch: str, primary_branch: str, shelf: shelve.Shelf) -> bool:
+    base = merge_base(primary_branch, branch)
+    branch_commit = resolve(branch)
+    key = f"{branch_commit}..{base}"
+    try:
+        patch_id = shelf[key]
+    except KeyError:
+        patch_id = get_patch_id(base, branch_commit)
+        shelf[key] = patch_id
+        shelf.sync()
+
+    if patch_id is None:
+        print(ansi(f"# Empty {branch}", Style.DIM, Style.RED))
+        return True
+
+    for upstream_patch_id in get_primary_patches(branch, primary_branch, shelf):
+        if patch_id == upstream_patch_id:
+            print(ansi(f"# Squashed {branch}", Style.DIM, Style.RED))
+            return True
+
+    print(ansi(f"# Unfinished {branch}", Style.DIM, Style.YELLOW))
+    return False
+
+
+def delete_branches(branches: Iterator[str], dry_run: bool = False) -> None:
     for branch in branches:
         delete_branch(branch, dry_run=dry_run)
 
@@ -125,7 +238,7 @@ def delete_branches(branches: Iterable[str], dry_run: bool = False) -> None:
 @command("delete branch")
 def delete_branch(branch: str, dry_run: bool = False) -> None:
     if dry_run:
-        print(f"Would delete branch {branch}")
+        print(f"Would delete branch {ansi(branch, Style.BOLD, Style.RED)}")
     else:
         git("branch", "-D", branch).check_returncode()
 
@@ -145,6 +258,7 @@ def main() -> int:
         "--primary-branch", default="main", help="Default Primary branch"
     )
     parser.add_argument("--remote", default="origin", help="Remote name")
+    parser.add_argument("--shelf", default=".git/git-cleanup-db", help="Shelf file")
 
     args = parser.parse_args()
 
@@ -163,6 +277,14 @@ def main() -> int:
     branches.update(merged_branches(primary_branch))
     branches.update(merged_branches(primary_branch, remote=args.remote))
     branches.update(find_dangling_branches())
+    with shelve.open(args.shelf) as shelf:
+        for branch in local_branches():
+            if branch in branches:
+                continue
+
+            if is_squashed_branch(branch, primary_branch, shelf):
+                branches.add(branch)
+
     branches.intersection_update(local_branches())
     branches.discard(primary_branch)
 
