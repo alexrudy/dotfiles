@@ -1,12 +1,12 @@
 #!/home/discord/.virtualenvs/discord_ai/bin/python
 
-from typing import Any, Callable, Optional, TypeVar, Union, IO
+from typing import Any, Callable, Optional, TypeVar, Union, IO, Iterator
 import concurrent.futures
 import click
 import os
 import subprocess
 import contextlib
-
+import glob
 
 class ProjectNotFound(click.ClickException):
     def __init__(self, name: str, environment: str):
@@ -50,9 +50,13 @@ def show_stream(stream: Union[str, bytes]) -> None:
         click.echo(stream.decode("utf-8"))
 
 
-@click.group()
-def main():
-    """CLI helpers for terraform-in-bazel"""
+@click.group(invoke_without_command=True, context_settings=dict(
+    ignore_unknown_options=True,
+    allow_extra_args=True,
+))
+@click.pass_context
+def main(ctx: click.Context):
+    """Helpers for terraform at discord"""
 
 
 def terraform_apply_options(plan: bool = False) -> Any:
@@ -63,13 +67,28 @@ def terraform_apply_options(plan: bool = False) -> Any:
             help="Whether to run terraform init with the -upgrade flag",
         )(func)
         click.option(
-            "--init/--no-init",
-            default=True,
-            help="Whether to run terraform init before applying",
+            "--init",
+            "init",
+            flag_value='init',
+            help="Run terraform init before applying",
         )(func)
         click.option(
-            "--plan/--apply", default=plan, is_flag=True, help="Run plan, not apply"
+            "--no-init",
+            "init",
+            flag_value='no-init',
+            help="Do not terraform init before applying",
         )(func)
+        click.option(
+            "--auto-init",
+            "init",
+            flag_value='auto-init',
+            help="Detect whether terraform init has run for this project, and only run it if necessary",
+            default=True
+        )(func)
+        if not plan:
+            click.option(
+                "--plan/--apply", default=plan, is_flag=True, help="Run plan, not apply"
+            )(func)
         return func
 
     return _decorator
@@ -84,8 +103,46 @@ def tf_env_option() -> Callable[[T], T]:
         "--env",
         "--environment",
         default="prd",
+        envvar="ENV",
         help="The environment to apply the project to. Defaults to prd.",
     )
+
+
+@main.command(context_settings=dict(
+    ignore_unknown_options=True,
+    allow_extra_args=True,
+))
+@click.argument("project")
+@tf_env_option()
+@handle_subprocess_errors()
+@click.pass_context
+def run(ctx: click.Context, project: str, env: str) -> None:
+    """Run a terraform command"""
+    module = find_project(project, env)
+    bzl_run_tf(module, env, *ctx.args)
+
+
+@main.command()
+@click.argument("project")
+@click.argument("targets", type=click.File())
+@click.option("-n", "--dry-run", is_flag=True, default=False)
+@tf_env_option()
+@handle_subprocess_errors()
+def rm(project: str, env: str, targets: IO[str], dry_run: bool) -> None:
+    """Remove state listed in a file"""
+    module = find_project(project, env)
+
+
+    args = ['state', 'rm']
+    if dry_run:
+        args.append("-dry-run")
+
+
+    for line in targets:
+        args.append(line.strip())
+
+    bzl_run_tf(module, env, *args)
+
 
 
 @main.command()
@@ -94,12 +151,12 @@ def tf_env_option() -> Callable[[T], T]:
 @terraform_apply_options()
 @handle_subprocess_errors()
 def apply(
-    project: str, env: str, init: bool = True, upgrade: bool = True, plan: bool = False
+    project: str, env: str, init: str = 'auto-init', upgrade: bool = True, plan: bool = False
 ) -> None:
     """Apply a terraform project"""
     module = find_project(project, env)
 
-    if init:
+    if (init == 'init') or (init == 'auto-init' and not is_module_init(module)):
         args = ["init"]
         if upgrade:
             args += ["-upgrade"]
@@ -140,6 +197,51 @@ def plan(
 @terraform_apply_options()
 @handle_subprocess_errors()
 @click.pass_context
+def pada(
+    ctx: click.Context,
+    ucg: str,
+    env: str,
+    init: bool = True,
+    upgrade: bool = True,
+    plan: bool = False,
+) -> None:
+    """Apply terraform for a single data PADA UCG."""
+    project = f"discord-pada-{ucg}"
+    click.echo(
+        "Applying {project} to {env}".format(
+            project=click.style(project, bold=True), env=click.style(env, bold=True)
+        ),
+        err=True
+    )
+    ctx.invoke(apply, project=project, env=env, init=init, upgrade=upgrade, plan=plan)
+
+
+@main.command(name="all-pada")
+@tf_env_option()
+@terraform_apply_options()
+@handle_subprocess_errors()
+@click.pass_context
+def all_pada(
+    ctx: click.Context,
+    env: str,
+    init: bool = True,
+    upgrade: bool = True,
+    plan: bool = False,
+    vault: bool = False
+) -> None:
+    """Apply terraform for all PADA UCGs."""
+    for ucg_name in list_pada_ucgs():
+        if not vault and ucg_name == "discord-pada-vault":
+            continue
+        ctx.invoke(ucg, ucg=ucg_name, env=env, init=init, upgrade=upgrade, plan=plan)
+
+
+@main.command()
+@click.argument("ucg")
+@tf_env_option()
+@terraform_apply_options()
+@handle_subprocess_errors()
+@click.pass_context
 def ucg(
     ctx: click.Context,
     ucg: str,
@@ -153,7 +255,8 @@ def ucg(
     click.echo(
         "Applying {project} to {env}".format(
             project=click.style(project, bold=True), env=click.style(env, bold=True)
-        )
+        ),
+        err=True
     )
     ctx.invoke(apply, project=project, env=env, init=init, upgrade=upgrade, plan=plan)
 
@@ -235,8 +338,28 @@ def bzl(*args: str, **options: Any) -> subprocess.CompletedProcess:
     if len(command) > 2:
         cmd += " "
         cmd += " ".join(command[2:])
-    click.echo(f"{indicator} {cmd}")
+    click.echo(f"{indicator} {cmd}", err=True)
     return subprocess.run(command, **options)
+
+
+def is_module_init(path: str) -> bool:
+
+    # Strip bazel module prefix
+    if path.startswith("//"):
+        path = path[2:]
+
+    # Consider bazel repos as uninit always
+    if path.startswith("@"):
+        return False
+
+    home = os.environ["HOME"]
+    state = os.path.join(home, ".terraform", "bazel", path)
+
+    candidates = ("terraform.tfstate", os.path.join("providers", "registry.terraform.io"), os.path.join("modules", "modules.json"))
+
+    if any(os.path.exists(os.path.join(state, c)) for c in candidates):
+        return True
+    return False
 
 
 def is_bazel_target(path: str) -> bool:
@@ -246,18 +369,37 @@ def is_bazel_target(path: str) -> bool:
         return True
     return False
 
+def trim_pada_path(path: str) -> str:
+    return "-".join(os.path.basename(path).split("-")[2:])
+
+def list_pada_ucgs() -> Iterator[str]:
+    base = "discord_devops/terraform/data/discord-pada-*"
+    return (trim_pada_path(path) for path in glob.iglob(base))
+
 
 def find_project(name: str, environment: str) -> str:
     if not name.startswith("discord-"):
-        name = f"discord-{name}"
+        full_name = f"discord-{name}"
 
-    default = f"discord_devops/terraform/{name}/{environment}"
+    default = f"discord_devops/terraform/{full_name}/{environment}"
     if is_bazel_target(default):
         return default
 
-    data = f"discord_devops/terraform/data/{name}/{environment}"
+    data = f"discord_devops/terraform/data/{full_name}/{environment}"
     if is_bazel_target(data):
         return data
+
+    if "pada" in name:
+        data = f"discord_devops/terraform/data/{full_name}/{environment}"
+        if is_bazel_target(data):
+            return data
+
+
+
+    if name in set(list_pada_ucgs()):
+        data = f"discord_devops/terraform/data/discord-pada-{name}"
+        if is_bazel_target(data):
+            return data
 
     raise ProjectNotFound(name, environment)
 
