@@ -1,8 +1,11 @@
 #!/home/discord/.virtualenvs/discord_ai/bin/python
-
-from typing import Any, Callable, Optional, TypeVar, Union, IO, Iterator
+from pathlib import Path
+from typing import Any, Callable, Optional, TypeVar, Union, IO, Iterator, Set
 import concurrent.futures
+import contextlib
 import click
+import dataclasses as dc
+import functools
 import os
 import subprocess
 import contextlib
@@ -26,8 +29,9 @@ def handle_subprocess_errors():
     try:
         yield
     except subprocess.CalledProcessError as e:
-        emsg = click.style("ERROR", fg="red")
-        click.echo(f"{emsg}: {e!s}", err=True)
+        error = click.style("ERROR", fg="red")
+        args = " ".join(str(arg) for arg in e.cmd)
+        click.echo(f"{error}: Command {args} exited with error code {e.returncode!s}", err=True)
         if e.stdout:
             click.echo("stdout:")
             click.echo()
@@ -49,15 +53,136 @@ def show_stream(stream: Union[str, bytes]) -> None:
     else:
         click.echo(stream.decode("utf-8"))
 
+@functools.lru_cache
+def find_discord_root() -> Path:
+    here = Path.cwd()
+
+    while here.parent.name:
+        if here.parent.name == 'discord' and (here / ".git").exists() and (here / "discord_devops").exists():
+            return here
+        here = here.parent
+    
+    env = os.environ.get("DISCORD_ROOT")
+    if env and os.path.exists(os.path.join(env, '.git')):
+        return Path(env)
+    
+    # my default for coder
+    guess = Path("/home/discord/dev/discord/discord")
+    if (guess / ".git").exists():
+        return guess
+
+    # decent guess for coder
+    guess = Path("/home/discord/discord")
+    if (guess / ".git").exists():
+        return guess
+    
+    raise FileNotFoundError("Can't find discord repo, either launch from within it, or set $DISCORD_ROOT in your env")
+    
+
+@dc.dataclass(frozen=True)
+class Project:
+
+    path: Path
+
+    @property
+    def environments(self) -> Set[str]:
+        """Available environments"""
+        return set(env for env in ('stg', 'prd') if is_bazel_target(self.path / env))
+
+    @property
+    def rule(self) -> str:
+        discord = find_discord_root()
+        target = self.path.relative_to(discord)
+
+        return f"//{target}"
+
+    @property
+    def workspace(self) -> str:
+        discord = find_discord_root()
+        
+        relative = self.path.relative_to(discord)
+        return relative.parents[-1].name.removeprefix("discord_").replace("_", "-")
+    
+    @property
+    def name(self) -> str:
+        return min(self.names, key=lambda name: len(name))
+
+    @functools.cached_property
+    def names(self) -> Set[str]:        
+        names = set()
+        
+        name = self.path.name.replace("_", "-")
+        names.add(name)
+        names.add(removeprefix(name, "discord-"))
+
+        names.add(removeprefix(name, 'discord-pada-'))
+        names.add(removeprefix(name, 'discord-data-'))
+
+        return names
+
+
+def removeprefix(item: str, prefix: str) -> str:
+    if item.startswith(prefix):
+        return item[len(prefix):]
+    return item[:]
+
+def find_all_projects() -> Set[Project]:
+    root = find_discord_root()
+    cmd = bzl("query", 'kind("_tf_apply", "//discord_devops/terraform/...")', text=True, stdout=subprocess.PIPE, cwd=root)
+    
+    rules = set()
+    for line in cmd.stdout.splitlines():
+        parts = line.split()
+        rule = parts[-1]
+
+        if not rule.startswith("//"):
+            continue
+        if not rule.endswith(".apply"):
+            continue
+        rules.add(rule)
+
+    click.echo(f"Found {len(rules)} candidate terraform rules", err=True)
+
+    projects = set()
+    for rule in rules:
+        path = root / Path(rule.strip()[2:].split(":", 1)[0])
+
+        if path.name in ('prd', 'stg'):
+            path = path.parent
+
+        if 'discord-ai' in path.parts:
+            click.echo(f"Checking {path}: {path.name}")
+
+        with contextlib.suppress(ProjectNotFound):
+            if root / Path(find_project(path.name, 'prd')) == path / 'prd':
+                print(f"Found {path.name} (prd)")
+                projects.add(Project(path))
+        
+        with contextlib.suppress(ProjectNotFound):
+            if root / Path(find_project(path.name, 'stg')) == path / 'stg':
+                print(f"Found {path.name} (stg)")
+                projects.add(Project(path))
+
+    return projects
+
+
 
 @click.group(invoke_without_command=True, context_settings=dict(
     ignore_unknown_options=True,
     allow_extra_args=True,
 ))
-@click.pass_context
-def main(ctx: click.Context):
-    """Helpers for terraform at discord"""
+def main():
+    """Discord (is down to) Terraform"""
+    pass
 
+@main.command()
+def show():
+    """Show all targetable projects"""
+    projects = find_all_projects()
+    d = max(len(p.path.name) for p in projects) + 1
+    for project in sorted(projects, key=lambda p: p.path.name):
+        names = ", ".join(sorted(project.names))
+        print(f"{project.path.name:<{d}.{d}}: {names}")
 
 def terraform_apply_options(plan: bool = False) -> Any:
     def _decorator(func) -> Any:
@@ -139,7 +264,8 @@ def rm(project: str, env: str, targets: IO[str], dry_run: bool) -> None:
 
 
     for line in targets:
-        args.append(line.strip())
+        if line.strip():
+            args.append(line.strip())
 
     bzl_run_tf(module, env, *args)
 
@@ -332,6 +458,7 @@ def bzl_run_tf(module: str, target: str, *args: str) -> None:
 
 def bzl(*args: str, **options: Any) -> subprocess.CompletedProcess:
     options.setdefault("check", True)
+    options.setdefault("cwd", find_discord_root())
     command = ["bzl", *args]
     indicator = click.style(">", fg="blue", bold=True)
     cmd = click.style(" ".join(command[:2]), bold=True)
@@ -362,10 +489,11 @@ def is_module_init(path: str) -> bool:
     return False
 
 
-def is_bazel_target(path: str) -> bool:
-    if os.path.exists(os.path.join(path, "BUILD")):
+def is_bazel_target(path: os.PathLike) -> bool:
+    root = find_discord_root()
+    if os.path.exists(os.path.join(root, path, "BUILD")):
         return True
-    if os.path.exists(os.path.join(path, "BUILD.bazel")):
+    if os.path.exists(os.path.join(root, path, "BUILD.bazel")):
         return True
     return False
 
@@ -373,13 +501,16 @@ def trim_pada_path(path: str) -> str:
     return "-".join(os.path.basename(path).split("-")[2:])
 
 def list_pada_ucgs() -> Iterator[str]:
-    base = "discord_devops/terraform/data/discord-pada-*"
+    root = find_discord_root()
+    base = os.path.join(root, "discord_devops/terraform/data/discord-pada-*")
     return (trim_pada_path(path) for path in glob.iglob(base))
 
 
 def find_project(name: str, environment: str) -> str:
     if not name.startswith("discord-"):
         full_name = f"discord-{name}"
+    else:
+        full_name = name
 
     default = f"discord_devops/terraform/{full_name}/{environment}"
     if is_bazel_target(default):
@@ -388,13 +519,6 @@ def find_project(name: str, environment: str) -> str:
     data = f"discord_devops/terraform/data/{full_name}/{environment}"
     if is_bazel_target(data):
         return data
-
-    if "pada" in name:
-        data = f"discord_devops/terraform/data/{full_name}/{environment}"
-        if is_bazel_target(data):
-            return data
-
-
 
     if name in set(list_pada_ucgs()):
         data = f"discord_devops/terraform/data/discord-pada-{name}"
