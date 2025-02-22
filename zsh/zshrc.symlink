@@ -40,3 +40,5 @@ setopt LOCAL_OPTIONS # allow functions to have local options
 pathprepend "$HOME/.local/bin"
 
 export LSCOLORS=Gxfxcxdxbxegedabagacad
+
+. "$HOME/.cargo/env"

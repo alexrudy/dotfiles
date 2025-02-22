@@ -1,5 +1,5 @@
 TM_PYTHON         = $HOME/.pyenv/versions/tm/bin/python
-TM_ORGANIZATION   = "Alexander Rudy"
+TM_ORGANIZATION   = "Alex Rudy"
 TM_GIT		      = /usr/local/bin/git
 PATH              = "$PATH"
 invisiblesMap     = "~ "
