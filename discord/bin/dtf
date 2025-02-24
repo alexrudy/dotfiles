@@ -1,15 +1,18 @@
-#!/home/discord/.virtualenvs/discord_ai/bin/python
+#!/usr/bin/env $HOME/.dotfiles/discord/bin/.direnv/bin/python
 from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar, Union, IO, Iterator, Set
+
+import click
 import concurrent.futures
 import contextlib
-import click
 import dataclasses as dc
 import functools
+import glob
 import os
 import subprocess
-import contextlib
-import glob
+
+StrPath = str | os.PathLike[str]
+
 
 class ProjectNotFound(click.ClickException):
     def __init__(self, name: str, environment: str):
@@ -31,7 +34,9 @@ def handle_subprocess_errors():
     except subprocess.CalledProcessError as e:
         error = click.style("ERROR", fg="red")
         args = " ".join(str(arg) for arg in e.cmd)
-        click.echo(f"{error}: Command {args} exited with error code {e.returncode!s}", err=True)
+        click.echo(
+            f"{error}: Command {args} exited with error code {e.returncode!s}", err=True
+        )
         if e.stdout:
             click.echo("stdout:")
             click.echo()
@@ -53,19 +58,24 @@ def show_stream(stream: Union[str, bytes]) -> None:
     else:
         click.echo(stream.decode("utf-8"))
 
+
 @functools.lru_cache
 def find_discord_root() -> Path:
     here = Path.cwd()
 
     while here.parent.name:
-        if here.parent.name == 'discord' and (here / ".git").exists() and (here / "discord_devops").exists():
+        if (
+            here.parent.name == "discord"
+            and (here / ".git").exists()
+            and (here / "discord_devops").exists()
+        ):
             return here
         here = here.parent
-    
+
     env = os.environ.get("DISCORD_ROOT")
-    if env and os.path.exists(os.path.join(env, '.git')):
+    if env and os.path.exists(os.path.join(env, ".git")):
         return Path(env)
-    
+
     # my default for coder
     guess = Path("/home/discord/dev/discord/discord")
     if (guess / ".git").exists():
@@ -75,19 +85,20 @@ def find_discord_root() -> Path:
     guess = Path("/home/discord/discord")
     if (guess / ".git").exists():
         return guess
-    
-    raise FileNotFoundError("Can't find discord repo, either launch from within it, or set $DISCORD_ROOT in your env")
-    
+
+    raise FileNotFoundError(
+        "Can't find discord repo, either launch from within it, or set $DISCORD_ROOT in your env"
+    )
+
 
 @dc.dataclass(frozen=True)
 class Project:
-
     path: Path
 
     @property
     def environments(self) -> Set[str]:
         """Available environments"""
-        return set(env for env in ('stg', 'prd') if is_bazel_target(self.path / env))
+        return set(env for env in ("stg", "prd") if is_bazel_target(self.path / env))
 
     @property
     def rule(self) -> str:
@@ -99,37 +110,44 @@ class Project:
     @property
     def workspace(self) -> str:
         discord = find_discord_root()
-        
+
         relative = self.path.relative_to(discord)
         return relative.parents[-1].name.removeprefix("discord_").replace("_", "-")
-    
+
     @property
     def name(self) -> str:
         return min(self.names, key=lambda name: len(name))
 
     @functools.cached_property
-    def names(self) -> Set[str]:        
+    def names(self) -> Set[str]:
         names = set()
-        
+
         name = self.path.name.replace("_", "-")
         names.add(name)
         names.add(removeprefix(name, "discord-"))
 
-        names.add(removeprefix(name, 'discord-pada-'))
-        names.add(removeprefix(name, 'discord-data-'))
+        names.add(removeprefix(name, "discord-pada-"))
+        names.add(removeprefix(name, "discord-data-"))
 
         return names
 
 
 def removeprefix(item: str, prefix: str) -> str:
     if item.startswith(prefix):
-        return item[len(prefix):]
+        return item[len(prefix) :]
     return item[:]
+
 
 def find_all_projects() -> Set[Project]:
     root = find_discord_root()
-    cmd = bzl("query", 'kind("_tf_apply", "//discord_devops/terraform/...")', text=True, stdout=subprocess.PIPE, cwd=root)
-    
+    cmd = bzl(
+        "query",
+        'kind("_tf_apply", "//discord_devops/terraform/...")',
+        text=True,
+        stdout=subprocess.PIPE,
+        cwd=root,
+    )
+
     rules = set()
     for line in cmd.stdout.splitlines():
         parts = line.split()
@@ -147,33 +165,36 @@ def find_all_projects() -> Set[Project]:
     for rule in rules:
         path = root / Path(rule.strip()[2:].split(":", 1)[0])
 
-        if path.name in ('prd', 'stg'):
+        if path.name in ("prd", "stg"):
             path = path.parent
 
-        if 'discord-ai' in path.parts:
+        if "discord-ai" in path.parts:
             click.echo(f"Checking {path}: {path.name}")
 
         with contextlib.suppress(ProjectNotFound):
-            if root / Path(find_project(path.name, 'prd')) == path / 'prd':
+            if root / Path(find_project(path.name, "prd")) == path / "prd":
                 print(f"Found {path.name} (prd)")
                 projects.add(Project(path))
-        
+
         with contextlib.suppress(ProjectNotFound):
-            if root / Path(find_project(path.name, 'stg')) == path / 'stg':
+            if root / Path(find_project(path.name, "stg")) == path / "stg":
                 print(f"Found {path.name} (stg)")
                 projects.add(Project(path))
 
     return projects
 
 
-
-@click.group(invoke_without_command=True, context_settings=dict(
-    ignore_unknown_options=True,
-    allow_extra_args=True,
-))
+@click.group(
+    invoke_without_command=True,
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True,
+    ),
+)
 def main():
     """Discord (is down to) Terraform"""
     pass
+
 
 @main.command()
 def show():
@@ -183,6 +204,7 @@ def show():
     for project in sorted(projects, key=lambda p: p.path.name):
         names = ", ".join(sorted(project.names))
         print(f"{project.path.name:<{d}.{d}}: {names}")
+
 
 def terraform_apply_options(plan: bool = False) -> Any:
     def _decorator(func) -> Any:
@@ -194,21 +216,21 @@ def terraform_apply_options(plan: bool = False) -> Any:
         click.option(
             "--init",
             "init",
-            flag_value='init',
+            flag_value="init",
             help="Run terraform init before applying",
         )(func)
         click.option(
             "--no-init",
             "init",
-            flag_value='no-init',
+            flag_value="no-init",
             help="Do not terraform init before applying",
         )(func)
         click.option(
             "--auto-init",
             "init",
-            flag_value='auto-init',
+            flag_value="auto-init",
             help="Detect whether terraform init has run for this project, and only run it if necessary",
-            default=True
+            default=True,
         )(func)
         if not plan:
             click.option(
@@ -219,7 +241,7 @@ def terraform_apply_options(plan: bool = False) -> Any:
     return _decorator
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound=Callable[..., Any])
 
 
 def tf_env_option() -> Callable[[T], T]:
@@ -233,10 +255,12 @@ def tf_env_option() -> Callable[[T], T]:
     )
 
 
-@main.command(context_settings=dict(
-    ignore_unknown_options=True,
-    allow_extra_args=True,
-))
+@main.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True,
+    )
+)
 @click.argument("project")
 @tf_env_option()
 @handle_subprocess_errors()
@@ -257,11 +281,9 @@ def rm(project: str, env: str, targets: IO[str], dry_run: bool) -> None:
     """Remove state listed in a file"""
     module = find_project(project, env)
 
-
-    args = ['state', 'rm']
+    args = ["state", "rm"]
     if dry_run:
         args.append("-dry-run")
-
 
     for line in targets:
         if line.strip():
@@ -270,19 +292,22 @@ def rm(project: str, env: str, targets: IO[str], dry_run: bool) -> None:
     bzl_run_tf(module, env, *args)
 
 
-
 @main.command()
 @click.argument("project")
 @tf_env_option()
 @terraform_apply_options()
 @handle_subprocess_errors()
 def apply(
-    project: str, env: str, init: str = 'auto-init', upgrade: bool = True, plan: bool = False
+    project: str,
+    env: str,
+    init: str = "auto-init",
+    upgrade: bool = True,
+    plan: bool = False,
 ) -> None:
     """Apply a terraform project"""
     module = find_project(project, env)
 
-    if (init == 'init') or (init == 'auto-init' and not is_module_init(module)):
+    if (init == "init") or (init == "auto-init" and not is_module_init(module)):
         args = ["init"]
         if upgrade:
             args += ["-upgrade"]
@@ -337,7 +362,7 @@ def pada(
         "Applying {project} to {env}".format(
             project=click.style(project, bold=True), env=click.style(env, bold=True)
         ),
-        err=True
+        err=True,
     )
     ctx.invoke(apply, project=project, env=env, init=init, upgrade=upgrade, plan=plan)
 
@@ -353,7 +378,7 @@ def all_pada(
     init: bool = True,
     upgrade: bool = True,
     plan: bool = False,
-    vault: bool = False
+    vault: bool = False,
 ) -> None:
     """Apply terraform for all PADA UCGs."""
     for ucg_name in list_pada_ucgs():
@@ -382,7 +407,7 @@ def ucg(
         "Applying {project} to {env}".format(
             project=click.style(project, bold=True), env=click.style(env, bold=True)
         ),
-        err=True
+        err=True,
     )
     ctx.invoke(apply, project=project, env=env, init=init, upgrade=upgrade, plan=plan)
 
@@ -469,7 +494,9 @@ def bzl(*args: str, **options: Any) -> subprocess.CompletedProcess:
     return subprocess.run(command, **options)
 
 
-def is_module_init(path: str) -> bool:
+def is_module_init(path: StrPath) -> bool:
+    if isinstance(path, os.PathLike):
+        path = path.__fspath__()
 
     # Strip bazel module prefix
     if path.startswith("//"):
@@ -482,14 +509,18 @@ def is_module_init(path: str) -> bool:
     home = os.environ["HOME"]
     state = os.path.join(home, ".terraform", "bazel", path)
 
-    candidates = ("terraform.tfstate", os.path.join("providers", "registry.terraform.io"), os.path.join("modules", "modules.json"))
+    candidates = (
+        "terraform.tfstate",
+        os.path.join("providers", "registry.terraform.io"),
+        os.path.join("modules", "modules.json"),
+    )
 
     if any(os.path.exists(os.path.join(state, c)) for c in candidates):
         return True
     return False
 
 
-def is_bazel_target(path: os.PathLike) -> bool:
+def is_bazel_target(path: StrPath) -> bool:
     root = find_discord_root()
     if os.path.exists(os.path.join(root, path, "BUILD")):
         return True
@@ -497,8 +528,10 @@ def is_bazel_target(path: os.PathLike) -> bool:
         return True
     return False
 
-def trim_pada_path(path: str) -> str:
+
+def trim_pada_path(path: StrPath) -> str:
     return "-".join(os.path.basename(path).split("-")[2:])
+
 
 def list_pada_ucgs() -> Iterator[str]:
     root = find_discord_root()
