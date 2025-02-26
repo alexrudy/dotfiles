@@ -1,7 +1,0 @@
-tower() {
-    if [[ $# -gt 0 ]]; then
-       gittower $@
-    else
-        gittower $PWD
-    fi
-}
