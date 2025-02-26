@@ -63,11 +63,14 @@ class Script:
         self.write(line + "\n")
 
     def write_warning(self, filename: str) -> None:
-        bar_size = (
-            len(self.destination)
-            + len(BUILD_WARNING.splitlines()[2])
-            - len("{destination}")
+        preview = BUILD_WARNING.format(
+            destination=self.destination,
+            bar="#" * len(self.destination),
+            source=os.path.relpath(filename, self.dotfiles),
         )
+
+        bar_size = len(preview.splitlines()[2])
+
         self.write(
             BUILD_WARNING.format(
                 destination=self.destination,
