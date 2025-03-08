@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+FILENAME="$1"
+BASENAME="${FILENAME%.*}"
+OUTNAME="${2:-${BASENAME}.mp4}"
+
+ffmpeg -i "$FILENAME" -c:v h264 -c:a aac "$OUTNAME"
