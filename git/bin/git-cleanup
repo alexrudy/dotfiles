@@ -5,6 +5,9 @@ import dataclasses as dc
 import enum
 import functools
 import re
+import os.path
+import enum
+import shlex
 import shelve
 import shlex
 import subprocess
@@ -72,14 +75,13 @@ def _show_git(*args: str) -> None:
 class Git:
     root: Path
 
-    @classmethod
-    def toplevel(cls, start: Path) -> "Git":
-        toplevel = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"], check=False, capture_output=True
-        )
-        if toplevel.returncode != 0:
-            raise ValueError("Not a git repository")
-        return cls(Path(toplevel.stdout.decode().strip()))
+@command("find git root")
+def git_root() -> str:
+    cmd = git("rev-parse", "--show-toplevel")
+    cmd.check_returncode()
+    root = cmd.stdout.decode().strip()
+    return root
+        
 
     def __call__(self, *args: str) -> subprocess.CompletedProcess:
         _show_git(*args)
@@ -281,6 +283,8 @@ def main() -> int:
     git = Git.toplevel(Path.cwd())
     primary_branch = git.remote_primary_branch(args.remote) or args.primary_branch
 
+    shelf_path = os.path.join(git_root(), args.shelf)
+
     if primary_branch is None:
         print("Could not determine primary branch")
         return 1
@@ -293,11 +297,11 @@ def main() -> int:
 
     print("Finding merged and dangling branches")
     branches: set[str] = set()
-    branches.update(git.merged_branches(primary_branch))
-    branches.update(git.merged_branches(primary_branch, remote=args.remote))
-    branches.update(find_dangling_branches(git))
-    with shelve.open(shelf_filename) as shelf:
-        for branch in git.local_branches():
+    branches.update(merged_branches(primary_branch))
+    branches.update(merged_branches(primary_branch, remote=args.remote))
+    branches.update(find_dangling_branches())
+    with shelve.open(shelf_path) as shelf:
+        for branch in local_branches():
             if branch in branches:
                 continue
 
