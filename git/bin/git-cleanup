@@ -35,6 +35,8 @@ def handler() -> Any:
             try:
                 return func(*args, **kwargs)
             except subprocess.CalledProcessError:
+                if bool(os.environ.get("GIT_CLEANUP_DEBUG", "")):
+                    raise
                 raise SystemExit(1)
 
         return wrapper
@@ -70,8 +72,9 @@ def git(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(["git"] + list(args), check=False, capture_output=True)
 
 @command("find git root")
-def git_root() -> str:
-    cmd = git("rev-parse", "--show-toplevel")
+@functools.cache
+def git_dir() -> str:
+    cmd = git("rev-parse", "--git-dir")
     cmd.check_returncode()
     root = cmd.stdout.decode().strip()
     return root
@@ -267,13 +270,13 @@ def main() -> int:
         "--primary-branch", default="main", help="Default Primary branch"
     )
     parser.add_argument("--remote", default="origin", help="Remote name")
-    parser.add_argument("--shelf", default=".git/git-cleanup-db", help="Shelf file")
+    parser.add_argument("--shelf", default="git-cleanup-db", help="Shelf file")
 
     args = parser.parse_args()
 
     primary_branch = git_remote_primary_branch(args.remote) or args.primary_branch
 
-    shelf_path = os.path.join(git_root(), args.shelf)
+    shelf_path = os.path.join(git_dir(), args.shelf)
 
     if primary_branch is None:
         print("Could not determine primary branch")
