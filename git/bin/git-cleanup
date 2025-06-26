@@ -76,8 +76,9 @@ class Git:
     root: Path
 
 @command("find git root")
-def git_root() -> str:
-    cmd = git("rev-parse", "--show-toplevel")
+@functools.cache
+def git_dir() -> str:
+    cmd = git("rev-parse", "--git-dir")
     cmd.check_returncode()
     root = cmd.stdout.decode().strip()
     return root
@@ -283,7 +284,7 @@ def main() -> int:
     git = Git.toplevel(Path.cwd())
     primary_branch = git.remote_primary_branch(args.remote) or args.primary_branch
 
-    shelf_path = os.path.join(git_root(), args.shelf)
+    shelf_path = os.path.join(git_dir(), args.shelf)
 
     if primary_branch is None:
         print("Could not determine primary branch")
