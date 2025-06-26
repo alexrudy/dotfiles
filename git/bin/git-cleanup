@@ -3,6 +3,7 @@
 import sys
 import functools
 import re
+import os.path
 import enum
 import shlex
 import shelve
@@ -68,6 +69,13 @@ def git(*args: str) -> subprocess.CompletedProcess:
     _show_git(*args)
     return subprocess.run(["git"] + list(args), check=False, capture_output=True)
 
+@command("find git root")
+def git_root() -> str:
+    cmd = git("rev-parse", "--show-toplevel")
+    cmd.check_returncode()
+    root = cmd.stdout.decode().strip()
+    return root
+        
 
 @command("determine primary branch")
 def git_remote_primary_branch(remote: str = "origin") -> Optional[str]:
@@ -179,7 +187,7 @@ def get_primary_patches(
     cmd = git("rev-list", f"{branch}..{primary_commit}")
     cmd.check_returncode()
 
-    commits = cmd.stdout.decode().splitlines()
+    commits: list[str] = cmd.stdout.decode().splitlines()
     n = len(commits)
     hits = 0
     misses = 0
@@ -204,7 +212,7 @@ def get_primary_patches(
             yield patch_id
 
     shelf.sync()
-    print(f"  {hits} hits, {misses} misses" + " " * 15)
+    print(f"  cache {hits} hits, {misses} misses" + " " * 15)
 
 
 def is_squashed_branch(branch: str, primary_branch: str, shelf: shelve.Shelf) -> bool:
@@ -265,6 +273,8 @@ def main() -> int:
 
     primary_branch = git_remote_primary_branch(args.remote) or args.primary_branch
 
+    shelf_path = os.path.join(git_root(), args.shelf)
+
     if primary_branch is None:
         print("Could not determine primary branch")
         return 1
@@ -278,7 +288,7 @@ def main() -> int:
     branches.update(merged_branches(primary_branch))
     branches.update(merged_branches(primary_branch, remote=args.remote))
     branches.update(find_dangling_branches())
-    with shelve.open(args.shelf) as shelf:
+    with shelve.open(shelf_path) as shelf:
         for branch in local_branches():
             if branch in branches:
                 continue
