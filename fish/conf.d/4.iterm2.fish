@@ -1,1 +1,1 @@
-source $DOTFILES/iterm2-integration.fish
+source $DOTFILES/fish/iterm2-integration.fish
