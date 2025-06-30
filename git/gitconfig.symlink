@@ -18,7 +18,7 @@
   branch-name = "!git rev-parse --abbrev-ref HEAD"
 
   # Publish this branch to a remote, optionally defaulting to origin.
-  publish = "!f() { REMOTE=${1:-origin} shift || true; git push -u ${REMOTE} $(git branch-name) $@; }; f"
+  publish = "!f() { REMOTE=${1:-origin}; shift || true; git push -u ${REMOTE} $(git branch-name) $@; }; f"
 
   # Show only branches
   mine = "!git for-each-ref refs/heads/ --format='%(committerdate:short) %(refname:short)' | grep -e alex | sort"
