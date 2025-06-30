@@ -8,7 +8,7 @@ import shlex
 import shelve
 import argparse
 import subprocess
-from typing import Any, Optional, Iterator
+from typing import Any, Iterable, Optional, Iterator
 
 
 def command(message: str) -> Any:
@@ -188,7 +188,7 @@ def get_primary_patches(
         commit = line.strip()
         print(f"  {i}/{n}: {commit[:8]} ", end="")
         try:
-            patch_id = shelf[commit]
+            patch_id: str | None = shelf[commit]
         except KeyError:
             patch_id = get_patch_id(f"{commit}~", commit)
             shelf[commit] = patch_id
@@ -200,7 +200,8 @@ def get_primary_patches(
             hits += 1
             print("(c)" + " " * 5 + "\r", end="")
 
-        yield patch_id
+        if patch_id is not None:
+            yield patch_id
 
     shelf.sync()
     print(f"  {hits} hits, {misses} misses" + " " * 15)
@@ -230,7 +231,7 @@ def is_squashed_branch(branch: str, primary_branch: str, shelf: shelve.Shelf) ->
     return False
 
 
-def delete_branches(branches: Iterator[str], dry_run: bool = False) -> None:
+def delete_branches(branches: Iterable[str], dry_run: bool = False) -> None:
     for branch in branches:
         delete_branch(branch, dry_run=dry_run)
 
