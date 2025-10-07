@@ -4,22 +4,32 @@ import secrets
 import argparse
 import sys
 
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="produce a secret token using python's builtin secrets module")
-    parser.add_argument('length', help='token length', type=int)
-    parser.add_argument('-f', '--fmt', choices=('hex', 'urlsafe', 'bytes'), default='hex', help='token format')
+    parser = argparse.ArgumentParser(
+        description="produce a secret token using python's builtin secrets module"
+    )
+    parser.add_argument("length", help="token length", type=int)
+    parser.add_argument(
+        "-f",
+        "--fmt",
+        choices=("hex", "urlsafe", "bytes"),
+        default="hex",
+        help="token format",
+    )
 
     opts = parser.parse_args()
 
-    if opts.fmt == 'hex':
+    if opts.fmt == "hex":
         sys.stdout.write(secrets.token_hex(opts.length))
-    elif opts.fmt == 'urlsafe':
+    elif opts.fmt == "urlsafe":
         sys.stdout.write(secrets.token_urlsafe(opts.length))
-    elif opts.fmt == 'bytes':
+    elif opts.fmt == "bytes":
         sys.stdout.buffer.write(secrets.token_bytes(opts.length))
-    sys.stdout.write('\n')
+    sys.stdout.write("\n")
     sys.stdout.flush()
     return 0
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     raise SystemExit(main())
