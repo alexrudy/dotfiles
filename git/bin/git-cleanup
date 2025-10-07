@@ -281,8 +281,6 @@ def main() -> int:
     git = Git.toplevel(Path.cwd())
     primary_branch = git.remote_primary_branch(args.remote) or args.primary_branch
 
-    shelf_path = os.path.join(git_dir(), args.shelf)
-
     if primary_branch is None:
         print("Could not determine primary branch")
         return 1
