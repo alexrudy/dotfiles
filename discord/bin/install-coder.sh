@@ -49,11 +49,11 @@ apt_packages() {
 
 
 personalize() {
-    if test "$(readlink "${HOME}/personalize")" = "${DOTFILES}/discord/bin/coder-personalize.sh"; then
+    if test -e "${HOME}/personalize" && test "$(realpath $(readlink "${HOME}/personalize"))" = "$(realpath ${DOTFILES}/discord/bin/coder-personalize.sh)"; then
         _debug "✅ already personalized"
     else
         _process "🧑🏼‍🎤 setting up ~/personalize"
-        ln -s "${DOTFILES}/discord/bin/coder-personalize.sh" "${HOME}/personalize"
+        ln -s "$(realpath ${DOTFILES}/discord/bin/coder-personalize.sh)" "${HOME}/personalize"
         chmod +x "${HOME}/personalize"
         _finished "✅ finished setting up ~/personalize"
     fi
@@ -85,7 +85,7 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
     _process "👾 Coder Specific Install Steps"
 
     personalize
-
+    
     github_cli
 
     apt_packages
