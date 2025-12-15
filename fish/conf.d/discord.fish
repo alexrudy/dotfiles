@@ -9,3 +9,14 @@ if test -d $omf_foreign_env
         fenv source $nix_profile
     end
 end
+
+if set -q "$CODER"
+    set -gx STARSHIP_CONFIG "$HOME/.config/starship.discord.toml"
+    if command -v code
+        set -gx EDITOR "code -w"
+    end
+else
+    function ssc -a workspace;
+       ssh "coder.$workspace"
+    end
+end
