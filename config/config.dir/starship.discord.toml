@@ -10,6 +10,11 @@ command_timeout = 1000
 [container]
 format = "[$symbol]($style) "
 
+[hostname]
+ssh_only = true
+detect_env_vars = ['SHPOOL_SESSION_NAME', 'SSH_CONNECTION']
+
+
 # This doesn't add much to my workflow
 [package]
 disabled = true
