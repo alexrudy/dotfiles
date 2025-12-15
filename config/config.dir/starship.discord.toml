@@ -14,6 +14,8 @@ format = "[$symbol]($style) "
 ssh_only = false
 detect_env_vars = ['SHPOOL_SESSION_NAME', 'SSH_CONNECTION']
 
+[username]
+detect_env_vars = ['SHPOOL_SESSION_NAME', 'SSH_CONNECTION']
 
 # This doesn't add much to my workflow
 [package]
