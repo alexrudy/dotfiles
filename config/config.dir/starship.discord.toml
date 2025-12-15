@@ -38,3 +38,8 @@ format = "on [$symbol$project]($style) "
 [gcloud.project_aliases]
 discord-ai-prd = "ai-prd"
 discord-ai-stg = "ai-stg"
+
+[env_var.SHPOOL_SESSION_NAME]
+symbol = "⚡️"
+format = "[$symbol$env_value]($style) "
+style = "blue"
