@@ -11,7 +11,7 @@ command_timeout = 1000
 format = "[$symbol]($style) "
 
 [hostname]
-ssh_only = true
+ssh_only = false
 detect_env_vars = ['SHPOOL_SESSION_NAME', 'SSH_CONNECTION']
 
 
