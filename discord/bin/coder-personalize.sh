@@ -6,3 +6,5 @@ if test -d "${HOME}/.dotfiles"; then
 else
     sh -c "$(curl -fsL https://raw.githubusercontent.com/alexrudy/dotfiles/main/install.sh)"
 fi
+
+chsh -s /usr/bin/fish
