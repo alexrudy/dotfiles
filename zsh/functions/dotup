@@ -1,6 +1,0 @@
-# shellcheck shell=sh
-
-WD=$(pwd)
-cd "$DOTFILES" || exit
-./update.sh
-cd "$WD"

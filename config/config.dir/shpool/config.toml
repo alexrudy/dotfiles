@@ -1,0 +1,2 @@
+prompt_prefix = ""
+forward_env = ["SSH_CONNECTION"]

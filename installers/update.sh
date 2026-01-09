@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC3043
+# shellcheck disable=SC3043,SC2218
 set -eu
 
 export DOTFILES_INSTALLER=""

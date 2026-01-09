@@ -1,13 +1,15 @@
 add_envrc() {
-    DISCORD_ROOT="${1:-${HOME}/dev/discord/discord}"
+    DISCORD_ROOT="${1:-${HOME}/dev/discord/discord/}"
     if ! test -d "$DISCORD_ROOT/.git"; then
         echo "Have you set up the discord monorepo?"
         exit 1
     fi
 
-    HERE=$(realpath "$(dirname "$0")")
+    HERE="$DOTFILES/discord/direnv/"
 
     ENVRCS=($(find "$HERE" -name envrc))
+
+    echo "Searching for .envrc files in $HERE"
 
     for ENVRC in "${ENVRCS[@]}"; do
         TARGET="${DISCORD_ROOT}${ENVRC#${HERE}}"

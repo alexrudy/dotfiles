@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+# shellcheck shell=sh
+
+if [ -e /opt/homebrew/bin/gh ]; then
+  exec /opt/homebrew/bin/gh "$@"
+elif [ -e /usr/local/bin/gh ]; then
+  exec /usr/local/bin/gh "$@"
+elif [ -e /usr/bin/gh ]; then
+    exec /usr/bin/gh "$@"
+else
+    echo "gh not found in /opt/homebrew/bin, /usr/local/bin, or /usr/bin" >&2
+    exit 1
+fi

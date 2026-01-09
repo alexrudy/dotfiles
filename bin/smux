@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-ssh $@ -t 'tmux -CC new-session -A -s ${USER}'
+ssh $@ -t 'tmux -CC new-session -A -s $USER'

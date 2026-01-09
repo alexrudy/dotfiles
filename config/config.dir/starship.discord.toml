@@ -10,6 +10,13 @@ command_timeout = 1000
 [container]
 format = "[$symbol]($style) "
 
+[hostname]
+ssh_only = false
+detect_env_vars = ['SHPOOL_SESSION_NAME', 'SSH_CONNECTION']
+
+[username]
+detect_env_vars = ['SHPOOL_SESSION_NAME', 'SSH_CONNECTION']
+
 # This doesn't add much to my workflow
 [package]
 disabled = true
@@ -38,3 +45,8 @@ format = "on [$symbol$project]($style) "
 [gcloud.project_aliases]
 discord-ai-prd = "ai-prd"
 discord-ai-stg = "ai-stg"
+
+[env_var.SHPOOL_SESSION_NAME]
+symbol = "⚡️"
+format = "[$symbol$env_value]($style) "
+style = "blue"
