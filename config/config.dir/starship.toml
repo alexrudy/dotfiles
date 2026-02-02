@@ -16,3 +16,8 @@ disabled = true
 
 [ruby]
 disabled = true
+
+[env_var.SHPOOL_SESSION_NAME]
+symbol = "⚡️"
+format = "[$symbol$env_value]($style) "
+style = "blue"
