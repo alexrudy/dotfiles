@@ -59,8 +59,7 @@
   diff = auto
   status = auto
   branch = auto
-[core]
-  excludesfile = ~/.gitignore
+
 [apply]
   whitespace = nowarn
 [rerere]
