@@ -13,6 +13,7 @@
 
 Include ~/.orbstack/ssh/config
 Include conf.d/*.config
+Include ~/.ssh/1Password/config
 
 Host *
   ServerAliveInterval 10
