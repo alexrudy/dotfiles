@@ -1,10 +1,7 @@
 autojump
-autojump
 build-essential
 curl
 direnv
-docker
-docker-compose-plugin
 gh
 git
 google-cloud-sdk-anthos-auth
