@@ -48,6 +48,10 @@ apt_packages() {
 CODER_USERNAME=${CODER_USERNAME:-}
 CODER=${CODER:-}
 
+if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
+    exit
+fi
+
 if command_exists apt-get ; then
     # Discord-specific installation steps
 

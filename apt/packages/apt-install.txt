@@ -2,9 +2,6 @@ autojump
 build-essential
 curl
 direnv
-docker
-docker-compose-plugin
-gh
 git
 
 libbz2-dev
