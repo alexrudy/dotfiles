@@ -53,7 +53,6 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
 fi
 
 if command_exists apt-get ; then
-    # Discord-specific installation steps
 
     _process "🧑🏼‍💻 Linux Specific Install Steps"
 
