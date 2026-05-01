@@ -23,7 +23,7 @@ DOMAIN="gui/$(id -u)"
 mkdir -p "$(dirname "$PLIST_DST")"
 
 needs_reload=""
-if [[ -L "$PLIST_DST" ]] && [[ "$(readlink -f "$PLIST_DST")" = "$(readlink -f "$PLIST_SRC")" ]]; then
+if [[ -L "$PLIST_DST" ]] && [[ "$(_realpath "$PLIST_DST")" = "$(_realpath "$PLIST_SRC")" ]]; then
     _debug "✅ ${LABEL} already linked"
 elif [[ -e "$PLIST_DST" ]]; then
     _message "⚠️  ${LABEL} would conflict with existing file at ${PLIST_DST}"

@@ -39,14 +39,14 @@ link_dotdir() {
     target=$(_target_dir "$dirname")
     shortname=$(basename "$target")
 
-    if test -L "$target" && test -d "$(readlink -f "$target")" && test "$(readlink -f "$target")" = "$(readlink -f "$dirname")"; then
+    if test -L "$target" && test -d "$(_realpath "$target")" && test "$(_realpath "$target")" = "$(_realpath "$dirname")"; then
         true; # _message "✅ dotdir ${shortname} already linked"
     elif test -d "$target"; then
         merge_dotdir "$dirname" "$target" || _message "⛔️  failed to merge dotdir ${shortname} "
     elif test -e "$target"; then
         _message "⛔️ dotdir ${shortname} would conflict with existing directory entry"
     else
-        ln -s "$(readlink -f "$dirname")" "$target"
+        ln -s "$(_realpath "$dirname")" "$target"
         _message "✅ dotdir ${shortname} linked to ${dirname}"
     fi;
 
@@ -70,7 +70,7 @@ merge_dotdir() {
         _message "processing ${entryname}"
         targetentry=$entryname
         direntry="$dirname/$(basename "$entryname")"
-        if test -e "$direntry" && test "$(readlink -f "$targetentry")" = "$(readlink -f "$direntry")"; then
+        if test -e "$direntry" && test "$(_realpath "$targetentry")" = "$(_realpath "$direntry")"; then
             true # This entry already copied.
         elif test -e "$direntry"; then
             canreplace="false"
@@ -83,7 +83,7 @@ merge_dotdir() {
   fi
   if test -z "$canreplace"; then
     rm -rf "$target"
-    ln -s "$(readlink -f "$dirname")" "$target"
+    ln -s "$(_realpath "$dirname")" "$target"
     _finished "✅ merged ${shortname}"
   else
     _finished "⛔️ unable to merge ${shortname} - some entries conflict with dotfiles"
@@ -99,20 +99,20 @@ link_dotfile() {
     shortname="$(basename "$target")"
 
     if test -L "$target"; then
-        if test "$(readlink -f "$target")" = "$(readlink -f "$filename")"; then
+        if test "$(_realpath "$target")" = "$(_realpath "$filename")"; then
             true # _message "✅ dotfile ${shortname} already linked"
         elif test -z "${DOTFILES_OVERWRITE:-}" ; then
-            _message "⚠️  dotfile ${shortname} would conflict with file linked to $(readlink -f "$target")"
+            _message "⚠️  dotfile ${shortname} would conflict with file linked to $(_realpath "$target")"
         else
             mv "$target" "$target.backup"
-            ln -s "$(readlink -f "$filename")" "$target"
+            ln -s "$(_realpath "$filename")" "$target"
         fi
     elif test -e "$target" && ! test -d "$target"; then
         _message "⚠️  dotfile ${shortname} would conflict with existing file"
     elif test -e "$target"; then
         _message "⛔️ dotfile ${shortname} would conflict with existing directory entry"
     else
-        ln -s "$(readlink -f "$filename")" "$target"
+        ln -s "$(_realpath "$filename")" "$target"
         _message "✅ dotfile ${shortname} linked to ${filename}"
     fi
 }
