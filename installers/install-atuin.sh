@@ -16,12 +16,20 @@ install_atuin() {
             # export CARGO_REGISTRIES_CRATES_IO_PROTOCOL
             cargo install atuin --locked
         else
-            curl https://raw.githubusercontent.com/ellie/atuin/main/install.sh | bash
+            _run_install_script \
+                "https://raw.githubusercontent.com/ellie/atuin/main/install.sh" \
+                bash
         fi
 
         if command_exists atuin; then
-            export HISTFILE="${HISTFILE:-${HOME}/.zsh_history}"
-            atuin import auto
+            atuin_data="${XDG_DATA_HOME:-$HOME/.local/share}/atuin"
+            atuin_imported="${atuin_data}/.imported"
+            if [ ! -f "$atuin_imported" ]; then
+                export HISTFILE="${HISTFILE:-${HOME}/.zsh_history}"
+                atuin import auto
+                mkdir -p "$atuin_data"
+                touch "$atuin_imported"
+            fi
             _finished "✅ atuin installed"
         else
             _finished "❌ atuin not installed"

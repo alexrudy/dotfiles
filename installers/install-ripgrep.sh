@@ -4,12 +4,12 @@ set -eu
 # shellcheck source=installers/prelude.sh
 . "${DOTFILES}/installers/prelude.sh"
 
-RIPGREP_VERSION="14.1.1"
-
 install_ripgrep_deb() {
     rg_arch="$(dpkg --print-architecture)"
     case "$rg_arch" in
-        amd64) ;;
+        amd64)
+            rg_sha256="$RIPGREP_SHA256_AMD64"
+            ;;
         *)
             _message "⚠️  ripgrep: no prebuilt deb for arch ${rg_arch}, skipping"
             return 0
@@ -23,11 +23,11 @@ install_ripgrep_deb() {
     workdir="$(mktemp -d)"
     trap 'rm -rf "$workdir"' EXIT INT TERM
 
-    if curl -fsSL -o "${workdir}/${rg_deb}" "$rg_url"; then
+    if _download_verified "$rg_url" "${workdir}/${rg_deb}" "$rg_sha256"; then
         sudo dpkg -i "${workdir}/${rg_deb}"
         _finished "✅ Installed ripgrep"
     else
-        _finished "⚠️  ripgrep: failed to download ${rg_url}"
+        _finished "⚠️  ripgrep: install skipped"
     fi
 
     rm -rf "$workdir"

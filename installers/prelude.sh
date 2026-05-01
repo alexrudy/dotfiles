@@ -9,3 +9,6 @@ set -eu
 
 # shellcheck source=installers/functions.sh
 . "${DOTFILES}/installers/functions.sh"
+
+# shellcheck source=installers/versions.sh
+. "${DOTFILES}/installers/versions.sh"

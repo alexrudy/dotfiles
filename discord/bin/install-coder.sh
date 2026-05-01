@@ -60,35 +60,46 @@ personalize() {
 }
 
 install_buildifier() {
-    BUILDIFIER_VERSION="v6.3.3"
-    BUILDIFIER_URL="https://github.com/bazelbuild/buildtools/releases/download/${BUILDIFIER_VERSION}/buildifier-linux-amd64"
+    if command_exists buildifier; then
+        _debug "✅ already installed buildifier"
+        type buildifier
+        return 0
+    fi
 
-    if ! command_exists buildifier; then
-        _process "🔨 buildifier"
-        mkdir -p "${HOME}/.bin"
-        curl -fsSL "${BUILDIFIER_URL}" -o "${HOME}/.bin/buildifier"
+    _process "🔨 buildifier ${BUILDIFIER_VERSION}"
+    buildifier_url="https://github.com/bazelbuild/buildtools/releases/download/v${BUILDIFIER_VERSION}/buildifier-linux-amd64"
+    if _download_verified "$buildifier_url" "${HOME}/.bin/buildifier" "$BUILDIFIER_SHA256_LINUX_AMD64"; then
         chmod +x "${HOME}/.bin/buildifier"
         _finished "✅ finished buildifier"
     else
-        _debug "✅ already installed buildifier"
-        type buildifier
+        _finished "⚠️  buildifier: install skipped"
     fi
-
 }
 
 install_buf() {
-    if ! command_exists "buf"; then
-        _process "🔨 buf"
-        BUF_VERSION="1.57.0"
-        mkdir -p "${HOME}/.bin"
-        curl -fsSL \
-        "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" \
-        -o "${HOME}/.bin/buf" && \
+    if command_exists buf; then
+        _debug "✅ already installed buf"
+        type buf
+        return 0
+    fi
+
+    _process "🔨 buf ${BUF_VERSION}"
+    buf_os="$(uname -s)"
+    buf_arch="$(uname -m)"
+    case "${buf_os}-${buf_arch}" in
+        Linux-x86_64)   buf_sha256="$BUF_SHA256_LINUX_X86_64" ;;
+        Linux-aarch64)  buf_sha256="$BUF_SHA256_LINUX_AARCH64" ;;
+        Darwin-x86_64)  buf_sha256="$BUF_SHA256_DARWIN_X86_64" ;;
+        Darwin-arm64)   buf_sha256="$BUF_SHA256_DARWIN_ARM64" ;;
+        *)              buf_sha256="" ;;
+    esac
+
+    buf_url="https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-${buf_os}-${buf_arch}"
+    if _download_verified "$buf_url" "${HOME}/.bin/buf" "$buf_sha256"; then
         chmod +x "${HOME}/.bin/buf"
         _finished "✅ finished buf"
     else
-        _debug "✅ already installed buf"
-        type buf
+        _finished "⚠️  buf: install skipped"
     fi
 }
 
