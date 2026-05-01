@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Pull the latest main for discord/discord, but only if the working tree is clean.
+# Designed to be invoked on a schedule by launchd (com.discord.update-main).
+set -euo pipefail
+
+REPO="${HOME}/Development/discord/discord"
+LOG_TAG="discord-update-main"
+
+log() {
+    printf '[%s] %s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$LOG_TAG" "$*"
+}
+
+if [[ ! -d "$REPO/.git" ]]; then
+    log "skip: $REPO is not a git checkout"
+    exit 0
+fi
+
+cd "$REPO"
+
+if [[ -n "$(git status --porcelain)" ]]; then
+    log "skip: working tree has uncommitted changes"
+    exit 0
+fi
+
+if ! git rev-parse --verify --quiet refs/heads/main >/dev/null; then
+    log "skip: no local main branch"
+    exit 0
+fi
+
+current_branch="$(git symbolic-ref --quiet --short HEAD || echo "")"
+
+if [[ "$current_branch" == "main" ]]; then
+    log "pulling main (currently checked out)"
+    git pull --ff-only --quiet origin main
+else
+    log "fetching main into local branch (current: ${current_branch:-detached})"
+    git fetch --quiet origin main:main
+fi
+
+log "done: main at $(git rev-parse --short main)"
