@@ -37,8 +37,8 @@ fi
 PYTHON_VERSIONS=$(tr '\n' ' ' < "${DOTFILES}/python/python-versions.txt")
 
 # shellcheck disable=SC2086
-exec "$PYENV" install -s ${PYTHON_VERSIONS}
+"$PYENV" install -s ${PYTHON_VERSIONS}
 # shellcheck disable=SC2086
-exec "$PYENV" global ${PYTHON_VERSIONS} system
+"$PYENV" global ${PYTHON_VERSIONS} system
 
 _finished "✅ finished pyenv"

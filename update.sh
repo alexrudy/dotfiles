@@ -32,7 +32,7 @@ fi
 if test -z "${DOTFILES_INSTALLER}"; then
     if ! test -d "${DOTFILES}"; then
         DOTFILES=$(readlink -f "$(dirname "$0")")
-        if test "${DOTFILES}" -eq "${HOME}"; then
+        if test "${DOTFILES}" = "${HOME}"; then
             echo "ERROR: DOTFILES cannot be found."
             exit 1
         fi
