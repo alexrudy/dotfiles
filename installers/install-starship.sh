@@ -7,6 +7,9 @@ set -eu
 if ! command_exists starship; then
     _process "🚀 install starship"
     mkdir -p /tmp/dotfiles
-    curl -sS https://starship.rs/install.sh | sh -s -- --yes > /tmp/dotfiles/starship.log 2>&1
+    _run_install_script \
+        "https://starship.rs/install.sh" \
+        sh --yes \
+        > /tmp/dotfiles/starship.log 2>&1
     _finished "✅ starship installed"
 fi

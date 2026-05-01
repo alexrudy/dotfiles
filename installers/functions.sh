@@ -70,12 +70,42 @@ _message() {
   _print "$message" "7"
 }
 
+# Stack of in-flight _process messages. Separator "|||" is unlikely to
+# appear in human-written step labels. Lets nested _process/_finished
+# pairs survive without each _finished clobbering an outer trap.
+_PROCESS_STACK="${_PROCESS_STACK:-}"
+
+_process_stack_push() {
+  if [ -z "$_PROCESS_STACK" ]; then
+    _PROCESS_STACK="$1"
+  else
+    _PROCESS_STACK="${_PROCESS_STACK}|||$1"
+  fi
+}
+
+_process_stack_pop() {
+  case "$_PROCESS_STACK" in
+    *"|||"*) _PROCESS_STACK="${_PROCESS_STACK%|||*}" ;;
+    *)       _PROCESS_STACK="" ;;
+  esac
+}
+
+_process_stack_top() {
+  case "$_PROCESS_STACK" in
+    *"|||"*) printf '%s' "${_PROCESS_STACK##*|||}" ;;
+    *)       printf '%s' "$_PROCESS_STACK" ;;
+  esac
+}
+
 _process() {
   message="$*"
   _log "start(${LEVEL})" "$message"
   _print "$message" "7"
   LEVEL=$(( LEVEL + 1))
-  trap '_cleanup "$message"' EXIT
+  _process_stack_push "$message"
+  # The trap evaluates _process_stack_top at fire-time, so it always
+  # reports the innermost in-flight step rather than a captured-once value.
+  trap '_cleanup "$(_process_stack_top)"' EXIT
 }
 
 _finished() {
@@ -84,7 +114,10 @@ _finished() {
   color=$(_color_code "$message")
   _log "finish(${LEVEL})" "$message"
   _print "$message" "$color"
-  trap - EXIT
+  _process_stack_pop
+  if [ -z "$_PROCESS_STACK" ]; then
+    trap - EXIT
+  fi
 }
 
 _error() {
@@ -95,7 +128,8 @@ _error() {
 }
 
 _cleanup() {
-  _error "⛔️ Install step $1 encountered an error"
+  _log "error" "$1"
+  _print "⛔️ Install step $1 encountered an error" "1"
 }
 
 _color_code() {
@@ -116,4 +150,67 @@ _color_code() {
 
 command_exists () {
     type "$1" > /dev/null 2>&1
+}
+
+_sha256() {
+    if command_exists sha256sum; then
+        sha256sum "$1" | awk '{print $1}'
+    elif command_exists shasum; then
+        shasum -a 256 "$1" | awk '{print $1}'
+    else
+        return 1
+    fi
+}
+
+# Atomically download a URL to a destination, optionally verifying sha256.
+# Empty sha256 skips verification (use only when checksum is unknown).
+# Usage: _download_verified URL DEST [SHA256]
+_download_verified() {
+    _dv_url="$1"
+    _dv_dest="$2"
+    _dv_sha256="${3:-}"
+
+    _dv_tmp="$(mktemp)"
+    if ! curl -fsSL --retry 3 --retry-delay 2 -o "$_dv_tmp" "$_dv_url"; then
+        rm -f "$_dv_tmp"
+        _message "⛔️ download failed: $_dv_url"
+        return 1
+    fi
+
+    if [ -n "$_dv_sha256" ]; then
+        _dv_actual="$(_sha256 "$_dv_tmp" || echo "")"
+        if [ "$_dv_actual" != "$_dv_sha256" ]; then
+            rm -f "$_dv_tmp"
+            _message "⛔️ checksum mismatch for ${_dv_url}: expected ${_dv_sha256}, got ${_dv_actual}"
+            return 1
+        fi
+    else
+        _debug "no checksum supplied for ${_dv_url}"
+    fi
+
+    mkdir -p "$(dirname "$_dv_dest")"
+    mv "$_dv_tmp" "$_dv_dest"
+}
+
+# Download a remote install script and run it via the given interpreter
+# (default: sh). Fails loudly on HTTP error instead of piping a 404 page
+# to the shell. Extra args after the interpreter pass through to the script.
+# Usage: _run_install_script URL [INTERPRETER [SCRIPT_ARGS...]]
+_run_install_script() {
+    _ris_url="$1"
+    _ris_shell="${2:-sh}"
+    shift
+    if [ $# -gt 0 ]; then shift; fi
+
+    _ris_tmp="$(mktemp)"
+    if ! curl -fsSL --retry 3 --retry-delay 2 -o "$_ris_tmp" "$_ris_url"; then
+        rm -f "$_ris_tmp"
+        _message "⛔️ download failed: $_ris_url"
+        return 1
+    fi
+
+    "$_ris_shell" "$_ris_tmp" "$@"
+    _ris_rc=$?
+    rm -f "$_ris_tmp"
+    return $_ris_rc
 }
