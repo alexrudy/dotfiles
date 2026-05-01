@@ -4,6 +4,11 @@ set -eu
 # shellcheck source=installers/prelude.sh
 . "${DOTFILES}/installers/prelude.sh"
 
+# Coder/Discord OS-level setup. Per-tool installers (buf, buildifier,
+# shpool) live alongside this file as install-coder-*.sh and run as
+# independent installers via run_installers, so a single binary download
+# outage no longer blocks the whole Coder bootstrap.
+
 noninteractive() {
     echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 }
@@ -59,63 +64,6 @@ personalize() {
     fi
 }
 
-install_buildifier() {
-    if command_exists buildifier; then
-        _debug "✅ already installed buildifier"
-        type buildifier
-        return 0
-    fi
-
-    _process "🔨 buildifier ${BUILDIFIER_VERSION}"
-    buildifier_url="https://github.com/bazelbuild/buildtools/releases/download/v${BUILDIFIER_VERSION}/buildifier-linux-amd64"
-    if _download_verified "$buildifier_url" "${HOME}/.bin/buildifier" "$BUILDIFIER_SHA256_LINUX_AMD64"; then
-        chmod +x "${HOME}/.bin/buildifier"
-        _finished "✅ finished buildifier"
-    else
-        _finished "⚠️  buildifier: install skipped"
-    fi
-}
-
-install_buf() {
-    if command_exists buf; then
-        _debug "✅ already installed buf"
-        type buf
-        return 0
-    fi
-
-    _process "🔨 buf ${BUF_VERSION}"
-    buf_os="$(uname -s)"
-    buf_arch="$(uname -m)"
-    case "${buf_os}-${buf_arch}" in
-        Linux-x86_64)   buf_sha256="$BUF_SHA256_LINUX_X86_64" ;;
-        Linux-aarch64)  buf_sha256="$BUF_SHA256_LINUX_AARCH64" ;;
-        Darwin-x86_64)  buf_sha256="$BUF_SHA256_DARWIN_X86_64" ;;
-        Darwin-arm64)   buf_sha256="$BUF_SHA256_DARWIN_ARM64" ;;
-        *)              buf_sha256="" ;;
-    esac
-
-    buf_url="https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-${buf_os}-${buf_arch}"
-    if _download_verified "$buf_url" "${HOME}/.bin/buf" "$buf_sha256"; then
-        chmod +x "${HOME}/.bin/buf"
-        _finished "✅ finished buf"
-    else
-        _finished "⚠️  buf: install skipped"
-    fi
-}
-
-install_shpool() {
-    if ! command_exists "shpool"; then
-        _process "🔨 shpool"
-        cargo install shpool
-        curl -fLo "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/shpool.service" --create-dirs https://raw.githubusercontent.com/shell-pool/shpool/master/systemd/shpool.service
-        sed -i "s|/usr|$HOME/.cargo|" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/shpool.service"
-        curl -fLo "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/shpool.socket" --create-dirs https://raw.githubusercontent.com/shell-pool/shpool/master/systemd/shpool.socket
-        systemctl --user enable shpool
-        systemctl --user start shpool
-        _finished "✅ installed shpool"
-    fi
-}
-
 CODER_USERNAME=${CODER_USERNAME:-}
 CODER=${CODER:-}
 
@@ -129,12 +77,6 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
     github_cli
 
     apt_packages
-
-    install_buildifier
-
-    install_buf
-
-    install_shpool
 
     # shellcheck source=python/bin/install-pyenv.sh
     . "${DOTFILES}/python/bin/install-pyenv.sh"
