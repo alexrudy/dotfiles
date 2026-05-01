@@ -25,10 +25,12 @@ install_atuin() {
             atuin_data="${XDG_DATA_HOME:-$HOME/.local/share}/atuin"
             atuin_imported="${atuin_data}/.imported"
             if [ ! -f "$atuin_imported" ]; then
-                export HISTFILE="${HISTFILE:-${HOME}/.zsh_history}"
-                atuin import auto
-                mkdir -p "$atuin_data"
-                touch "$atuin_imported"
+                if atuin import fish; then
+                    mkdir -p "$atuin_data"
+                    touch "$atuin_imported"
+                else
+                    _message "⚠️  atuin: fish history import failed (will retry next run)"
+                fi
             fi
             _finished "✅ atuin installed"
         else
