@@ -65,7 +65,8 @@ install_buildifier() {
 
     if ! command_exists buildifier; then
         _process "🔨 buildifier"
-        curl -fsSL "${BUILDIFIER_URL}" -o "${HOME}/bin/buildifier"
+        mkdir -p "${HOME}/.bin"
+        curl -fsSL "${BUILDIFIER_URL}" -o "${HOME}/.bin/buildifier"
         chmod +x "${HOME}/.bin/buildifier"
         _finished "✅ finished buildifier"
     else
@@ -79,7 +80,8 @@ install_buf() {
     if ! command_exists "buf"; then
         _process "🔨 buf"
         BUF_VERSION="1.57.0"
-        curl -sSL \
+        mkdir -p "${HOME}/.bin"
+        curl -fsSL \
         "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" \
         -o "${HOME}/.bin/buf" && \
         chmod +x "${HOME}/.bin/buf"
