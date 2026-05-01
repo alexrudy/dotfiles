@@ -127,12 +127,42 @@ _message() {
   _print "$message" "7"
 }
 
+# Stack of in-flight _process messages. Separator "|||" is unlikely to
+# appear in human-written step labels. Lets nested _process/_finished
+# pairs survive without each _finished clobbering an outer trap.
+_PROCESS_STACK="${_PROCESS_STACK:-}"
+
+_process_stack_push() {
+  if [ -z "$_PROCESS_STACK" ]; then
+    _PROCESS_STACK="$1"
+  else
+    _PROCESS_STACK="${_PROCESS_STACK}|||$1"
+  fi
+}
+
+_process_stack_pop() {
+  case "$_PROCESS_STACK" in
+    *"|||"*) _PROCESS_STACK="${_PROCESS_STACK%|||*}" ;;
+    *)       _PROCESS_STACK="" ;;
+  esac
+}
+
+_process_stack_top() {
+  case "$_PROCESS_STACK" in
+    *"|||"*) printf '%s' "${_PROCESS_STACK##*|||}" ;;
+    *)       printf '%s' "$_PROCESS_STACK" ;;
+  esac
+}
+
 _process() {
   message="$*"
   _log "start(${LEVEL})" "$message"
   _print "$message" "7"
   LEVEL=$(( LEVEL + 1))
-  trap '_cleanup "$message"' EXIT
+  _process_stack_push "$message"
+  # The trap evaluates _process_stack_top at fire-time, so it always
+  # reports the innermost in-flight step rather than a captured-once value.
+  trap '_cleanup "$(_process_stack_top)"' EXIT
 }
 
 _finished() {
@@ -141,7 +171,10 @@ _finished() {
   color=$(_color_code "$message")
   _log "finish(${LEVEL})" "$message"
   _print "$message" "$color"
-  trap - EXIT
+  _process_stack_pop
+  if [ -z "$_PROCESS_STACK" ]; then
+    trap - EXIT
+  fi
 }
 
 _error() {
@@ -152,7 +185,8 @@ _error() {
 }
 
 _cleanup() {
-  _error "⛔️ Install step $1 encountered an error"
+  _log "error" "$1"
+  _print "⛔️ Install step $1 encountered an error" "1"
 }
 
 _color_code() {

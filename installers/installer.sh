@@ -117,16 +117,80 @@ link_dotfile() {
     fi
 }
 
+_in_csv_list() {
+    case ",$2," in
+        *",$1,"*) return 0 ;;
+        *)        return 1 ;;
+    esac
+}
+
+_installer_name() {
+    name="${1##*/}"
+    name="${name#install-}"
+    echo "${name%.sh}"
+}
+
 run_installers() {
-    local filename
     _process "💾 running stand-alone installers"
 
-    find "${DOTFILES}" -maxdepth 3 -name 'install-*.sh' | while read -r filename; do
+    # Discover installers in deterministic (sorted) order, packed into the
+    # positional args so the for-loop below stays in this shell (a piped
+    # while-read would put counters into a subshell and lose them).
+    set --
+    while IFS= read -r filename; do
+        [ -z "$filename" ] && continue
+        set -- "$@" "$filename"
+    done <<EOF
+$(find "${DOTFILES}" -maxdepth 3 -name 'install-*.sh' | sort)
+EOF
+
+    only="${DOTFILES_INSTALLERS:-}"
+    skip="${DOTFILES_SKIP_INSTALLERS:-}"
+    fail_fast="${DOTFILES_FAIL_FAST:-}"
+
+    succeeded=0
+    failed=0
+    skipped=0
+
+    for filename do
+        name="$(_installer_name "$filename")"
+
+        if [ -n "$only" ] && ! _in_csv_list "$name" "$only"; then
+            skipped=$(( skipped + 1 ))
+            _debug "⏭  skip ${name} (not in DOTFILES_INSTALLERS)"
+            continue
+        fi
+        if [ -n "$skip" ] && _in_csv_list "$name" "$skip"; then
+            skipped=$(( skipped + 1 ))
+            _debug "⏭  skip ${name} (in DOTFILES_SKIP_INSTALLERS)"
+            continue
+        fi
+
         _debug "🚀 running ${filename}"
+        # Reset the trap and the process stack inside the subshell so the
+        # installer's own _process/_finished pairs don't see (or unbalance
+        # against) the parent's stack. LEVEL is intentionally inherited so
+        # output indentation matches the surrounding hierarchy.
         # shellcheck disable=SC1090
-        (. "$filename") || true
+        if (trap - EXIT; _PROCESS_STACK=""; . "$filename"); then
+            succeeded=$(( succeeded + 1 ))
+        else
+            rc=$?
+            failed=$(( failed + 1 ))
+            _message "❌ ${name} failed (exit ${rc})"
+            if [ -n "$fail_fast" ]; then
+                _finished "⛔️ ${name} failed; aborting (DOTFILES_FAIL_FAST=1)"
+                return 1
+            fi
+        fi
     done
-    _finished "✅ stand-alone items installed"
+
+    if [ "$failed" -gt 0 ]; then
+        _finished "⚠️  ${succeeded} ok, ${failed} failed, ${skipped} skipped"
+        [ -n "${DOTFILES_FAIL_ON_ERROR:-}" ] && return 1
+        return 0
+    fi
+    _finished "✅ ${succeeded} ok, ${skipped} skipped"
 }
 
 
