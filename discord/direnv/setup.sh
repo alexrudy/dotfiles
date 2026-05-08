@@ -7,7 +7,7 @@ add_envrc() {
 
     HERE="$DOTFILES/discord/direnv/"
 
-    ENVRCS=($(find "$HERE" -name envrc))
+    ENVRCS=($(find "$HERE" -name envrc -or -name envrc.local))
 
     echo "Searching for .envrc files in $HERE"
 
