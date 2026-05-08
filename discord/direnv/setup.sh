@@ -13,7 +13,7 @@ add_envrc() {
 
     for ENVRC in "${ENVRCS[@]}"; do
         TARGET="${DISCORD_ROOT}${ENVRC#${HERE}}"
-        TARGET="${TARGET%envrc}.envrc"
+        TARGET="${TARGET%/*}/.${TARGET##*/}"
         if ! test -f $TARGET; then
             if ln -s "$ENVRC" "$TARGET"; then
                 echo "Linked $ENVRC to $TARGET"

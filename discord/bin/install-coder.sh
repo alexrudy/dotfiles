@@ -25,32 +25,7 @@ github_cli() {
     _finished "✅ finished github cli apt repo"
 }
 
-apt_packages() {
-    _process "📦 apt packages"
 
-    noninteractive
-    export DEBIAN_FRONTEND=noninteractive
-
-    sudo add-apt-repository -y ppa:git-core/ppa > /dev/null
-    sudo add-apt-repository -y ppa:deadsnakes/ppa > /dev/null
-
-    sudo apt-get --quiet update -y  > /dev/null
-
-    APT_UPGRADE=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-upgrade.txt")
-    # shellcheck disable=SC2086
-    sudo apt --quiet install --only-upgrade --no-install-recommends -y \
-        ${APT_UPGRADE}
-
-
-    APT_INSTALL=$(tr '\n' ' ' < "${DOTFILES}/discord/apt-install.txt")
-    # Python dev/build dependencies
-    # shellcheck disable=SC2086
-    sudo apt --quiet install --no-install-recommends -y \
-        ${APT_INSTALL}
-
-
-    _finished "✅ finished apt packages"
-}
 
 
 personalize() {
@@ -74,31 +49,7 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
 
     personalize
 
-    github_cli
-
-    apt_packages
-
-    # shellcheck source=python/bin/install-pyenv.sh
-    . "${DOTFILES}/python/bin/install-pyenv.sh"
-
-    _process "🐍 pyenv for discord"
-    DISCORD_PYTHON="${DISCORD_PYTHON:-3.7.5}"
-
-    # shellcheck disable=SC2031
-    PYTHON_VERSIONS=$(tr '\n' ' ' < "${DOTFILES}/python/python-versions.txt")
-
-    _debug "👾 Installing discord python ${DISCORD_PYTHON}"
-    pyenv install -s "$DISCORD_PYTHON"
-    # shellcheck disable=SC2086
-    pyenv global ${PYTHON_VERSIONS} "$DISCORD_PYTHON" system
-    _finished "✅ finished pyenv"
-
-
-    if ! command_exists pipx; then
-        _process "🐍 pipx"
-        $(pyenv which python3.11) -m pip install pipx
-        _finished "✅ finished pipx"
-    fi
+    # github_cli
 
     _finished "✅ Coder Specific Install Steps"
 fi
