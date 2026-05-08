@@ -25,6 +25,15 @@ do
 	configure "$filename" "sh"
 done
 
+# Load shell-agnostic .env files (declarative PATH and environment config).
+# These are also read by fish/conf.d/0.dotfiles.fish so the same files apply
+# to every shell; keep shell-specific logic in the .sh / .fish files.
+for filename in "$DOTFILES"/*/*.env
+do
+	[ -e "$filename" ] || continue
+	_dotfiles_load_env "$filename"
+done
+
 # Now grab base shell files.
 for filename in "$DOTFILES"/*/*.sh
 do
