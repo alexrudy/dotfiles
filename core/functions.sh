@@ -1,45 +1,44 @@
-# Some basic functions required for configuraiton
+# Some basic functions required for configuration
+
 pathadd () {
-    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
-        pathdemote $1
-    fi
+    case ":${PATH}:" in
+        *":$1:"*) ;;
+        *) [ -d "$1" ] && PATH="${PATH:+$PATH:}$1" ;;
+    esac
 }
 
 pathprepend () {
-    if [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]]; then
-        pathpromote $1
-    fi
+    case ":${PATH}:" in
+        *":$1:"*) ;;
+        *) [ -d "$1" ] && PATH="$1${PATH:+:$PATH}" ;;
+    esac
+}
+
+pathpromote () {
+    pathdrop "$1"
+    [ -d "$1" ] && PATH="$1${PATH:+:$PATH}"
+}
+
+pathdemote () {
+    pathdrop "$1"
+    [ -d "$1" ] && PATH="${PATH:+$PATH:}$1"
+}
+
+pathdrop () {
+    PATH=$(printf '%s' "$PATH" | awk -v RS=: -v ORS=: -v drop="$1" '$0 != drop' | sed 's/:$//')
 }
 
 epath () {
-    for p in $path
-    do
-        print $p
-    done
+    printf '%s\n' "$PATH" | tr ':' '\n'
 }
 
-if [[ -n "$ZSH_VERSION" ]]; then
-    pathpromote () {
-        path=($1 ${(@)path:#$1})
-    }
-
-
-    pathdemote () {
-        path=(${(@)path:#$1} $1)
-    }
-
-    pathdrop () {
-        path=(${(@)path:#$1})
-    }
-fi
-
 command_exists () {
-    type "$1" &> /dev/null ;
+    type "$1" > /dev/null 2>&1
 }
 
 change_ext () {
-	if [[ -d "$1" ]]; then
-		for file in $1/*.$2
+	if [ -d "$1" ]; then
+		for file in "$1"/*."$2"
 		do
 			target=${file%.*}
 			git mv "$file" "$target.$3"

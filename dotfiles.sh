@@ -39,17 +39,11 @@ if [ -n "$BASH" ]; then
 	done
 fi
 
-if [ -n "$ZSH_NAME" ]; then
-	for filename in "$DOTFILES"/*/*.zsh
-	do
-		configure "$filename" "zsh"
-	done
-fi
-
 
 # Load completion scripts
 for filename in "$DOTFILES"/*/completion.sh
 do
+	[ -e "$filename" ] || continue
 	# shellcheck disable=SC1090
 	source "$filename"
 done
@@ -57,19 +51,8 @@ done
 if [ -n "$BASH" ]; then
 	for filename in "$DOTFILES"/*/completion.bash
 	do
+		[ -e "$filename" ] || continue
 		# shellcheck disable=SC1090
 		source "$filename"
 	done
-fi
-
-if [ -n "$ZSH_NAME" ]; then
-	for filename in "$DOTFILES"/*/completion.zsh
-	do
-		# shellcheck disable=SC1090
-		source "$filename"
-	done
-
-	# initialize autocomplete here, otherwise functions won't be loaded
-    autoload -U compinit
-    compinit
 fi

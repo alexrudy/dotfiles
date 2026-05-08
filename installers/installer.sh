@@ -200,7 +200,7 @@ main() {
     run_installers
     link_dotfiles
 
-    _finished "🍾 Installation finshed - you might want to run '. \"\$HOME/.zshrc\"'"
+    _finished "🍾 Installation finshed - start a new fish shell to pick up changes"
 }
 
 main "$@"

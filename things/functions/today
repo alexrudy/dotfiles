@@ -1,7 +1,0 @@
-osascript<<EOF
-  with timeout of 1 seconds
-    tell application "Things3"
-        get count of ((to dos in list "Today") whose status is open)
-    end tell
-  end timeout
-EOF

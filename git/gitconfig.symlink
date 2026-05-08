@@ -33,7 +33,6 @@
   root = rev-parse --show-toplevel
 
   # list files which have changed since REVIEW_BASE
-  # (REVIEW_BASE defaults to 'master' in my zshrc)
   files = !git diff --name-only $(git merge-base HEAD \"$REVIEW_BASE\")
 
   # Same as above, but with a diff stat instead of just names

@@ -3,5 +3,5 @@ if command_exists brew; then
 fi
 
 if command_exists rbenv; then
-    eval "$(rbenv init - zsh)"
+    eval "$(rbenv init - bash)"
 fi

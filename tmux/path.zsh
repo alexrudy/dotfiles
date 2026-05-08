@@ -1,1 +1,0 @@
-pathadd $DOTFILES/tmux/bin

@@ -14,7 +14,7 @@ if test -d "${HOME}/.fzf/.git"; then
         _message "⚠️  fzf: git pull failed, leaving as-is"
     "${HOME}/.fzf/install" --bin --no-update-rc > /dev/null
     _finished "✅ fzf updated"
-elif ! command_exists fzf && ! test -f "${HOME}/.fzf.zsh" && ! command_exists brew; then
+elif ! command_exists fzf && ! command_exists brew; then
     _process "🚛 install fzf"
     git clone --depth 1 https://github.com/junegunn/fzf.git "${HOME}/.fzf"
     "${HOME}/.fzf/install" --bin --no-update-rc
