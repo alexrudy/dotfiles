@@ -7,6 +7,12 @@ set -eu
 # box that personalizes afterwards.
 DOTFILES_REF="${DOTFILES_REF:-main}"
 
+# Skip the generic apt installer on Coder — Coder workspace images already
+# have most packages, and any Coder-specific extras live in
+# discord/apt-install.txt and are installed by install-coder-apt.sh.
+DOTFILES_SKIP_INSTALLERS="${DOTFILES_SKIP_INSTALLERS:+${DOTFILES_SKIP_INSTALLERS},}apt"
+export DOTFILES_SKIP_INSTALLERS
+
 if test -d "${HOME}/.dotfiles"; then
     sh "${HOME}/.dotfiles/update.sh"
 else
