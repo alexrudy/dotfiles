@@ -39,6 +39,17 @@ personalize() {
     fi
 }
 
+envrc_links() {
+    discord_root="${HOME}/dev/discord/discord/"
+    if ! test -d "${discord_root}.git"; then
+        _debug "⏭️  discord monorepo not at ${discord_root}, skipping .envrc links"
+        return 0
+    fi
+    _process "🔗 linking .envrc files into discord monorepo"
+    bash "${DOTFILES}/discord/direnv/setup.sh" "${discord_root}"
+    _finished "✅ finished linking .envrc files"
+}
+
 CODER_USERNAME=${CODER_USERNAME:-}
 CODER=${CODER:-}
 
@@ -48,6 +59,8 @@ if test ! -z "$CODER_USERNAME" || test ! -z "$CODER" ; then
     _process "👾 Coder Specific Install Steps"
 
     personalize
+
+    envrc_links
 
     # github_cli
 
