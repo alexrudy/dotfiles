@@ -4,6 +4,7 @@ import argparse
 import dataclasses as dc
 import enum
 import functools
+import os
 import re
 import shelve
 import shlex
@@ -281,8 +282,6 @@ def main() -> int:
     git = Git.toplevel(Path.cwd())
     primary_branch = git.remote_primary_branch(args.remote) or args.primary_branch
 
-    shelf_path = os.path.join(git_dir(), args.shelf)
-
     if primary_branch is None:
         print("Could not determine primary branch")
         return 1
@@ -291,7 +290,7 @@ def main() -> int:
         print("Fetching remote")
         git.fetch(args.remote, primary_branch)
 
-    shelf_filename = git.root / args.shelf
+    shelf_filename = git.root / ".git" / args.shelf
 
     print("Finding merged and dangling branches")
     branches: set[str] = set()
