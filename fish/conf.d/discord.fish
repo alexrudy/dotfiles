@@ -20,3 +20,7 @@ else
        ssh "coder.$workspace"
     end
 end
+
+if test -d ~/Development/discord/discord
+    fish_add_path -p ~/Development/discord/discord/.local/bin
+end
