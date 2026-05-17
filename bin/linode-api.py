@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-import urllib.parse
 import dataclasses as dc
 import re
-import json
-
+import urllib.parse
 from typing import Any, Dict
 
 try:
@@ -84,18 +82,39 @@ class Linode:
             pages = data.get("pages", 0)
 
 
+def cleanup_acme_dns(linode: Linode, target: str):
+    for i, domain in enumerate(linode.get_paginated_data("domains")):
+        if domain.get("domain") == target:
+            break
+    else:
+        print("Domain not found", flush=True)
+        raise SystemExit(1)
+
+    domain_id = domain.get("id")
+    for i, record in enumerate(
+        linode.get_paginated_data(f"domains/{domain_id}/records")
+    ):
+        if record.get("type") in ("TXT"):
+            if record.get("name", "").startswith("_acme"):
+                print(f"deleting {record.get('name', '')!r}")
+                linode.delete(f"domains/{domain_id}/records/{record.get('id')}")
+
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--token", help="Linode token to use", required=True)
+
+    subs = parser.add_subparsers(dest="command")
+    cleanup_parser = subs.add_parser(
+        name="clean-acme-dns", description="cleanup acme DNS TXT entries"
+    )
+    cleanup_parser.add_argument("domain", help="Domain to search for when cleaning")
+
     args = parser.parse_args()
 
     linode = Linode(args.token)
 
-    for i, item in enumerate(linode.get_paginated_data("account/events")):
-        message = item.get("message", "")
-        if isinstance(message, str) and "MX" in message:
-            if "`_acme-challenge." in message:
-                continue
-            print(json.dumps(item), flush=True)
+    if args.command == "clean-acme-dns":
+        cleanup_acme_dns(linode, args.domain)
