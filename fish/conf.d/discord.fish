@@ -24,3 +24,5 @@ end
 if test -d ~/Development/discord/discord
     fish_add_path -p ~/Development/discord/discord/.local/bin
 end
+
+abbr --add ghostty-info --set-cursor infocmp -x xterm-ghostty \| ssh % -- tic -x -
