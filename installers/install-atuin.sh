@@ -7,6 +7,13 @@ set -eu
 install_atuin() {
     if ! command_exists atuin; then
         _process "🐢 install atuin"
+
+        # Prefer the rustup-installed cargo over any system cargo (e.g.
+        # apt's rustc package on Coder) — the `+stable` toolchain syntax
+        # below only works with rustup's cargo wrapper. Harmless prepend
+        # when ~/.cargo/bin doesn't exist.
+        export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+
         if command_exists brew; then
             # This should be a no-op if atuin is already installed
             brew install atuin
@@ -14,7 +21,7 @@ install_atuin() {
             # Add me back when sparse registries stabilize
             # CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
             # export CARGO_REGISTRIES_CRATES_IO_PROTOCOL
-            cargo install atuin --locked
+            cargo +stable install atuin --locked
         else
             _run_install_script \
                 "https://raw.githubusercontent.com/ellie/atuin/main/install.sh" \
