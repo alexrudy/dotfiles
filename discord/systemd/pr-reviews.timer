@@ -2,7 +2,13 @@
 Description=Run PR review sweep three times each weekday
 
 [Timer]
-OnCalendar=Mon..Fri 09:00,13:00,16:00
+# Three OnCalendar= lines are additive — systemd combines them into one
+# schedule. A single line like `Mon..Fri 09:00,13:00,16:00` is rejected
+# because a comma list isn't allowed at the top of HH:MM:SS — it has to
+# sit inside one of the integer fields.
+OnCalendar=Mon..Fri 09:00
+OnCalendar=Mon..Fri 13:00
+OnCalendar=Mon..Fri 16:00
 Persistent=true
 
 [Install]
