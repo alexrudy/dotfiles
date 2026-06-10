@@ -7,5 +7,7 @@ Wants=network-online.target
 Type=oneshot
 WorkingDirectory=%h/dev/discord/discord
 EnvironmentFile=-%h/dev/discord/discord/.env
-Environment=PATH=%h/.local/bin:%h/.cargo/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=uv run misc/users/alexrudy/exp-pr-reviews/pr_reviews.py sweep --apply
+# uv ships inside the discord monorepo (not on PATH) — invoke it by
+# absolute path. PATH is still set for any subprocess uv-run launches.
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/dev/discord/discord/.local/bin/uv run misc/users/alexrudy/exp-pr-reviews/pr_reviews.py sweep --apply

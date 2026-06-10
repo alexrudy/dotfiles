@@ -2,7 +2,18 @@
 Description=Run PR review sweep three times each weekday
 
 [Timer]
-OnCalendar=Mon..Fri 09:00,13:00,16:00
+# Three OnCalendar= lines are additive — systemd combines them into one
+# schedule. A single line like `Mon..Fri 09:00,13:00,16:00` is rejected
+# because a comma list isn't allowed at the top of HH:MM:SS — it has to
+# sit inside one of the integer fields.
+#
+# IANA timezone suffix interprets the whole spec (Mon..Fri included) in
+# that zone, so DST is handled automatically. Requires systemd >= 252
+# (Ubuntu 24.04+, Debian 12+). Validate with:
+#   systemd-analyze calendar "Mon..Fri 09:00 America/Los_Angeles"
+OnCalendar=Mon..Fri 09:00 America/Los_Angeles
+OnCalendar=Mon..Fri 13:00 America/Los_Angeles
+OnCalendar=Mon..Fri 16:00 America/Los_Angeles
 Persistent=true
 
 [Install]
