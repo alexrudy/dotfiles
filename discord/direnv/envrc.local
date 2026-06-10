@@ -12,3 +12,4 @@ PATH_add $DISCORD_ROOT/misc/users/alexrudy/scripts/
 PATH_add $DISCORD_ROOT/.local/bin
 
 dotenv_if_exists ~/coder.env
+dotenv_if_exists .env
