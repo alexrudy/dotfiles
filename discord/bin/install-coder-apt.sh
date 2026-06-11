@@ -23,22 +23,6 @@ if ! test -f "$CODER_APT_INSTALL"; then
     exit 0
 fi
 
-APT_LOG="${APT_LOG:-${HOME}/.dotfiles-apt.log}"
-
-apt_run() {
-    local label="$1"
-    shift
-    {
-        echo
-        echo "==== $(date '+%Y-%m-%d %H:%M:%S') ${label} ===="
-        echo "$ $*"
-    } >> "$APT_LOG"
-    if ! "$@" >> "$APT_LOG" 2>&1; then
-        _message "⛔️ ${label} failed — see ${APT_LOG} for output"
-        return 1
-    fi
-}
-
 _process "📦 coder apt packages (log: ${APT_LOG})"
 
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections

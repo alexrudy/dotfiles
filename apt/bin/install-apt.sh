@@ -13,25 +13,6 @@ if ! command_exists apt-get; then
     exit 0
 fi
 
-APT_LOG="${APT_LOG:-${HOME}/.dotfiles-apt.log}"
-
-# Run an apt command, sending stdout+stderr to $APT_LOG. On failure,
-# point the user at the log file (the framework still surfaces the
-# overall installer failure via run_installers' status reporting).
-apt_run() {
-    local label="$1"
-    shift
-    {
-        echo
-        echo "==== $(date '+%Y-%m-%d %H:%M:%S') ${label} ===="
-        echo "$ $*"
-    } >> "$APT_LOG"
-    if ! "$@" >> "$APT_LOG" 2>&1; then
-        _message "⛔️ ${label} failed — see ${APT_LOG} for output"
-        return 1
-    fi
-}
-
 apt_packages() {
     _process "📦 apt packages (log: ${APT_LOG})"
 
