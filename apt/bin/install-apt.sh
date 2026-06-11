@@ -13,22 +13,40 @@ if ! command_exists apt-get; then
     exit 0
 fi
 
+APT_LOG="${APT_LOG:-${HOME}/.dotfiles-apt.log}"
+
+# Run an apt command, sending stdout+stderr to $APT_LOG. On failure,
+# point the user at the log file (the framework still surfaces the
+# overall installer failure via run_installers' status reporting).
+apt_run() {
+    local label="$1"
+    shift
+    {
+        echo
+        echo "==== $(date '+%Y-%m-%d %H:%M:%S') ${label} ===="
+        echo "$ $*"
+    } >> "$APT_LOG"
+    if ! "$@" >> "$APT_LOG" 2>&1; then
+        _message "⛔️ ${label} failed — see ${APT_LOG} for output"
+        return 1
+    fi
+}
+
 apt_packages() {
-    _process "📦 apt packages"
-    sudo apt-get --quiet update -y > /dev/null
+    _process "📦 apt packages (log: ${APT_LOG})"
+
+    apt_run "apt-get update" sudo apt-get --quiet update -y
 
     if test -f "${DOTFILES}/apt/packages/apt-upgrade.txt"; then
         APT_UPGRADE=$(tr '\n' ' ' < "${DOTFILES}/apt/packages/apt-upgrade.txt")
         # shellcheck disable=SC2086
-        sudo apt-get --quiet install --only-upgrade --no-install-recommends -y \
-            ${APT_UPGRADE} &> /dev/null
+        apt_run "apt-get upgrade" sudo apt-get --quiet install --only-upgrade --no-install-recommends -y ${APT_UPGRADE}
     fi
 
     if test -f "${DOTFILES}/apt/packages/apt-install.txt"; then
         APT_INSTALL=$(tr '\n' ' ' < "${DOTFILES}/apt/packages/apt-install.txt")
         # shellcheck disable=SC2086
-        sudo apt-get --quiet install --no-install-recommends -y \
-            ${APT_INSTALL} &> /dev/null
+        apt_run "apt-get install" sudo apt-get --quiet install --no-install-recommends -y ${APT_INSTALL}
     fi
 
     _finished "✅ finished apt packages"
