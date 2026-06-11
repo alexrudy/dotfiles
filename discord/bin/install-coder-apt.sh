@@ -23,15 +23,15 @@ if ! test -f "$CODER_APT_INSTALL"; then
     exit 0
 fi
 
-_process "📦 coder apt packages"
+_process "📦 coder apt packages (log: ${APT_LOG})"
 
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 export DEBIAN_FRONTEND=noninteractive
 
-sudo apt-get --quiet update -y > /dev/null
+apt_run "apt-get update" sudo apt-get --quiet update -y
 
 PACKAGES=$(tr '\n' ' ' < "$CODER_APT_INSTALL")
 # shellcheck disable=SC2086
-sudo apt-get --quiet install --no-install-recommends -y ${PACKAGES} > /dev/null
+apt_run "apt-get install (coder)" sudo apt-get --quiet install --no-install-recommends -y ${PACKAGES}
 
 _finished "✅ finished coder apt packages"

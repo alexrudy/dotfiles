@@ -290,6 +290,29 @@ _run_install_script() {
     rm -f "$_ris_tmp"
     return $_ris_rc
 }
+
+# Default log destination for apt_run. Overridable via env if a caller
+# wants per-installer logs.
+APT_LOG="${APT_LOG:-${HOME}/.dotfiles-apt.log}"
+
+# Run a command (typically apt-get) silently, capturing stdout+stderr into
+# $APT_LOG with a timestamped section header. On non-zero exit, point the
+# user at the log via _message and return 1 — the caller will propagate
+# the failure and run_installers will surface it in the summary.
+# Usage: apt_run "label for the log header" command args...
+apt_run() {
+    _ar_label="$1"
+    shift
+    {
+        echo
+        echo "==== $(date '+%Y-%m-%d %H:%M:%S') ${_ar_label} ===="
+        echo "$ $*"
+    } >> "$APT_LOG"
+    if ! "$@" >> "$APT_LOG" 2>&1; then
+        _message "⛔️ ${_ar_label} failed — see ${APT_LOG} for output"
+        return 1
+    fi
+}
 # END included from installers/functions.sh
 
 # BEGIN included from installers/versions.sh
