@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # Install the pr-reviews systemd user timer + service. Only runs on the
 # `base` Coder workspace — other workspaces (feature branches, throwaway)
 # shouldn't run the sweep.
@@ -15,7 +15,7 @@ if test -z "$CODER_USERNAME" && test -z "$CODER"; then
     exit 0
 fi
 
-if [[ "$CODER_WORKSPACE_NAME" != "base" ]]; then
+if [ "$CODER_WORKSPACE_NAME" != "base" ]; then
     _debug "⏭  not on base workspace (CODER_WORKSPACE_NAME=${CODER_WORKSPACE_NAME:-unset}), skipping pr-reviews timer"
     exit 0
 fi
@@ -32,9 +32,9 @@ needs_reload=""
 for unit in pr-reviews.service pr-reviews.timer; do
     src="${DOTFILES}/discord/systemd/${unit}"
     dst="${systemd_user_dir}/${unit}"
-    if [[ -L "$dst" ]] && [[ "$(_realpath "$dst")" = "$(_realpath "$src")" ]]; then
+    if [ -L "$dst" ] && [ "$(_realpath "$dst")" = "$(_realpath "$src")" ]; then
         _debug "✅ ${unit} already linked"
-    elif [[ -e "$dst" ]]; then
+    elif [ -e "$dst" ]; then
         _message "⚠️  ${unit} would conflict with existing file at ${dst}"
         exit 0
     else
@@ -45,7 +45,7 @@ for unit in pr-reviews.service pr-reviews.timer; do
     fi
 done
 
-if [[ -n "$needs_reload" ]]; then
+if [ -n "$needs_reload" ]; then
     _process "🔄 reloading systemd user units"
     systemctl --user daemon-reload
     _finished "✅ systemd reloaded"
