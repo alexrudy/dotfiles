@@ -10,6 +10,12 @@ repos:
         language: script
 
         types: [shell]
+      - id: dash-syntax
+        name: POSIX syntax check (dash -n)
+        description: Parse installer scripts with dash to catch bashisms
+        entry: scripts/dash-syntax-check.sh
+        language: script
+        files: '(^installers/.*\.sh$)|((^|/)install-[A-Za-z0-9-]+\.sh$)|(^install\.sh$)|(^update\.sh$)'
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -21,7 +27,7 @@ repos:
     rev: v0.11.0.1
     hooks:
       - id: shellcheck
-        files: '^(installers/)|(install-\w+\.sh)|(dotfiles\.sh)'
+        files: '(^installers/)|((^|/)install-[A-Za-z0-9-]+\.sh$)|(dotfiles\.sh)'
         args: ["-x"]
   - repo: https://github.com/psf/black
     rev: 25.9.0

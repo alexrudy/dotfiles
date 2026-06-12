@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # dash backs the `dash -n` hook. It ships in ubuntu's base image (it is
+      # /bin/sh), but install explicitly so the dependency is not implicit.
+      - name: Install dash
+        run: sudo apt-get update && sudo apt-get install -y dash
+      - uses: pre-commit/action@v3.0.1
