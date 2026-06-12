@@ -4,7 +4,7 @@
 # Coder/Linux hosts where launchd is unavailable.
 set -eu
 
-# shellcheck source=../../installers/prelude.sh
+# shellcheck source=installers/prelude.sh
 . "${DOTFILES}/installers/prelude.sh"
 
 if [ "$(uname -s)" != "Darwin" ]; then
