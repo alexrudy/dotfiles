@@ -313,6 +313,21 @@ apt_run() {
         return 1
     fi
 }
+
+# Best-effort, per-submodule init/update. Runs each submodule on its own so one
+# that needs credentials (e.g. a private submodule on a fresh machine) can
+# neither abort the caller nor block sibling public submodules.
+# GIT_TERMINAL_PROMPT=0 makes a credential-less submodule fail fast instead of
+# hanging on an interactive prompt. Anything that consumes a missing submodule
+# should no-op until it is fetched — re-run update.sh once credentials exist.
+update_submodules_best_effort() {
+    git -C "${DOTFILES}" submodule status 2>/dev/null | while read -r _ _sm _; do
+        if ! GIT_TERMINAL_PROMPT=0 git -C "${DOTFILES}" \
+                submodule update --init --recursive "$_sm" > /dev/null 2>&1; then
+            _message "⚠️  submodule ${_sm} not fetched (private repos need git auth); skipping"
+        fi
+    done
+}
 # END included from installers/functions.sh
 
 # BEGIN included from installers/versions.sh
@@ -356,12 +371,15 @@ install_dotfiles() {
                 if test -d "${DOTFILES}" ; then
                     if command_exists git; then
                         _message "🐙 Pull latest dotfiles from github"
-                        if git -C "$DOTFILES" pull --quiet --recurse-submodules > /dev/null 2>&1 ; then
+                        if GIT_TERMINAL_PROMPT=0 git -C "$DOTFILES" pull --quiet --recurse-submodules > /dev/null 2>&1 ; then
                             _message "🐙 Updated dotfiles git repo"
                         else
                             # Not a hard failure
                             _message "⚠️  Failed to update git repo"
                         fi
+                        # Fetch/init any submodule not yet checked out — e.g. a private one
+                        # skipped on a credential-less first install. Best-effort, never fatal.
+                        update_submodules_best_effort
                     fi
                 else
                     exit 1
@@ -382,7 +400,10 @@ install_dotfiles() {
                 download_git_clone() {
                     if command_exists git; then
                         _process "🐙 cloning ${GITHUB_REPO} from github"
-                        git clone --recursive "https://github.com/${GITHUB_REPO}.git" "${DOTFILES}"
+                        git clone "https://github.com/${GITHUB_REPO}.git" "${DOTFILES}"
+                        # Fetch submodules separately and best-effort so a private one (e.g.
+                        # claude/private) that needs credentials can't abort the whole install.
+                        update_submodules_best_effort
                     else
                         exit 1
                     fi
