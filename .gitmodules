@@ -1,3 +1,6 @@
 [submodule "talon/talon.dir/user"]
 	path = talon/talon.dir/user
 	url = https://github.com/alexrudy/talon.git
+[submodule "claude/private"]
+	path = claude/private
+	url = https://github.com/alexrudy/claude-private.git
