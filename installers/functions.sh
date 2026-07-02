@@ -237,3 +237,18 @@ apt_run() {
         return 1
     fi
 }
+
+# Best-effort, per-submodule init/update. Runs each submodule on its own so one
+# that needs credentials (e.g. a private submodule on a fresh machine) can
+# neither abort the caller nor block sibling public submodules.
+# GIT_TERMINAL_PROMPT=0 makes a credential-less submodule fail fast instead of
+# hanging on an interactive prompt. Anything that consumes a missing submodule
+# should no-op until it is fetched — re-run update.sh once credentials exist.
+update_submodules_best_effort() {
+    git -C "${DOTFILES}" submodule status 2>/dev/null | while read -r _ _sm _; do
+        if ! GIT_TERMINAL_PROMPT=0 git -C "${DOTFILES}" \
+                submodule update --init --recursive "$_sm" > /dev/null 2>&1; then
+            _message "⚠️  submodule ${_sm} not fetched (private repos need git auth); skipping"
+        fi
+    done
+}
