@@ -1,0 +1,301 @@
+#!/usr/bin/env python3
+"""Merge dependabot pull requests whose checks have all passed.
+
+Usage: gh-dependabot-land OWNER/REPO
+"""
+
+import argparse
+import dataclasses as dc
+import enum
+import functools
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+from typing import Any
+
+
+def command(message: str) -> Any:
+    def decorator(func: Any) -> Any:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except subprocess.CalledProcessError as e:
+                print("Error: {}".format(message), file=sys.stderr)
+                if e.stderr:
+                    print(e.stderr.decode(), file=sys.stderr)
+                raise
+
+        return wrapper
+
+    return decorator
+
+
+def handler() -> Any:
+    def decorator(func: Any) -> Any:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except subprocess.CalledProcessError:
+                if bool(os.environ.get("GH_DEPENDABOT_LAND_DEBUG", "")):
+                    raise
+                raise SystemExit(1)
+
+        return wrapper
+
+    return decorator
+
+
+class Style(enum.IntEnum):
+    BOLD = 1
+    DIM = 2
+
+    RED = 31
+    GREEN = 32
+    YELLOW = 33
+    BLUE = 34
+    MAGENTA = 35
+    CYAN = 36
+
+
+def ansi(text: str, *styles: Style) -> str:
+    style = ";".join(str(style.value) for style in styles)
+    return f"\033[{style}m{text}\033[0m"
+
+
+def _show_gh(*args: str) -> None:
+    print(
+        f"{ansi('>', Style.BOLD)} {ansi('gh', Style.BOLD)} {' '.join(shlex.quote(arg) for arg in args)}"
+    )
+
+
+# Buckets from `gh pr checks` that we treat as non-blocking for a merge.
+PASSING_BUCKETS = frozenset({"pass", "skipping"})
+
+MERGE_METHODS = ("merge", "squash", "rebase")
+
+# Dependabot titles look like "bump <dep> from 1.2.3 to 1.3.0". We parse the two
+# versions to classify the bump; grouped updates ("bump the x group with N
+# updates") have no single version pair and are reported as "unknown".
+VERSION_RE = re.compile(r"\bfrom\s+v?(\d+(?:\.\d+)*)\s+to\s+v?(\d+(?:\.\d+)*)", re.I)
+
+
+def update_level(title: str) -> str:
+    match = VERSION_RE.search(title)
+    if not match:
+        return "unknown"
+
+    old = [int(p) for p in match.group(1).split(".")]
+    new = [int(p) for p in match.group(2).split(".")]
+    width = max(len(old), len(new))
+    old += [0] * (width - len(old))
+    new += [0] * (width - len(new))
+
+    if new[0] != old[0]:
+        return "major"
+    if width > 1 and new[1] != old[1]:
+        return "minor"
+    return "patch"
+
+
+@dc.dataclass
+class PullRequest:
+    number: int
+    title: str
+    head_ref: str
+    mergeable: str
+    merge_state_status: str
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> "PullRequest":
+        return cls(
+            number=data["number"],
+            title=data["title"],
+            head_ref=data["headRefName"],
+            mergeable=data.get("mergeable", "UNKNOWN"),
+            merge_state_status=data.get("mergeStateStatus", "UNKNOWN"),
+        )
+
+    @property
+    def update_level(self) -> str:
+        return update_level(self.title)
+
+    def __str__(self) -> str:
+        return f"#{self.number} {self.title}"
+
+
+@dc.dataclass
+class Gh:
+    repo: str
+
+    def __call__(self, *args: str, verbose: bool = True) -> subprocess.CompletedProcess:
+        if verbose:
+            _show_gh(*args)
+        return subprocess.run(["gh", *args], check=False, capture_output=True)
+
+    @command("list dependabot pull requests")
+    def dependabot_prs(self) -> list[PullRequest]:
+        cmd = self(
+            "pr",
+            "list",
+            "--repo",
+            self.repo,
+            "--app",
+            "dependabot",
+            "--state",
+            "open",
+            "--limit",
+            "100",
+            "--json",
+            "number,title,headRefName,mergeable,mergeStateStatus",
+        )
+        cmd.check_returncode()
+        return [PullRequest.from_json(pr) for pr in json.loads(cmd.stdout)]
+
+    def checks(self, pr: PullRequest) -> list[dict[str, Any]]:
+        # `gh pr checks` exits non-zero when checks are failing, pending, or
+        # absent, so we ignore the return code and rely on the parsed output.
+        cmd = self(
+            "pr",
+            "checks",
+            str(pr.number),
+            "--repo",
+            self.repo,
+            "--json",
+            "name,state,bucket",
+            verbose=False,
+        )
+        if not cmd.stdout.strip():
+            return []
+        return json.loads(cmd.stdout)
+
+    @command("merge pull request")
+    def merge(self, pr: PullRequest, method: str, delete_branch: bool) -> None:
+        args = ["pr", "merge", str(pr.number), "--repo", self.repo, f"--{method}"]
+        if delete_branch:
+            args.append("--delete-branch")
+        self(*args).check_returncode()
+
+
+def evaluate(checks: list[dict[str, Any]]) -> tuple[bool, str]:
+    """Return whether the PR is mergeable based on its checks, plus a reason."""
+    if not checks:
+        return False, "no checks reported"
+
+    failing = sorted(
+        {c["name"] for c in checks if c.get("bucket") not in PASSING_BUCKETS}
+    )
+    if failing:
+        return False, "checks not passing: " + ", ".join(failing)
+
+    return True, f"{len(checks)} check(s) passed"
+
+
+def land(
+    gh: Gh,
+    pr: PullRequest,
+    method: str,
+    delete_branch: bool,
+    dry_run: bool,
+    allow_major: bool,
+) -> bool:
+    print(ansi(str(pr), Style.BOLD), f"[{pr.head_ref}]")
+
+    # Always report check status, even for PRs we will not merge, so major and
+    # grouped updates surface enough to decide whether they need scrutiny.
+    ok, reason = evaluate(gh.checks(pr))
+    checks = ansi(reason, Style.GREEN if ok else Style.RED)
+
+    def note(message: str, *styles: Style) -> None:
+        print(f"  {ansi(message, *styles)} — checks: {checks}")
+
+    if pr.mergeable == "CONFLICTING":
+        note("skip: has merge conflicts", Style.YELLOW)
+        return False
+
+    level = pr.update_level
+    if level in ("major", "unknown") and not allow_major:
+        detail = "major update" if level == "major" else "undetermined update level"
+        note(f"skip: {detail} (use --major to merge)", Style.YELLOW)
+        return False
+
+    if not ok:
+        note("skip: checks not passing", Style.YELLOW)
+        return False
+
+    if dry_run:
+        note("would merge", Style.CYAN)
+        return False
+
+    note("merging", Style.GREEN)
+    gh.merge(pr, method=method, delete_branch=delete_branch)
+    return True
+
+
+@handler()
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Merge dependabot PRs whose checks have all passed."
+    )
+    parser.add_argument("repo", metavar="OWNER/REPO", help="Repository to land PRs in")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be merged, but do not merge",
+    )
+    parser.add_argument(
+        "--merge-method",
+        choices=MERGE_METHODS,
+        default="merge",
+        help="Merge strategy (default: merge commit)",
+    )
+    parser.add_argument(
+        "--no-delete-branch",
+        dest="delete_branch",
+        action="store_false",
+        help="Do not delete the branch after merging",
+    )
+    parser.add_argument(
+        "--major",
+        dest="allow_major",
+        action="store_true",
+        help="Also merge major version bumps (and updates of undetermined level)",
+    )
+
+    args = parser.parse_args()
+
+    gh = Gh(args.repo)
+
+    prs = gh.dependabot_prs()
+    if not prs:
+        print("No open dependabot pull requests")
+        return 0
+
+    print(
+        f"Found {len(prs)} dependabot pull request(s), merging with --{args.merge_method}"
+    )
+    merged = 0
+    for pr in prs:
+        if land(
+            gh,
+            pr,
+            args.merge_method,
+            args.delete_branch,
+            args.dry_run,
+            args.allow_major,
+        ):
+            merged += 1
+
+    if args.dry_run:
+        print(f"\nDry run complete ({len(prs)} PR(s) evaluated)")
+    else:
+        print(f"\nMerged {merged} of {len(prs)} pull request(s)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
