@@ -14,6 +14,7 @@ import re
 import shlex
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 
@@ -71,6 +72,52 @@ def _show_gh(*args: str) -> None:
     print(
         f"{ansi('>', Style.BOLD)} {ansi('gh', Style.BOLD)} {' '.join(shlex.quote(arg) for arg in args)}"
     )
+
+
+def run_gh(*args: str, verbose: bool = True) -> subprocess.CompletedProcess:
+    if verbose:
+        _show_gh(*args)
+    return subprocess.run(["gh", *args], check=False, capture_output=True)
+
+
+def _parse_timestamp(value: str) -> datetime:
+    # gh emits RFC3339 timestamps like "2024-01-15T12:34:56Z".
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+@command("list organization repositories")
+def org_repositories(org: str, limit: int, max_age_days: int) -> list[str]:
+    cmd = run_gh(
+        "repo",
+        "list",
+        org,
+        "--no-archived",
+        "--limit",
+        str(limit),
+        "--json",
+        "nameWithOwner,pushedAt",
+    )
+    cmd.check_returncode()
+    repos = json.loads(cmd.stdout)
+
+    if max_age_days > 0:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+        fresh = []
+        skipped = 0
+        for repo in repos:
+            pushed = repo.get("pushedAt")
+            if pushed and _parse_timestamp(pushed) >= cutoff:
+                fresh.append(repo)
+            else:
+                skipped += 1
+        if skipped:
+            print(
+                f"Skipping {skipped} repositor(y/ies) with no push in the last "
+                f"{max_age_days} day(s)"
+            )
+        repos = fresh
+
+    return [repo["nameWithOwner"] for repo in repos]
 
 
 # Buckets from `gh pr checks` that we treat as non-blocking for a merge.
@@ -133,9 +180,7 @@ class Gh:
     repo: str
 
     def __call__(self, *args: str, verbose: bool = True) -> subprocess.CompletedProcess:
-        if verbose:
-            _show_gh(*args)
-        return subprocess.run(["gh", *args], check=False, capture_output=True)
+        return run_gh(*args, verbose=verbose)
 
     @command("list dependabot pull requests")
     def dependabot_prs(self) -> list[PullRequest]:
@@ -236,12 +281,61 @@ def land(
     return True
 
 
+def land_repo(repo: str, args: argparse.Namespace) -> tuple[int, int]:
+    """Land eligible dependabot PRs in one repo; return (merged, evaluated)."""
+    gh = Gh(repo)
+
+    prs = gh.dependabot_prs()
+    if not prs:
+        print("No open dependabot pull requests")
+        return 0, 0
+
+    print(
+        f"Found {len(prs)} dependabot pull request(s), merging with --{args.merge_method}"
+    )
+    merged = 0
+    for pr in prs:
+        if land(
+            gh,
+            pr,
+            args.merge_method,
+            args.delete_branch,
+            args.dry_run,
+            args.allow_major,
+        ):
+            merged += 1
+    return merged, len(prs)
+
+
 @handler()
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Merge dependabot PRs whose checks have all passed."
     )
-    parser.add_argument("repo", metavar="OWNER/REPO", help="Repository to land PRs in")
+    parser.add_argument(
+        "repo",
+        metavar="OWNER/REPO",
+        nargs="?",
+        help="Repository to land PRs in",
+    )
+    parser.add_argument(
+        "--org",
+        metavar="ORG",
+        help="Land PRs across every non-archived repository in ORG",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=1000,
+        help="Maximum repositories to enumerate with --org (default: 1000)",
+    )
+    parser.add_argument(
+        "--max-age-days",
+        type=int,
+        default=365,
+        help="With --org, skip repos not pushed to within this many days "
+        "(default: 365; 0 disables)",
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -268,32 +362,31 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    gh = Gh(args.repo)
+    if bool(args.repo) == bool(args.org):
+        parser.error("provide either OWNER/REPO or --org ORG (not both)")
 
-    prs = gh.dependabot_prs()
-    if not prs:
-        print("No open dependabot pull requests")
-        return 0
-
-    print(
-        f"Found {len(prs)} dependabot pull request(s), merging with --{args.merge_method}"
-    )
-    merged = 0
-    for pr in prs:
-        if land(
-            gh,
-            pr,
-            args.merge_method,
-            args.delete_branch,
-            args.dry_run,
-            args.allow_major,
-        ):
-            merged += 1
-
-    if args.dry_run:
-        print(f"\nDry run complete ({len(prs)} PR(s) evaluated)")
+    if args.org:
+        repos = org_repositories(args.org, args.limit, args.max_age_days)
+        if not repos:
+            print(f"No repositories found in {args.org}")
+            return 0
+        print(f"Found {len(repos)} repositor(y/ies) in {args.org}")
     else:
-        print(f"\nMerged {merged} of {len(prs)} pull request(s)")
+        repos = [args.repo]
+
+    merged = 0
+    evaluated = 0
+    for repo in repos:
+        print(ansi(f"\n=== {repo} ===", Style.BOLD, Style.BLUE))
+        repo_merged, repo_evaluated = land_repo(repo, args)
+        merged += repo_merged
+        evaluated += repo_evaluated
+
+    scope = f" across {len(repos)} repositor(y/ies)" if args.org else ""
+    if args.dry_run:
+        print(f"\nDry run complete ({evaluated} PR(s) evaluated{scope})")
+    else:
+        print(f"\nMerged {merged} of {evaluated} pull request(s){scope}")
     return 0
 
 
