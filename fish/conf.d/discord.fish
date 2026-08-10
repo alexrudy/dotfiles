@@ -10,11 +10,12 @@ if test -d $omf_foreign_env
     end
 end
 
-if set -q "$CODER"
+if set -q CODER
     set -gx STARSHIP_CONFIG "$HOME/.config/starship.discord.toml"
     if command -v code
         set -gx EDITOR "code -w"
     end
+    set -gx SHELL "/usr/bin/fish"
 else
     function ssc -a workspace;
        ssh "coder.$workspace"
