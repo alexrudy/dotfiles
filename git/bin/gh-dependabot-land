@@ -16,6 +16,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import quote
 
 
 def command(message: str) -> Any:
@@ -70,7 +71,7 @@ def ansi(text: str, *styles: Style) -> str:
 
 def _show_gh(*args: str) -> None:
     print(
-        f"{ansi('>', Style.BOLD)} {ansi('gh', Style.BOLD)} {' '.join(shlex.quote(arg) for arg in args)}"
+        f"{ansi('>', Style.BOLD, Style.DIM)} {ansi('gh', Style.BOLD, Style.DIM)} {' '.join(ansi(shlex.quote(arg), Style.DIM) for arg in args)}"
     )
 
 
@@ -111,10 +112,7 @@ def org_repositories(org: str, limit: int, max_age_days: int) -> list[str]:
             else:
                 skipped += 1
         if skipped:
-            print(
-                f"Skipping {skipped} repositor(y/ies) with no push in the last "
-                f"{max_age_days} day(s)"
-            )
+            print(f"Skipping {skipped} repositor(y/ies) with no push in the last {max_age_days} day(s)")
         repos = fresh
 
     return [repo["nameWithOwner"] for repo in repos]
@@ -124,6 +122,11 @@ def org_repositories(org: str, limit: int, max_age_days: int) -> list[str]:
 PASSING_BUCKETS = frozenset({"pass", "skipping"})
 
 MERGE_METHODS = ("merge", "squash", "rebase")
+
+# Comment that tells dependabot to rebase a PR onto its base branch, and how
+# long to wait before asking again so we don't spam a still-failing PR.
+REBASE_COMMENT = "@dependabot rebase"
+REBASE_COOLDOWN = timedelta(days=14)
 
 # Dependabot titles look like "bump <dep> from 1.2.3 to 1.3.0". We parse the two
 # versions to classify the bump; grouped updates ("bump the x group with N
@@ -154,8 +157,8 @@ class PullRequest:
     number: int
     title: str
     head_ref: str
+    base_ref: str
     mergeable: str
-    merge_state_status: str
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "PullRequest":
@@ -163,8 +166,8 @@ class PullRequest:
             number=data["number"],
             title=data["title"],
             head_ref=data["headRefName"],
+            base_ref=data["baseRefName"],
             mergeable=data.get("mergeable", "UNKNOWN"),
-            merge_state_status=data.get("mergeStateStatus", "UNKNOWN"),
         )
 
     @property
@@ -196,7 +199,7 @@ class Gh:
             "--limit",
             "100",
             "--json",
-            "number,title,headRefName,mergeable,mergeStateStatus",
+            "number,title,headRefName,baseRefName,mergeable",
         )
         cmd.check_returncode()
         return [PullRequest.from_json(pr) for pr in json.loads(cmd.stdout)]
@@ -218,6 +221,97 @@ class Gh:
             return []
         return json.loads(cmd.stdout)
 
+    def behind_by(self, pr: PullRequest) -> int | None:
+        # `mergeStateStatus` only reports "BEHIND" when the repo requires
+        # branches to be up to date before merging; otherwise a PR that is
+        # simply stale just looks "UNSTABLE" (failing checks) with no hint
+        # that a rebase would help. Ask the compare API directly instead.
+        # Branch names (e.g. "dependabot/npm_and_yarn/foo-1.2.3") contain
+        # slashes, so they must be percent-encoded within the basehead path
+        # segment.
+        basehead = f"{quote(pr.base_ref, safe='')}...{quote(pr.head_ref, safe='')}"
+        cmd = self(
+            "api",
+            f"repos/{self.repo}/compare/{basehead}",
+            "--jq",
+            ".behind_by",
+            verbose=False,
+        )
+        if cmd.returncode != 0 or not cmd.stdout.strip():
+            return None
+        try:
+            return int(cmd.stdout.strip())
+        except ValueError:
+            return None
+
+    def ref_check_state(self, ref: str) -> str | None:
+        # The plain REST "combined status" endpoint only reflects the legacy
+        # Status API, not GitHub Actions check runs, so we use GraphQL's
+        # statusCheckRollup to see whether the base branch itself is green.
+        owner, name = self.repo.split("/", 1)
+        query = """
+        query($owner: String!, $name: String!, $qualifiedName: String!) {
+          repository(owner: $owner, name: $name) {
+            ref(qualifiedName: $qualifiedName) {
+              target {
+                ... on Commit {
+                  statusCheckRollup { state }
+                }
+              }
+            }
+          }
+        }
+        """
+        cmd = self(
+            "api",
+            "graphql",
+            "-f",
+            f"query={query}",
+            "-f",
+            f"owner={owner}",
+            "-f",
+            f"name={name}",
+            "-f",
+            f"qualifiedName=refs/heads/{ref}",
+            verbose=False,
+        )
+        if cmd.returncode != 0 or not cmd.stdout.strip():
+            return None
+        try:
+            data = json.loads(cmd.stdout)
+            rollup = data["data"]["repository"]["ref"]["target"]["statusCheckRollup"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return None
+        return rollup.get("state") if rollup else None
+
+    def ref_is_passing(self, ref: str) -> bool:
+        return self.ref_check_state(ref) == "SUCCESS"
+
+    def comments(self, pr: PullRequest) -> list[dict[str, Any]]:
+        cmd = self(
+            "pr",
+            "view",
+            str(pr.number),
+            "--repo",
+            self.repo,
+            "--json",
+            "comments",
+            verbose=False,
+        )
+        if cmd.returncode != 0 or not cmd.stdout.strip():
+            return []
+        try:
+            data = json.loads(cmd.stdout)
+        except json.JSONDecodeError:
+            return []
+        return data.get("comments", [])
+
+    def last_rebase_request(self, pr: PullRequest) -> datetime | None:
+        timestamps = [
+            _parse_timestamp(c["createdAt"]) for c in self.comments(pr) if c.get("body", "").strip() == REBASE_COMMENT
+        ]
+        return max(timestamps, default=None)
+
     @command("merge pull request")
     def merge(self, pr: PullRequest, method: str, delete_branch: bool) -> None:
         args = ["pr", "merge", str(pr.number), "--repo", self.repo, f"--{method}"]
@@ -225,15 +319,17 @@ class Gh:
             args.append("--delete-branch")
         self(*args).check_returncode()
 
+    @command("comment on pull request")
+    def comment(self, pr: PullRequest, body: str) -> None:
+        self("pr", "comment", str(pr.number), "--repo", self.repo, "--body", body).check_returncode()
+
 
 def evaluate(checks: list[dict[str, Any]]) -> tuple[bool, str]:
     """Return whether the PR is mergeable based on its checks, plus a reason."""
     if not checks:
         return False, "no checks reported"
 
-    failing = sorted(
-        {c["name"] for c in checks if c.get("bucket") not in PASSING_BUCKETS}
-    )
+    failing = sorted({c["name"] for c in checks if c.get("bucket") not in PASSING_BUCKETS})
     if failing:
         return False, "checks not passing: " + ", ".join(failing)
 
@@ -261,6 +357,31 @@ def land(
     if pr.mergeable == "CONFLICTING":
         note("skip: has merge conflicts", Style.YELLOW)
         return False
+
+    if not ok:
+        behind = gh.behind_by(pr)
+        if behind:
+            if gh.ref_is_passing(pr.base_ref):
+                last_request = gh.last_rebase_request(pr)
+                if last_request and datetime.now(timezone.utc) - last_request < REBASE_COOLDOWN:
+                    note(
+                        f"skip: already requested @dependabot rebase on {last_request:%Y-%m-%d} "
+                        f"(retry after {REBASE_COOLDOWN.days} days)",
+                        Style.YELLOW,
+                    )
+                    return False
+                note(
+                    f"requesting @dependabot rebase ({behind} commit(s) behind {pr.base_ref}, which is passing)",
+                    Style.CYAN,
+                )
+                if not dry_run:
+                    gh.comment(pr, REBASE_COMMENT)
+                return False
+            note(
+                f"skip: checks not passing ({behind} commit(s) behind {pr.base_ref})",
+                Style.YELLOW,
+            )
+            return False
 
     level = pr.update_level
     if level in ("major", "unknown") and not allow_major:
@@ -290,9 +411,7 @@ def land_repo(repo: str, args: argparse.Namespace) -> tuple[int, int]:
         print("No open dependabot pull requests")
         return 0, 0
 
-    print(
-        f"Found {len(prs)} dependabot pull request(s), merging with --{args.merge_method}"
-    )
+    print(f"Found {len(prs)} dependabot pull request(s), merging with --{args.merge_method}")
     merged = 0
     for pr in prs:
         if land(
@@ -309,9 +428,7 @@ def land_repo(repo: str, args: argparse.Namespace) -> tuple[int, int]:
 
 @handler()
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Merge dependabot PRs whose checks have all passed."
-    )
+    parser = argparse.ArgumentParser(description="Merge dependabot PRs whose checks have all passed.")
     parser.add_argument(
         "repo",
         metavar="OWNER/REPO",
@@ -333,8 +450,7 @@ def main() -> int:
         "--max-age-days",
         type=int,
         default=365,
-        help="With --org, skip repos not pushed to within this many days "
-        "(default: 365; 0 disables)",
+        help="With --org, skip repos not pushed to within this many days (default: 365; 0 disables)",
     )
     parser.add_argument(
         "--dry-run",
