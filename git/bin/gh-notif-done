@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""Mark notifications as done, optionally filtered to a repo or org.
+
+Usage: gh-notif-done [OWNER/REPO] [--org ORG] [--dry-run]
+
+Effectively:
+    gh api notifications --paginate | jq -r '.[].id' | xargs -I {} gh api --method DELETE /notifications/threads/{}
+with more filter support.
+
+Note this uses DELETE, not PATCH: PATCH /notifications/threads/{id} only
+marks a thread as read, while DELETE is what marks it as done.
+"""
+
+import argparse
+import dataclasses as dc
+import enum
+import functools
+import json
+import os
+import shlex
+import subprocess
+import sys
+from typing import Any
+
+
+def command(message: str) -> Any:
+    def decorator(func: Any) -> Any:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except subprocess.CalledProcessError as e:
+                print("Error: {}".format(message), file=sys.stderr)
+                if e.stderr:
+                    print(e.stderr.decode(), file=sys.stderr)
+                raise
+
+        return wrapper
+
+    return decorator
+
+
+def handler() -> Any:
+    def decorator(func: Any) -> Any:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except subprocess.CalledProcessError:
+                if bool(os.environ.get("GH_NOTIF_DONE_DEBUG", "")):
+                    raise
+                raise SystemExit(1)
+
+        return wrapper
+
+    return decorator
+
+
+class Style(enum.IntEnum):
+    BOLD = 1
+    DIM = 2
+
+    RED = 31
+    GREEN = 32
+    YELLOW = 33
+    BLUE = 34
+    MAGENTA = 35
+    CYAN = 36
+
+
+def ansi(text: str, *styles: Style) -> str:
+    style = ";".join(str(style.value) for style in styles)
+    return f"\033[{style}m{text}\033[0m"
+
+
+def _show_gh(*args: str) -> None:
+    print(f"{ansi('>', Style.BOLD)} {ansi('gh', Style.BOLD)} {' '.join(shlex.quote(arg) for arg in args)}")
+
+
+def run_gh(*args: str, verbose: bool = True) -> subprocess.CompletedProcess:
+    if verbose:
+        _show_gh(*args)
+    return subprocess.run(["gh", *args], check=False, capture_output=True)
+
+
+@dc.dataclass
+class Notification:
+    id: str
+    repo_full_name: str
+    title: str
+    reason: str
+    unread: bool
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> "Notification":
+        subject = data.get("subject") or {}
+        return cls(
+            id=data["id"],
+            repo_full_name=data["repository"]["full_name"],
+            title=subject.get("title", ""),
+            reason=data.get("reason", ""),
+            unread=data.get("unread", False),
+        )
+
+    def matches_repo(self, repo: str) -> bool:
+        return self.repo_full_name.lower() == repo.lower()
+
+    def matches_org(self, org: str) -> bool:
+        owner, _, _ = self.repo_full_name.partition("/")
+        return owner.lower() == org.lower()
+
+    def __str__(self) -> str:
+        return f"{self.repo_full_name}: {self.title}"
+
+
+@dc.dataclass
+class Gh:
+    def __call__(self, *args: str, verbose: bool = True) -> subprocess.CompletedProcess:
+        return run_gh(*args, verbose=verbose)
+
+    @command("list notifications")
+    def notifications(self) -> list[Notification]:
+        cmd = self("api", "notifications", "--paginate")
+        cmd.check_returncode()
+        return [Notification.from_json(n) for n in json.loads(cmd.stdout)]
+
+    @command("mark notification thread as done")
+    def mark_done(self, notification: Notification) -> None:
+        self(
+            "api",
+            "--method",
+            "DELETE",
+            f"/notifications/threads/{notification.id}",
+            verbose=False,
+        ).check_returncode()
+
+
+def matching_notifications(notifications: list[Notification], repo: str | None, org: str | None) -> list[Notification]:
+    if repo is not None:
+        return [n for n in notifications if n.matches_repo(repo)]
+    if org is not None:
+        return [n for n in notifications if n.matches_org(org)]
+    return notifications
+
+
+def mark_all_done(gh: Gh, notifications: list[Notification], dry_run: bool) -> int:
+    marked = 0
+    for notification in notifications:
+        print(ansi(str(notification), Style.BOLD))
+        if dry_run:
+            print(f"  {ansi('would mark done', Style.CYAN)}")
+            continue
+        print(f"  {ansi('marking done', Style.GREEN)}")
+        gh.mark_done(notification)
+        marked += 1
+    return marked
+
+
+@handler()
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Mark GitHub notifications as done.")
+    parser.add_argument(
+        "repo",
+        metavar="OWNER/REPO",
+        nargs="?",
+        help="Only mark notifications for this repository as done",
+    )
+    parser.add_argument(
+        "--org",
+        metavar="ORG",
+        help="Only mark notifications for repositories in this organization as done",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be marked done, but do not do it",
+    )
+
+    args = parser.parse_args()
+
+    if args.repo and args.org:
+        parser.error("provide either OWNER/REPO or --org ORG (not both)")
+
+    gh = Gh()
+    notifications = gh.notifications()
+    matching = matching_notifications(notifications, args.repo, args.org)
+
+    scope = f" for {args.repo}" if args.repo else f" in {args.org}" if args.org else ""
+    print(f"Found {len(matching)} of {len(notifications)} notification(s){scope}")
+
+    if not matching:
+        return 0
+
+    marked = mark_all_done(gh, matching, args.dry_run)
+
+    if args.dry_run:
+        print(f"\nDry run complete ({len(matching)} notification(s) evaluated{scope})")
+    else:
+        print(f"\nMarked {marked} of {len(matching)} notification(s) done{scope}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
