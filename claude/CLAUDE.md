@@ -29,3 +29,5 @@ reviewer or a future reader needs to know. Write it like a note to a colleague.
   genuinely a design decision.
 - **Respect the repo.** If a project has its own PR template or conventions,
   follow those over this guidance.
+
+@private/AGENTS.md
