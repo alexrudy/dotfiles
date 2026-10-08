@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Print a pull request's reviews, with their inline comments, as JSON.
+
+Usage: gh-pr-reviews [PR] [--repo OWNER/REPO]
+
+`gh pr view --json reviews,comments` leaves out inline (file and line) review
+comments, so this reads them from the REST API instead. Effectively:
+    gh api repos/{owner}/{repo}/pulls/PR/reviews
+    gh api repos/{owner}/{repo}/pulls/PR/comments
+with each comment nested under the review it was submitted in. GitHub saves a
+reply to a thread as a review of its own, so follow in_reply_to_id to rebuild
+threads.
+
+It only makes GET requests to those two endpoints, so an agent can be allowed
+to run it without also being allowed to write through `gh api`.
+"""
+
+import argparse
+import json
+import subprocess
+import sys
+from typing import Any
+
+
+def gh(*args: str) -> str:
+    result = subprocess.run(["gh", *args], check=False, capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr)
+        raise SystemExit(result.returncode)
+    return result.stdout
+
+
+def get(endpoint: str) -> list[dict[str, Any]]:
+    # gh merges the pages of a paginated REST list into a single JSON array.
+    return json.loads(gh("api", "--method", "GET", "--paginate", f"{endpoint}?per_page=100"))
+
+
+def current_pr() -> int:
+    return int(gh("pr", "view", "--json", "number", "--jq", ".number"))
+
+
+def login(data: dict[str, Any]) -> str | None:
+    return (data.get("user") or {}).get("login")
+
+
+def comment_json(comment: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": comment["id"],
+        "user": login(comment),
+        "path": comment.get("path"),
+        "start_line": comment.get("start_line"),
+        "line": comment.get("line"),
+        # line is null once the comment is outdated; original_line is where it was left.
+        "original_line": comment.get("original_line"),
+        "body": comment.get("body"),
+        "in_reply_to_id": comment.get("in_reply_to_id"),
+        "created_at": comment.get("created_at"),
+    }
+
+
+def review_json(review: dict[str, Any], comments: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "id": review["id"],
+        "user": login(review),
+        "state": review.get("state"),
+        "body": review.get("body"),
+        "submitted_at": review.get("submitted_at"),
+        "comments": comments,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Print a pull request's reviews and inline review comments as JSON.")
+    parser.add_argument(
+        "pr",
+        metavar="PR",
+        type=int,
+        nargs="?",
+        help="Pull request number (default: the pull request for the current branch)",
+    )
+    parser.add_argument(
+        "-R",
+        "--repo",
+        metavar="OWNER/REPO",
+        help="Repository (default: the repository in the current directory)",
+    )
+
+    args = parser.parse_args()
+
+    if args.pr is None and args.repo:
+        parser.error("PR is required with --repo")
+
+    pr = args.pr if args.pr is not None else current_pr()
+    # gh api fills in {owner}/{repo} from the repository in the current directory.
+    repo = args.repo or "{owner}/{repo}"
+    base = f"repos/{repo}/pulls/{pr}"
+
+    comments_by_review: dict[int | None, list[dict[str, Any]]] = {}
+    for comment in get(f"{base}/comments"):
+        comments_by_review.setdefault(comment.get("pull_request_review_id"), []).append(comment_json(comment))
+
+    reviews = [review_json(review, comments_by_review.pop(review["id"], [])) for review in get(f"{base}/reviews")]
+
+    # Keep comments whose review was not listed, instead of dropping them.
+    unmatched = [comment for comments in comments_by_review.values() for comment in comments]
+    if unmatched:
+        reviews.append({"id": None, "user": None, "state": None, "body": None, "submitted_at": None, "comments": unmatched})
+
+    json.dump(reviews, sys.stdout, indent=2)
+    print()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
