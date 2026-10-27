@@ -10,7 +10,7 @@ if test -d $omf_foreign_env
     end
 end
 
-if set -q CODER
+if set -q "$CODER"
     set -gx STARSHIP_CONFIG "$HOME/.config/starship.discord.toml"
     if command -v code
         set -gx EDITOR "code -w"
@@ -20,6 +20,10 @@ else
     function ssc -a workspace;
        ssh "coder.$workspace"
     end
+
+    fish_add_path -m -a $HOME/.nix-profile/bin
+    fish_add_path -m -a /nix/var/nix/profiles/default/bin
+
 end
 
 if test -d ~/Development/discord/discord
