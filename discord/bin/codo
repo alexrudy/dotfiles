@@ -1,0 +1,641 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["rich"]
+# ///
+"""Start, stop, check on, and log in to my Coder workspaces.
+
+start, stop, status, and login (without a workspace) act on every workspace
+except those matching an entry in the `exclude` list of codo.toml (in the
+directory above this script).
+"""
+
+import argparse
+import base64
+import concurrent.futures
+import dataclasses as dc
+import fnmatch
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import time
+import tomllib
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+from pathlib import Path
+
+from rich.console import Console
+from rich.live import Live
+from rich.markup import escape
+from rich.table import Table
+from rich.text import Text
+
+CONFIG_PATH = Path(__file__).resolve().parent.parent / "codo.toml"
+
+# A build in one of these states didn't reach its target, so it's worth retrying.
+RETRY_STATUSES = {"failed", "canceled"}
+
+# coder prints "==> ⧗ <stage>" when a build or agent stage begins, and
+# "=== ✔ <stage> [123ms]" (✘ if it failed) when it ends.
+STAGE_START = re.compile(r"^==> ⧗ (?P<stage>.+)$")
+STAGE_END = re.compile(r"^=== (?P<mark>[✔✘]) (?P<stage>.+) \[\d+ms\]$")
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+
+# Advanced one frame per line of coder output, so it only moves on activity.
+SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+DONE = {"start": "ready", "stop": "stopped"}
+ICONS = {"ok": "[green]✓", "warning": "[yellow]⚠", "failed": "[red]✗"}
+STYLES = {"running": "", "ok": "green", "warning": "yellow", "failed": "red"}
+
+# `codo status` re-polls this often while any workspace is changing state.
+POLL_SECONDS = 2
+BUSY_BUILDS = {"pending", "starting", "stopping", "canceling", "deleting"}
+AGENT_PROBLEMS = {
+    "start_error": "startup script failed",
+    "start_timeout": "startup script timed out",
+}
+STATUS_ICONS = {
+    "ok": "[green]●",
+    "stopped": "[dim]○",
+    "warning": "[yellow]●",
+    "failed": "[red]✗",
+}
+STATUS_STYLES = {
+    "ok": "green",
+    "stopped": "dim",
+    "warning": "yellow",
+    "failed": "red",
+    "busy": "cyan",
+}
+
+# What `gcloud auth login --no-browser` prints on the workspace. The first
+# yes/no prompt is its "You are running on a GCE VM, continue?" check.
+YES_NO_PROMPT = "(Y/n)?"
+AUTH_PROMPT = "Enter the output of the above command:"
+REMOTE_BOOTSTRAP = re.compile(r'--remote-bootstrap="(?P<url>[^"]+)"')
+# Printed once the token exchange succeeds. With --update-adc, gcloud writes
+# ADC too (failing the command if it can't), but only mentions it when the
+# file's contents changed, so success doesn't depend on that message.
+LOGGED_IN = re.compile(r"You are now logged in as \[(?P<account>[^\]]+)\]")
+# The line `gcloud auth login --remote-bootstrap` prints locally, to paste back.
+AUTH_RESPONSE = re.compile(r"^https?://\S+[?&]code=\S+$", re.MULTILINE)
+STAGE_LINE = re.compile(STAGE_START.pattern, re.MULTILINE)
+
+# Copying application default credentials (ADC) between workspaces. These run
+# under sh on the workspace; see remote_sh() for why they avoid backslashes.
+ADC_FILE = (
+    "${CLOUDSDK_CONFIG:-$HOME/.config/gcloud}/application_default_credentials.json"
+)
+# set -e so a missing file reports base64's error rather than an empty line.
+READ_ADC = f'set -e; adc=$(base64 -w0 "{ADC_FILE}"); echo "CODO_ADC:$adc"'
+ADC_LINE = re.compile(r"CODO_ADC:(?P<adc>[A-Za-z0-9+/=]+)")
+# Reads the file from $CODO_ADC (base64) and replaces it atomically, mode 600.
+WRITE_ADC = "; ".join(
+    [
+        "set -e",
+        f'f="{ADC_FILE}"',
+        'mkdir -p "$(dirname "$f")"',
+        "umask 077",
+        'printf %s "$CODO_ADC" | base64 -d > "$f.codo-tmp"',
+        'mv "$f.codo-tmp" "$f"',
+        "echo CODO_OK",
+    ]
+)
+
+console = Console()
+
+
+def load_excludes(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    with path.open("rb") as f:
+        return list(tomllib.load(f).get("exclude", []))
+
+
+def is_excluded(name: str, excludes: list[str]) -> bool:
+    return any(fnmatch.fnmatchcase(name, pattern) for pattern in excludes)
+
+
+def list_workspaces() -> list[dict]:
+    # Leave stderr attached so errors like "not logged in" reach the terminal.
+    proc = subprocess.run(
+        ["coder", "list", "--output", "json"], stdout=subprocess.PIPE, text=True
+    )
+    if proc.returncode != 0:
+        sys.exit(proc.returncode)
+    return json.loads(proc.stdout)
+
+
+def needs_action(workspace: dict, action: str) -> bool:
+    """Whether `action` (start/stop) would change this workspace.
+
+    The build transition is "start", "stop" or "delete", so a workspace whose
+    latest build already has the requested transition is there (or getting
+    there) unless that build failed.
+    """
+    build = workspace["latest_build"]
+    if build["transition"] == "delete":
+        return False
+    return build["transition"] != action or build["status"] in RETRY_STATUSES
+
+
+def steps(action: str, name: str) -> list[tuple[str, list[str]]]:
+    """The (label, command) pairs to run for one workspace."""
+    # --yes keeps coder from blocking on confirmation prompts.
+    if action == "stop":
+        return [("Stopping", ["coder", "stop", "--yes", name])]
+    return [
+        ("Starting", ["coder", "start", "--yes", name]),
+        # coder start returns once the build is done, while the agent's startup
+        # scripts (personalize, dotfiles) are still running. This waits for them.
+        ("Waiting for agent", ["coder", "ssh", "--wait=yes", name, "true"]),
+    ]
+
+
+@dc.dataclass
+class Job:
+    """One workspace's run through its coder commands, updated as output arrives."""
+
+    name: str
+    steps: list[tuple[str, list[str]]]
+    done: str
+    phase: str = "Queued"
+    returncode: int | None = None
+    failed_stages: list[str] = dc.field(default_factory=list)
+    output: list[str] = dc.field(default_factory=list)
+    began: float = dc.field(default_factory=time.monotonic)
+    ended: float | None = None
+
+    @property
+    def state(self) -> str:
+        if self.ended is None:
+            return "running"
+        if self.returncode:
+            return "failed"
+        if self.failed_stages:
+            return "warning"
+        return "ok"
+
+    @property
+    def spinner(self) -> str:
+        return SPINNER_FRAMES[len(self.output) % len(SPINNER_FRAMES)]
+
+    @property
+    def elapsed(self) -> str:
+        seconds = int((self.ended or time.monotonic()) - self.began)
+        return f"{seconds // 60}:{seconds % 60:02d}"
+
+    def run(self) -> None:
+        self.began = time.monotonic()
+        for label, cmd in self.steps:
+            self.phase = label
+            self.returncode = self._run(cmd)
+            if self.returncode:
+                break
+        self.ended = time.monotonic()
+        if self.state == "ok":
+            self.phase = self.done
+        elif self.state == "warning":
+            self.phase = f"{self.failed_stages[0]} failed"
+
+    def _run(self, cmd: list[str]) -> int:
+        with subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            errors="replace",
+        ) as proc:
+            assert proc.stdout is not None
+            for line in proc.stdout:
+                self._feed(line)
+        return proc.returncode
+
+    def _feed(self, raw: str) -> None:
+        # Keep only what a terminal would show: no colors, last \r-overwrite wins.
+        line = ANSI_ESCAPE.sub("", raw).rstrip().rsplit("\r", 1)[-1]
+        if not line.strip():
+            return
+        self.output.append(line)
+        if match := STAGE_START.match(line):
+            self.phase = match["stage"]
+        elif (match := STAGE_END.match(line)) and match["mark"] == "✘":
+            self.failed_stages.append(match["stage"])
+
+
+def render(jobs: list[Job]) -> Table:
+    table = Table.grid(padding=(0, 1))
+    table.add_column(width=1)
+    table.add_column(no_wrap=True, style="bold")
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True, justify="right", style="dim")
+    for job in jobs:
+        state = job.state
+        table.add_row(
+            f"[cyan]{job.spinner}" if state == "running" else ICONS[state],
+            job.name,
+            Text(job.phase, style=STYLES[state]),
+            job.elapsed,
+        )
+    return table
+
+
+def summarize(workspace: dict) -> tuple[str, str]:
+    """Describe a workspace as (kind, label), where kind is a STATUS_STYLES key."""
+    build = workspace["latest_build"]
+    status = build["status"]
+    if status in BUSY_BUILDS:
+        return "busy", status
+    if status == "stopped":
+        return "stopped", status
+    if status != "running":
+        return "failed", status
+    for agent in agents(workspace):
+        lifecycle = agent["lifecycle_state"]
+        if agent["status"] == "connecting":
+            return "busy", "waiting for agent"
+        if agent["status"] != "connected":
+            return "warning", f"agent {agent['status']}"
+        if lifecycle in ("created", "starting"):
+            return "busy", "running startup scripts"
+        if lifecycle != "ready":
+            label = lifecycle.replace("_", " ")
+            return "warning", AGENT_PROBLEMS.get(lifecycle, f"agent {label}")
+    if not workspace["health"]["healthy"]:
+        return "warning", "unhealthy"
+    return "ok", status
+
+
+def agents(workspace: dict) -> list[dict]:
+    resources = workspace["latest_build"]["resources"]
+    return [agent for resource in resources for agent in resource.get("agents") or []]
+
+
+def is_active(workspace: dict) -> bool:
+    """Running with its agents connected, so `coder ssh` works right away."""
+    statuses = [agent["status"] for agent in agents(workspace)]
+    running = workspace["latest_build"]["status"] == "running"
+    return running and bool(statuses) and all(s == "connected" for s in statuses)
+
+
+def parse_time(value: str | None) -> datetime | None:
+    # coder uses either null or the zero time (year 1) for "not set".
+    if not value:
+        return None
+    when = datetime.fromisoformat(value)
+    return when if when.year > 1 else None
+
+
+def duration(delta: timedelta) -> str:
+    minutes = int(delta.total_seconds()) // 60
+    days, minutes = divmod(minutes, 24 * 60)
+    hours, minutes = divmod(minutes, 60)
+    if days:
+        return f"{days}d {hours}h"
+    if hours:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m" if minutes else "<1m"
+
+
+def schedule(workspace: dict, now: datetime) -> str:
+    """When the workspace will next auto-stop (if running) or auto-start."""
+    status = workspace["latest_build"]["status"]
+    if status == "running":
+        verb, when = "stops", parse_time(workspace["latest_build"]["deadline"])
+    elif status == "stopped":
+        verb, when = "starts", parse_time(workspace["next_start_at"])
+    else:
+        return ""
+    return f"{verb} in {duration(when - now)}" if when and when > now else ""
+
+
+def render_status(workspaces: list[dict], tick: int) -> Table:
+    now = datetime.now(timezone.utc)
+    table = Table.grid(padding=(0, 2))
+    for _ in range(4):
+        table.add_column(no_wrap=True)
+    for workspace in workspaces:
+        kind, label = summarize(workspace)
+        if kind == "busy":
+            # Advances once per poll, like the start/stop spinners do per line.
+            icon = f"[cyan]{SPINNER_FRAMES[tick % len(SPINNER_FRAMES)]}"
+        else:
+            icon = STATUS_ICONS[kind]
+        used = parse_time(workspace["last_used_at"])
+        table.add_row(
+            f"{icon} [bold]{workspace['name']}",
+            Text.assemble(
+                (label, STATUS_STYLES[kind]),
+                ("  outdated" if workspace["outdated"] else "", "yellow"),
+            ),
+            Text(schedule(workspace, now), style="dim"),
+            Text(f"used {duration(now - used)} ago" if used else "", style="dim"),
+        )
+    return table
+
+
+def show_status(excludes: list[str]) -> int:
+    def fetch() -> list[dict]:
+        workspaces = list_workspaces()
+        shown = [w for w in workspaces if not is_excluded(w["name"], excludes)]
+        return sorted(shown, key=lambda w: w["name"])
+
+    def busy(workspaces: list[dict]) -> bool:
+        return any(summarize(w)[0] == "busy" for w in workspaces)
+
+    workspaces, tick = fetch(), 0
+    if not workspaces:
+        console.print("No workspaces.")
+        return 0
+
+    # Keep polling only while something is changing state, so a quick check
+    # returns right away. Ctrl-C stops watching and keeps the last snapshot.
+    with Live(
+        render_status(workspaces, tick),
+        console=console,
+        transient=True,
+        auto_refresh=False,
+    ) as live:
+        try:
+            while busy(workspaces):
+                time.sleep(POLL_SECONDS)
+                workspaces, tick = fetch(), tick + 1
+                live.update(render_status(workspaces, tick), refresh=True)
+        except KeyboardInterrupt:
+            pass
+    console.print(render_status(workspaces, tick))
+    return 0
+
+
+def change(action: str, excludes: list[str], dry_run: bool) -> int:
+    """Run `coder start` or `coder stop` on every workspace that needs it."""
+    targets = []
+    for workspace in list_workspaces():
+        name = workspace["name"]
+        if is_excluded(name, excludes):
+            console.print(f"[dim]  - {name}: excluded")
+        elif not needs_action(workspace, action):
+            status = workspace["latest_build"]["status"]
+            console.print(f"[dim]  - {name}: already {status}")
+        else:
+            targets.append(name)
+
+    if not targets:
+        console.print(f"Nothing to {action}.")
+        return 0
+    if dry_run:
+        console.print(f"Would {action}: {', '.join(targets)}")
+        return 0
+
+    jobs = [Job(name, steps(action, name), DONE[action]) for name in targets]
+    # The live view is transient so the final table is printed exactly once,
+    # whether or not stdout is a terminal.
+    with Live(get_renderable=lambda: render(jobs), console=console, transient=True):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+            futures = [pool.submit(job.run) for job in jobs]
+            for future in concurrent.futures.as_completed(futures):
+                future.result()
+    console.print(render(jobs))
+
+    for job in jobs:
+        if job.state in ("failed", "warning"):
+            console.rule(f"{job.name}: {job.phase}", style=STYLES[job.state])
+            console.print(
+                "\n".join(job.output), markup=False, highlight=False, soft_wrap=True
+            )
+
+    failed = sum(job.state == "failed" for job in jobs)
+    if failed:
+        console.print(f"[red]{failed} of {len(jobs)} workspaces failed to {action}.")
+        return 1
+    return 0
+
+
+def browser_login(bootstrap_url: str) -> str | None:
+    """Do gcloud's browser step locally; returns the line to paste back."""
+    # gcloud asks us to confirm the bootstrap URL came from a machine we trust.
+    # We read it straight from our own workspace, so answer yes.
+    proc = subprocess.run(
+        ["gcloud", "auth", "login", f"--remote-bootstrap={bootstrap_url}"],
+        input="y\n",
+        capture_output=True,
+        text=True,
+    )
+    if match := AUTH_RESPONSE.search(proc.stderr):
+        return match[0]
+    console.print("[red]✗[/] The browser login didn't complete:")
+    console.print(
+        (proc.stdout + proc.stderr).strip(),
+        markup=False,
+        highlight=False,
+        soft_wrap=True,
+    )
+    return None
+
+
+def login(workspace: str) -> int:
+    """Refresh gcloud and application default credentials on one workspace.
+
+    `gcloud auth login --no-browser` on the workspace prints a command to run
+    on a machine with a browser, then waits for that command's output. We run
+    it here and type its output back in.
+    """
+    console.print(f"[dim]Connecting to {workspace}…")
+    # coder ssh always gives the remote command a pty, so gcloud prompts as if
+    # interactive and reads our answers from stdin.
+    remote = subprocess.Popen(
+        ["coder", "ssh", workspace, "--"]
+        + ["gcloud", "auth", "login", "--update-adc", "--no-browser"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    assert remote.stdin is not None and remote.stdout is not None
+
+    def send(line: str) -> None:
+        remote.stdin.write(line.encode() + b"\n")
+        remote.stdin.flush()
+
+    raw, transcript = b"", ""
+    stages = answered = 0
+    responded = False
+    try:
+        while chunk := os.read(remote.stdout.fileno(), 65536):
+            raw += chunk
+            transcript = ANSI_ESCAPE.sub("", raw.decode(errors="replace"))
+            transcript = transcript.replace("\r", "")
+            # Progress from coder ssh, e.g. if it has to start the workspace.
+            for stage in STAGE_LINE.findall(transcript)[stages:]:
+                console.print(f"[dim]  {stage}…")
+                stages += 1
+            while transcript.count(YES_NO_PROMPT) > answered:
+                send("Y")
+                answered += 1
+            if not responded and AUTH_PROMPT in transcript:
+                responded = True
+                if not (match := REMOTE_BOOTSTRAP.search(transcript)):
+                    remote.kill()  # Nothing to answer it with; report below.
+                    break
+                console.print("[dim]Finish signing in in your browser…")
+                if (response := browser_login(match["url"])) is None:
+                    return 1
+                send(response)
+        remote.wait()
+    finally:
+        # The pty never passes EOF through, so an abandoned session would hang.
+        if remote.poll() is None:
+            remote.kill()
+            remote.wait()
+
+    match = LOGGED_IN.search(transcript)
+    if remote.returncode == 0 and match:
+        console.print(f"[green]✓[/] {workspace}: logged in as [bold]{match['account']}")
+        return 0
+    reason = f"exit code {remote.returncode}" if remote.returncode else "not logged in"
+    console.print(f"[red]✗[/] gcloud login on {workspace} failed ({reason}):")
+    console.print(transcript.strip(), markup=False, highlight=False, soft_wrap=True)
+    return 1
+
+
+def remote_sh(
+    workspace: str, script: str, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess:
+    """Run a POSIX sh script on a workspace, with `env` set in its environment.
+
+    coder ssh joins its arguments with spaces for the workspace's login shell
+    (fish), so pass one pre-quoted `sh -c` command. fish treats backslashes in
+    single quotes differently from sh, so scripts must not contain any.
+    """
+    assert "\\" not in script
+    # Passing env through CODER_SSH_ENV keeps values (like credentials) out of
+    # process arguments, and out of stdin, which coder echoes through a pty.
+    ssh_env = ",".join(f"{key}={value}" for key, value in (env or {}).items())
+    return subprocess.run(
+        ["coder", "ssh", workspace, "--", shlex.join(["sh", "-c", script])],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "CODER_SSH_ENV": ssh_env} if env else None,
+    )
+
+
+def failure(proc: subprocess.CompletedProcess) -> str:
+    """A short reason a remote command failed: its last line of output.
+
+    The remote command's own output arrives on stdout (through the pty), so
+    prefer it over coder's generic "Process exited with status N" on stderr.
+    """
+    for stream in (proc.stdout, proc.stderr):
+        if lines := stream.strip().splitlines():
+            return lines[-1].strip()
+    return f"exit code {proc.returncode}"
+
+
+def read_adc(workspace: str) -> str | None:
+    """The workspace's ADC file, base64-encoded, if it looks valid."""
+    proc = remote_sh(workspace, READ_ADC)
+    if not (match := ADC_LINE.search(proc.stdout)):
+        reason = escape(failure(proc))
+        console.print(f"[red]✗[/] Couldn't read ADC from {workspace}: {reason}")
+        return None
+    # Never print the output from here on: it contains the credentials.
+    try:
+        adc = json.loads(base64.b64decode(match["adc"]))
+    except ValueError:
+        adc = None
+    if not (isinstance(adc, dict) and adc.get("refresh_token")):
+        console.print(f"[red]✗[/] The ADC file on {workspace} has no refresh token.")
+        return None
+    return match["adc"]
+
+
+def write_adc(workspace: str, adc: str) -> str | None:
+    """Install base64-encoded ADC on a workspace; returns an error, if any."""
+    proc = remote_sh(workspace, WRITE_ADC, {"CODO_ADC": adc})
+    return None if proc.returncode == 0 and "CODO_OK" in proc.stdout else failure(proc)
+
+
+def login_everywhere(excludes: list[str]) -> int:
+    """Log in on one running workspace, then copy its ADC to the others."""
+    active = [
+        w
+        for w in list_workspaces()
+        if is_active(w) and not is_excluded(w["name"], excludes)
+    ]
+    if not active:
+        console.print("No running workspaces to log in to.")
+        return 1
+    # Any would do; the most recently used is likely the one you're in.
+    never = datetime.min.replace(tzinfo=timezone.utc)
+    source = max(active, key=lambda w: parse_time(w["last_used_at"]) or never)
+    targets = sorted(w["name"] for w in active if w["name"] != source["name"])
+
+    plan = f"Logging in on [bold]{source['name']}[/] (most recently used)"
+    if targets:
+        plan += f", then copying its ADC to {', '.join(targets)}"
+    console.print(plan + ".")
+    if code := login(source["name"]):
+        return code
+    if not targets:
+        return 0
+    if (adc := read_adc(source["name"])) is None:
+        return 1
+
+    failed = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(targets)) as pool:
+        futures = {pool.submit(write_adc, name, adc): name for name in targets}
+        for future in concurrent.futures.as_completed(futures):
+            name = futures[future]
+            if error := future.result():
+                failed += 1
+                console.print(f"[red]✗[/] {name}: {escape(error)}")
+            else:
+                console.print(f"[green]✓[/] {name}: ADC copied")
+    return 1 if failed else 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    commands = parser.add_subparsers(dest="command", required=True)
+    for action in DONE:
+        sub = commands.add_parser(action, help=f"{action} all non-excluded workspaces")
+        sub.add_argument(
+            "-n",
+            "--dry-run",
+            action="store_true",
+            help="show which workspaces would change, without changing them",
+        )
+    commands.add_parser("status", help="show the status of non-excluded workspaces")
+    sub = commands.add_parser(
+        "login",
+        help="refresh gcloud credentials on workspaces using this machine's browser",
+    )
+    sub.add_argument(
+        "workspace",
+        nargs="?",
+        help="log in on just this workspace. By default, log in on the most "
+        "recently used running workspace and copy its ADC to the other "
+        "running, non-excluded ones",
+    )
+    args = parser.parse_args()
+
+    if args.command == "login" and args.workspace:
+        return login(args.workspace)
+    excludes = load_excludes(CONFIG_PATH)
+    if args.command == "login":
+        return login_everywhere(excludes)
+    if args.command == "status":
+        return show_status(excludes)
+    return change(args.command, excludes, args.dry_run)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
