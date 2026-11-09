@@ -3,11 +3,11 @@
 # requires-python = ">=3.11"
 # dependencies = ["rich"]
 # ///
-"""Start, stop, check on, and log in to my Coder workspaces.
+"""Start, stop, check on, log in to, and run commands on my Coder workspaces.
 
-start, stop, status, and login (without a workspace) act on every workspace
-except those matching an entry in the `exclude` list of codo.toml (in the
-directory above this script).
+Every command except `login <workspace>` acts on all workspaces except those
+matching an entry in the `exclude` list of codo.toml (in the directory above
+this script).
 """
 
 import argparse
@@ -21,12 +21,14 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 import time
 import tomllib
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 from pathlib import Path
+from typing import TextIO
 
 from rich.console import Console
 from rich.live import Live
@@ -47,6 +49,8 @@ ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 # Advanced one frame per line of coder output, so it only moves on activity.
 SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+# How much of a failed command's output to print; its log file has all of it.
+OUTPUT_LINES = 30
 DONE = {"start": "ready", "stop": "stopped"}
 ICONS = {"ok": "[green]✓", "warning": "[yellow]⚠", "failed": "[red]✗"}
 STYLES = {"running": "", "ok": "green", "warning": "yellow", "failed": "red"}
@@ -85,6 +89,14 @@ LOGGED_IN = re.compile(r"You are now logged in as \[(?P<account>[^\]]+)\]")
 AUTH_RESPONSE = re.compile(r"^https?://\S+[?&]code=\S+$", re.MULTILINE)
 STAGE_LINE = re.compile(STAGE_START.pattern, re.MULTILINE)
 
+# Where `codo fetch` and `codo clyde` run, unless codo.toml lists `repos`.
+DEFAULT_REPO = "/home/discord/dev/discord/discord"
+# coder's own report of a nonzero exit, which the table already shows.
+CODER_EXIT_NOISE = re.compile(
+    r'^(Encountered an error running "coder ssh".*'
+    r"|error: run command: Process exited with status \d+)$"
+)
+
 # Copying application default credentials (ADC) between workspaces. These run
 # under sh on the workspace; see remote_sh() for why they avoid backslashes.
 ADC_FILE = (
@@ -109,11 +121,11 @@ WRITE_ADC = "; ".join(
 console = Console()
 
 
-def load_excludes(path: Path) -> list[str]:
+def load_config(path: Path) -> dict:
     if not path.exists():
-        return []
+        return {}
     with path.open("rb") as f:
-        return list(tomllib.load(f).get("exclude", []))
+        return tomllib.load(f)
 
 
 def is_excluded(name: str, excludes: list[str]) -> bool:
@@ -169,6 +181,8 @@ class Job:
     output: list[str] = dc.field(default_factory=list)
     began: float = dc.field(default_factory=time.monotonic)
     ended: float | None = None
+    log: Path | None = None  # Where run() saves the full output.
+    ticks: int = 0  # Chunks of output seen, which drive the spinner.
 
     @property
     def state(self) -> str:
@@ -182,7 +196,7 @@ class Job:
 
     @property
     def spinner(self) -> str:
-        return SPINNER_FRAMES[len(self.output) % len(SPINNER_FRAMES)]
+        return SPINNER_FRAMES[self.ticks % len(SPINNER_FRAMES)]
 
     @property
     def elapsed(self) -> str:
@@ -191,34 +205,50 @@ class Job:
 
     def run(self) -> None:
         self.began = time.monotonic()
-        for label, cmd in self.steps:
-            self.phase = label
-            self.returncode = self._run(cmd)
-            if self.returncode:
-                break
+        # Line-buffered, so the log can be followed (tail -f) while this runs.
+        with open(self.log or os.devnull, "w", buffering=1) as log:
+            for label, cmd in self.steps:
+                self.phase = label
+                log.write(f"### {label}\n")
+                self.returncode = self._run(cmd, log)
+                if self.returncode:
+                    # Keep a coder stage name if one says where it failed;
+                    # otherwise name the step, if there's more than one.
+                    if self.phase == label:
+                        step = f"{label} " if len(self.steps) > 1 else ""
+                        self.phase = f"{step}failed (exit {self.returncode})"
+                    break
         self.ended = time.monotonic()
         if self.state == "ok":
             self.phase = self.done
         elif self.state == "warning":
             self.phase = f"{self.failed_stages[0]} failed"
 
-    def _run(self, cmd: list[str]) -> int:
+    def _run(self, cmd: list[str], log: TextIO) -> int:
+        # Read bytes and split on \n only: text mode would also split on the
+        # \r that progress meters (like git's) use to redraw a line, turning
+        # each redraw into a line of output.
         with subprocess.Popen(
             cmd,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
-            errors="replace",
         ) as proc:
             assert proc.stdout is not None
-            for line in proc.stdout:
-                self._feed(line)
+            pending = b""
+            while chunk := os.read(proc.stdout.fileno(), 65536):
+                self.ticks += 1  # Any new output, even a redraw, moves the spinner.
+                *lines, pending = (pending + chunk).split(b"\n")
+                for line in lines:
+                    self._feed(line.decode(errors="replace"), log)
+            if pending:
+                self._feed(pending.decode(errors="replace"), log)
         return proc.returncode
 
-    def _feed(self, raw: str) -> None:
+    def _feed(self, raw: str, log: TextIO) -> None:
         # Keep only what a terminal would show: no colors, last \r-overwrite wins.
         line = ANSI_ESCAPE.sub("", raw).rstrip().rsplit("\r", 1)[-1]
+        log.write(line + "\n")
         if not line.strip():
             return
         self.output.append(line)
@@ -378,8 +408,8 @@ def change(action: str, excludes: list[str], dry_run: bool) -> int:
     for workspace in list_workspaces():
         name = workspace["name"]
         if is_excluded(name, excludes):
-            console.print(f"[dim]  - {name}: excluded")
-        elif not needs_action(workspace, action):
+            continue
+        if not needs_action(workspace, action):
             status = workspace["latest_build"]["status"]
             console.print(f"[dim]  - {name}: already {status}")
         else:
@@ -393,6 +423,43 @@ def change(action: str, excludes: list[str], dry_run: bool) -> int:
         return 0
 
     jobs = [Job(name, steps(action, name), DONE[action]) for name in targets]
+    return run_jobs(jobs, action)
+
+
+def make_log_dir() -> Path:
+    """A new private (mode 700) directory for command output."""
+    return Path(tempfile.mkdtemp(prefix=time.strftime("codo-%Y%m%d-%H%M%S-")))
+
+
+def save_log(name: str, text: str) -> Path:
+    """Save one command's full output in a new log directory."""
+    path = make_log_dir() / f"{name}.log"
+    path.write_text(text)
+    return path
+
+
+def print_tail(lines: list[str], log: Path) -> None:
+    """Print the end of a failed command's output; `log` has all of it."""
+    lines = [line for line in lines if not CODER_EXIT_NOISE.match(line)]
+    if len(lines) > OUTPUT_LINES:
+        omitted = len(lines) - OUTPUT_LINES
+        # soft_wrap so a long path isn't broken across lines when copied.
+        path = escape(str(log))
+        console.print(f"[dim]… {omitted} earlier lines in {path}", soft_wrap=True)
+        lines = lines[-OUTPUT_LINES:]
+    console.print("\n".join(lines), markup=False, highlight=False, soft_wrap=True)
+
+
+def run_jobs(jobs: list[Job], what: str) -> int:
+    """Run jobs in parallel behind a live table, then show output of failures.
+
+    Every job's full output is saved in a new log directory, as it arrives.
+    """
+    logs = make_log_dir()
+    for job in jobs:
+        job.log = logs / f"{job.name}.log"
+    console.print(f"[dim]Logs: {escape(str(logs))}", soft_wrap=True)
+
     # The live view is transient so the final table is printed exactly once,
     # whether or not stdout is a terminal.
     with Live(get_renderable=lambda: render(jobs), console=console, transient=True):
@@ -405,15 +472,99 @@ def change(action: str, excludes: list[str], dry_run: bool) -> int:
     for job in jobs:
         if job.state in ("failed", "warning"):
             console.rule(f"{job.name}: {job.phase}", style=STYLES[job.state])
-            console.print(
-                "\n".join(job.output), markup=False, highlight=False, soft_wrap=True
-            )
+            assert job.log is not None
+            print_tail(job.output, job.log)
 
     failed = sum(job.state == "failed" for job in jobs)
     if failed:
-        console.print(f"[red]{failed} of {len(jobs)} workspaces failed to {action}.")
+        console.print(
+            f"[red]{failed} of {len(jobs)} workspaces failed to {escape(what)}."
+        )
         return 1
     return 0
+
+
+def pick_active(excludes: list[str]) -> list[dict]:
+    """Running, non-excluded workspaces. Says why any non-running one is skipped."""
+    active = []
+    for workspace in list_workspaces():
+        name = workspace["name"]
+        if is_excluded(name, excludes):
+            continue
+        if not is_active(workspace):
+            console.print(f"[dim]  - {name}: {summarize(workspace)[1]}")
+        else:
+            active.append(workspace)
+    return active
+
+
+# A step run in the repo: (label for the table, what to show, sh snippet).
+RepoStep = tuple[str, str, str]
+
+
+def repo_command(label: str, command: list[str]) -> RepoStep:
+    return label, shlex.join(command), f"exec {shlex.join(command)}"
+
+
+# `codo fetch`, which also fast-forwards main when it's checked out and behind
+# (and nothing else). If local changes would be overwritten, git refuses and
+# the step fails.
+FETCH: RepoStep = (
+    "fetching",
+    "git fetch origin main (fast-forwarding main)",
+    "git fetch origin main"
+    ' && if [ "$(git symbolic-ref --short -q HEAD)" = main ]'
+    " && git merge-base --is-ancestor HEAD FETCH_HEAD;"
+    " then git merge --ff-only FETCH_HEAD; fi",
+)
+FRESHEN = [
+    FETCH,
+    repo_command(
+        "starting services", ["clyde", "start", "-i", "discord_pytest_daemon", "admin"]
+    ),
+    repo_command("stopping services", ["clyde", "stop"]),
+]
+
+
+def repo_script(snippet: str, repos: list[str]) -> str:
+    """An sh script that runs `snippet` in the first of `repos` that exists.
+
+    Workspaces lay the repo out differently, hence the list.
+    """
+    dirs = " ".join(shlex.quote(repo) for repo in repos)
+    # stdin from /dev/null: coder ssh's pty never sends EOF, so anything that
+    # prompts (like clyde offering to file a helpdesk report) would hang forever.
+    return (
+        f"exec < /dev/null; for dir in {dirs}; do "
+        f'if [ -e "$dir/.git" ]; then cd "$dir" || exit; {snippet}; exit; fi; '
+        f"done; echo codo: no repo at {dirs}; exit 1"
+    )
+
+
+def run_in_repo(plan: list[RepoStep], repos: list[str], excludes: list[str]) -> int:
+    """Run commands in the discord repo on every running, non-excluded workspace.
+
+    Each workspace runs the steps of `plan` in order, stopping at the first
+    failure.
+    """
+    scripts = [(label, repo_script(snippet, repos)) for label, _, snippet in plan]
+    if any("\\" in script for _, script in scripts):
+        console.print("[red]✗[/] codo can't pass backslashes through to workspaces.")
+        return 2
+    targets = [workspace["name"] for workspace in pick_active(excludes)]
+    if not targets:
+        console.print("No running workspaces.")
+        return 1
+
+    shown = " && ".join(text for _, text, _ in plan)
+    console.print(
+        f"Running [bold]{escape(shown)}[/] in the repo on {', '.join(targets)}."
+    )
+    jobs = [
+        Job(name, [(label, sh_command(name, s)) for label, s in scripts], "done")
+        for name in targets
+    ]
+    return run_jobs(jobs, f"run {shown}")
 
 
 def browser_login(bootstrap_url: str) -> str | None:
@@ -428,13 +579,9 @@ def browser_login(bootstrap_url: str) -> str | None:
     )
     if match := AUTH_RESPONSE.search(proc.stderr):
         return match[0]
+    output = (proc.stdout + proc.stderr).strip()
     console.print("[red]✗[/] The browser login didn't complete:")
-    console.print(
-        (proc.stdout + proc.stderr).strip(),
-        markup=False,
-        highlight=False,
-        soft_wrap=True,
-    )
+    print_tail(output.splitlines(), save_log("browser-login", output))
     return None
 
 
@@ -498,25 +645,31 @@ def login(workspace: str) -> int:
         return 0
     reason = f"exit code {remote.returncode}" if remote.returncode else "not logged in"
     console.print(f"[red]✗[/] gcloud login on {workspace} failed ({reason}):")
-    console.print(transcript.strip(), markup=False, highlight=False, soft_wrap=True)
+    log = save_log(f"{workspace}-login", transcript)
+    print_tail(transcript.strip().splitlines(), log)
     return 1
 
 
-def remote_sh(
-    workspace: str, script: str, env: dict[str, str] | None = None
-) -> subprocess.CompletedProcess:
-    """Run a POSIX sh script on a workspace, with `env` set in its environment.
+def sh_command(workspace: str, script: str) -> list[str]:
+    """The `coder ssh` command line to run a POSIX sh script on a workspace.
 
     coder ssh joins its arguments with spaces for the workspace's login shell
     (fish), so pass one pre-quoted `sh -c` command. fish treats backslashes in
     single quotes differently from sh, so scripts must not contain any.
     """
     assert "\\" not in script
+    return ["coder", "ssh", workspace, "--", shlex.join(["sh", "-c", script])]
+
+
+def remote_sh(
+    workspace: str, script: str, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess:
+    """Run a POSIX sh script on a workspace, with `env` set in its environment."""
     # Passing env through CODER_SSH_ENV keeps values (like credentials) out of
     # process arguments, and out of stdin, which coder echoes through a pty.
     ssh_env = ",".join(f"{key}={value}" for key, value in (env or {}).items())
     return subprocess.run(
-        ["coder", "ssh", workspace, "--", shlex.join(["sh", "-c", script])],
+        sh_command(workspace, script),
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
@@ -562,11 +715,7 @@ def write_adc(workspace: str, adc: str) -> str | None:
 
 def login_everywhere(excludes: list[str]) -> int:
     """Log in on one running workspace, then copy its ADC to the others."""
-    active = [
-        w
-        for w in list_workspaces()
-        if is_active(w) and not is_excluded(w["name"], excludes)
-    ]
+    active = pick_active(excludes)
     if not active:
         console.print("No running workspaces to log in to.")
         return 1
@@ -622,13 +771,40 @@ def main() -> int:
         "recently used running workspace and copy its ADC to the other "
         "running, non-excluded ones",
     )
-    args = parser.parse_args()
+    commands.add_parser(
+        "fetch",
+        help="run `git fetch origin main` in the repo on each workspace, "
+        "fast-forwarding main if it's checked out",
+    )
+    commands.add_parser(
+        "clyde", help="run `clyde ARGS...` in the repo on each workspace"
+    )
+    commands.add_parser(
+        "freshen",
+        help="fetch, then start and stop the pytest daemon and admin services, "
+        "on each workspace",
+    )
 
-    if args.command == "login" and args.workspace:
-        return login(args.workspace)
-    excludes = load_excludes(CONFIG_PATH)
+    argv = sys.argv[1:]
+    config = load_config(CONFIG_PATH)
+    excludes = list(config.get("exclude", []))
+    repos = list(config.get("repos", [DEFAULT_REPO]))
+    # Pass everything after `clyde` through untouched: argparse would otherwise
+    # claim flags like `-i` or `--help` that are meant for clyde.
+    if argv[:1] == ["clyde"]:
+        if len(argv) == 1:
+            parser.error("codo clyde needs a clyde command, e.g. `codo clyde start`")
+        return run_in_repo([repo_command("running", argv)], repos, excludes)
+    args = parser.parse_args(argv)
+
     if args.command == "login":
+        if args.workspace:
+            return login(args.workspace)
         return login_everywhere(excludes)
+    if args.command == "fetch":
+        return run_in_repo([FETCH], repos, excludes)
+    if args.command == "freshen":
+        return run_in_repo(FRESHEN, repos, excludes)
     if args.command == "status":
         return show_status(excludes)
     return change(args.command, excludes, args.dry_run)
