@@ -1336,6 +1336,11 @@ def main() -> int:
     )
     sub.add_argument("--stop", action="store_true", help="stop the tunnel")
     commands.add_parser(
+        "mfa",
+        help="print an MFA code for logging in on local dev "
+        "(`clyde app mfa --no-clipboard`, run here; extra args go to clyde)",
+    )
+    commands.add_parser(
         "freshen",
         help="fetch, then start and stop the pytest daemon and admin services, "
         "on each workspace",
@@ -1351,6 +1356,15 @@ def main() -> int:
         if len(argv) == 1:
             parser.error("codo clyde needs a clyde command, e.g. `codo clyde start`")
         return run_in_repo([repo_command("running", argv)], repos, excludes)
+    if argv[:1] == ["mfa"]:
+        # Run here, not on a workspace: the code only depends on the secret
+        # and the time. Extra args (like --secret) pass through to clyde.
+        command = ["clyde", "app", "mfa", "--no-clipboard", *argv[1:]]
+        try:
+            os.execvp(command[0], command)
+        except FileNotFoundError:
+            console.print("[red]✗[/] clyde isn't on PATH.")
+            return 1
     if argv[:1] == ["forward"]:
         return forward(argv[1:], excludes)
     args = parser.parse_args(argv)
