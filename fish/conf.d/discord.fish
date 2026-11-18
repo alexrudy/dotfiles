@@ -10,21 +10,23 @@ if test -d $omf_foreign_env
     end
 end
 
-if set -q "$CODER"
+if set -q CODER
     set -gx STARSHIP_CONFIG "$HOME/.config/starship.discord.toml"
-    if command -v code
+    if command -q code
         set -gx EDITOR "code -w"
     end
+    # The coder agent's SHELL comes from systemd, which reads /etc/passwd when
+    # the agent starts, before ~/personalize runs chsh. So every session
+    # inherits the image's default shell unless we correct it here.
     set -gx SHELL "/usr/bin/fish"
 else
     function ssc -a workspace;
        ssh "coder.$workspace"
     end
-
-    fish_add_path -m -a $HOME/.nix-profile/bin
-    fish_add_path -m -a /nix/var/nix/profiles/default/bin
-
 end
+
+fish_add_path -m -a $HOME/.nix-profile/bin
+fish_add_path -m -a /nix/var/nix/profiles/default/bin
 
 if test -d ~/Development/discord/discord
     fish_add_path -p ~/Development/discord/discord/.local/bin
