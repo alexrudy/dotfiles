@@ -5,9 +5,10 @@
 # ///
 """Start, stop, check on, log in to, and run commands on my Coder workspaces.
 
-Every command except `login <workspace>` acts on all workspaces except those
-matching an entry in the `exclude` list of codo.toml (in the directory above
-this script).
+Commands act on all workspaces except those matching an entry in the `exclude`
+list of codo.toml (in the directory above this script), unless they're given
+workspaces by name: `login <workspace>`, `forward`, `tunnel`, and `-w` for
+start, stop and restart.
 """
 
 import argparse
@@ -19,6 +20,7 @@ import json
 import os
 import re
 import shlex
+import signal
 import subprocess
 import sys
 import tempfile
@@ -28,11 +30,12 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 from pathlib import Path
-from typing import TextIO
+from typing import NamedTuple, TextIO
 
 from rich.console import Console
 from rich.live import Live
 from rich.markup import escape
+from rich.spinner import Spinner
 from rich.table import Table
 from rich.text import Text
 
@@ -47,7 +50,7 @@ STAGE_START = re.compile(r"^==> ⧗ (?P<stage>.+)$")
 STAGE_END = re.compile(r"^=== (?P<mark>[✔✘]) (?P<stage>.+) \[\d+ms\]$")
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
-# Advanced one frame per line of coder output, so it only moves on activity.
+# Advanced one frame per chunk of new output, so it only moves on activity.
 SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 # How much of a failed command's output to print; its log file has all of it.
 OUTPUT_LINES = 30
@@ -117,6 +120,20 @@ WRITE_ADC = "; ".join(
         "echo CODO_OK",
     ]
 )
+
+# `codo forward` keeps track of its background `clyde coder forward` here.
+FORWARD_DIR = (
+    Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "codo"
+)
+FORWARD_STATE = FORWARD_DIR / "forward.json"
+FORWARD_LOG = FORWARD_DIR / "forward.log"
+# What coder port-forward prints once it's listening on every port.
+FORWARD_READY = re.compile(r"^Ready!$", re.MULTILINE)
+# coder port-forward prints one of these per port as it starts listening.
+FORWARD_PORT = re.compile(r"^Forwarding '", re.MULTILINE)
+# Starting the workspace first can take a few minutes.
+FORWARD_READY_SECONDS = 300
+FORWARD_STOP_SECONDS = 10
 
 console = Console()
 
@@ -344,7 +361,9 @@ def schedule(workspace: dict, now: datetime) -> str:
     return f"{verb} in {duration(when - now)}" if when and when > now else ""
 
 
-def render_status(workspaces: list[dict], tick: int) -> Table:
+def render_status(
+    workspaces: list[dict], tick: int, forwarded: str | None = None
+) -> Table:
     now = datetime.now(timezone.utc)
     table = Table.grid(padding=(0, 2))
     for _ in range(4):
@@ -362,6 +381,7 @@ def render_status(workspaces: list[dict], tick: int) -> Table:
             Text.assemble(
                 (label, STATUS_STYLES[kind]),
                 ("  outdated" if workspace["outdated"] else "", "yellow"),
+                ("  ⇄ forwarded" if workspace["name"] == forwarded else "", "blue"),
             ),
             Text(schedule(workspace, now), style="dim"),
             Text(f"used {duration(now - used)} ago" if used else "", style="dim"),
@@ -379,6 +399,8 @@ def show_status(excludes: list[str]) -> int:
         return any(summarize(w)[0] == "busy" for w in workspaces)
 
     workspaces, tick = fetch(), 0
+    forward = Forward.load()
+    forwarded = forward.workspace if forward and forward.running else None
     if not workspaces:
         console.print("No workspaces.")
         return 0
@@ -386,7 +408,7 @@ def show_status(excludes: list[str]) -> int:
     # Keep polling only while something is changing state, so a quick check
     # returns right away. Ctrl-C stops watching and keeps the last snapshot.
     with Live(
-        render_status(workspaces, tick),
+        render_status(workspaces, tick, forwarded),
         console=console,
         transient=True,
         auto_refresh=False,
@@ -395,20 +417,43 @@ def show_status(excludes: list[str]) -> int:
             while busy(workspaces):
                 time.sleep(POLL_SECONDS)
                 workspaces, tick = fetch(), tick + 1
-                live.update(render_status(workspaces, tick), refresh=True)
+                live.update(render_status(workspaces, tick, forwarded), refresh=True)
         except KeyboardInterrupt:
             pass
-    console.print(render_status(workspaces, tick))
+    console.print(render_status(workspaces, tick, forwarded))
     return 0
 
 
-def change(action: str, excludes: list[str], dry_run: bool) -> int:
+def choose(excludes: list[str], selected: list[str] | None) -> list[dict]:
+    """The workspaces named by -w (even excluded ones), else all non-excluded ones.
+
+    Exits if -w names a workspace that doesn't exist.
+    """
+    workspaces = list_workspaces()
+    if selected is None:
+        return [w for w in workspaces if not is_excluded(w["name"], excludes)]
+    names = {w["name"] for w in workspaces}
+    if unknown := [name for name in selected if name not in names]:
+        console.print(f"[red]✗[/] No workspace named {escape(', '.join(unknown))}.")
+        sys.exit(2)
+    return [w for w in workspaces if w["name"] in selected]
+
+
+def workspace_list(value: str) -> list[str]:
+    """Parse one -w value: comma-separated workspace names."""
+    names = [name.strip() for name in value.split(",") if name.strip()]
+    if not names:
+        raise argparse.ArgumentTypeError("expected workspace names")
+    return names
+
+
+def change(
+    action: str, excludes: list[str], dry_run: bool, selected: list[str] | None
+) -> int:
     """Run `coder start` or `coder stop` on every workspace that needs it."""
     targets = []
-    for workspace in list_workspaces():
+    for workspace in choose(excludes, selected):
         name = workspace["name"]
-        if is_excluded(name, excludes):
-            continue
         if not needs_action(workspace, action):
             status = workspace["latest_build"]["status"]
             console.print(f"[dim]  - {name}: already {status}")
@@ -422,8 +467,65 @@ def change(action: str, excludes: list[str], dry_run: bool) -> int:
         console.print(f"Would {action}: {', '.join(targets)}")
         return 0
 
+    if action == "stop":
+        # Its ports would go dead anyway.
+        stop_forward(only=set(targets))
     jobs = [Job(name, steps(action, name), DONE[action]) for name in targets]
     return run_jobs(jobs, action)
+
+
+def restart(
+    excludes: list[str], dry_run: bool, update: bool, selected: list[str] | None
+) -> int:
+    """Restart every running workspace, updating any that are out of date.
+
+    `coder update` stops and starts an outdated workspace on the template's
+    latest version; the rest get `coder restart`.
+    """
+    targets: dict[str, bool] = {}  # Workspace name: whether to update it.
+    for workspace in choose(excludes, selected):
+        name, build = workspace["name"], workspace["latest_build"]
+        # Running, or failed to start (where restarting is a retry).
+        if build["transition"] == "start" and build["status"] in ("running", "failed"):
+            targets[name] = update and workspace["outdated"]
+        else:
+            console.print(f"[dim]  - {name}: {summarize(workspace)[1]}")
+
+    if not targets:
+        console.print("Nothing to restart.")
+        return 0
+    updating = [name for name, outdated in targets.items() if outdated]
+    restarting = [name for name, outdated in targets.items() if not outdated]
+    if dry_run:
+        if updating:
+            console.print(f"Would update: {', '.join(updating)}")
+        if restarting:
+            console.print(f"Would restart: {', '.join(restarting)}")
+        return 0
+
+    jobs = []
+    for name, outdated in targets.items():
+        if outdated:
+            # No --yes here; this keeps it from prompting for new parameters.
+            first = ("Updating", ["coder", "update", "--use-parameter-defaults", name])
+        else:
+            first = ("Restarting", ["coder", "restart", "--yes", name])
+        done = "updated" if outdated else "restarted"
+        jobs.append(Job(name, [first, steps("start", name)[-1]], done))
+
+    # Its connection would drop, so stop it now and start it again after.
+    forward = stop_forward(only=set(targets))
+    code = run_jobs(jobs, "restart")
+    if forward and any(
+        j.name == forward.workspace and j.state != "failed" for j in jobs
+    ):
+        code = start_forward(forward.workspace, forward.args, excludes) or code
+    elif forward:
+        console.print(
+            f"[dim]Not restarting the forward from {forward.description}; "
+            "`codo forward restart` will once it's up."
+        )
+    return code
 
 
 def make_log_dir() -> Path:
@@ -499,17 +601,20 @@ def pick_active(excludes: list[str]) -> list[dict]:
 
 
 # A step run in the repo: (label for the table, what to show, sh snippet).
-RepoStep = tuple[str, str, str]
+class RepoStep(NamedTuple):
+    label: str
+    detail: str
+    command: str
 
 
 def repo_command(label: str, command: list[str]) -> RepoStep:
-    return label, shlex.join(command), f"exec {shlex.join(command)}"
+    return RepoStep(label, shlex.join(command), f"exec {shlex.join(command)}")
 
 
 # `codo fetch`, which also fast-forwards main when it's checked out and behind
 # (and nothing else). If local changes would be overwritten, git refuses and
 # the step fails.
-FETCH: RepoStep = (
+FETCH: RepoStep = RepoStep(
     "fetching",
     "git fetch origin main (fast-forwarding main)",
     "git fetch origin main"
@@ -748,17 +853,442 @@ def login_everywhere(excludes: list[str]) -> int:
     return 1 if failed else 0
 
 
+@dc.dataclass
+class Forward:
+    """The background `clyde coder forward start`, as saved in FORWARD_STATE.
+
+    The process leads its own process group (clyde runs coder under a shell),
+    so pid is also the group to signal. It's None once stopped; the workspace
+    and args are kept for `codo forward restart`.
+    """
+
+    workspace: str
+    args: list[str]
+    pid: int | None = None
+    started: float | None = None  # Unix time.
+
+    @classmethod
+    def load(cls) -> "Forward | None":
+        try:
+            return cls(**json.loads(FORWARD_STATE.read_text()))
+        except FileNotFoundError:
+            return None
+
+    def save(self) -> None:
+        FORWARD_STATE.write_text(json.dumps(dc.asdict(self)))
+
+    @property
+    def running(self) -> bool:
+        """Whether our forward is still alive (and pid hasn't been reused)."""
+        if self.pid is None:
+            return False
+        proc = subprocess.run(
+            ["ps", "-o", "pgid=,command=", "-p", str(self.pid)],
+            capture_output=True,
+            text=True,
+        )
+        pgid, _, command = proc.stdout.strip().partition(" ")
+        return pgid == str(self.pid) and "coder forward" in command
+
+    @property
+    def description(self) -> str:
+        args = f" ({shlex.join(self.args)})" if self.args else ""
+        return f"[bold]{escape(self.workspace)}[/]{escape(args)}"
+
+    def stop(self) -> None:
+        """Stop the forward and wait for it, so its ports are free again."""
+        if self.running:
+            assert self.pid is not None
+            for sig, wait in (
+                (signal.SIGTERM, FORWARD_STOP_SECONDS),
+                (signal.SIGKILL, 2),
+            ):
+                try:
+                    os.killpg(self.pid, sig)
+                except ProcessLookupError:
+                    break
+                deadline = time.monotonic() + wait
+                while time.monotonic() < deadline and group_alive(self.pid):
+                    time.sleep(0.1)
+                if not group_alive(self.pid):
+                    break
+        self.pid = self.started = None
+        self.save()
+
+
+def group_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        pass  # Exists, though not ours to signal.
+    return True
+
+
+def forward_tail(lines: int = OUTPUT_LINES) -> None:
+    if FORWARD_LOG.exists():
+        output = ANSI_ESCAPE.sub("", FORWARD_LOG.read_text(errors="replace"))
+        print_tail(output.strip().splitlines()[-lines:], FORWARD_LOG)
+
+
+def forward_status() -> int:
+    forward = Forward.load()
+    if forward and forward.running:
+        assert forward.started is not None
+        up = duration(timedelta(seconds=time.time() - forward.started))
+        console.print(
+            f"[green]●[/] Forwarding ports from {forward.description}"
+            f" [dim](pid {forward.pid}, up {up})"
+        )
+        console.print(f"[dim]Log: {escape(str(FORWARD_LOG))}", soft_wrap=True)
+        return 0
+    if forward and forward.pid is not None:
+        console.print(f"[red]✗[/] The forward from {forward.description} exited:")
+        forward_tail()
+        console.print("[dim]Run `codo forward restart` to start it again.")
+        return 1
+    last = f" [dim](last: {forward.description})" if forward else ""
+    console.print(f"[dim]○[/] Not forwarding{last}")
+    return 0
+
+
+def stop_forward(only: set[str] | None = None) -> "Forward | None":
+    """Stop the forward, if there is one (and it's from a workspace in `only`).
+
+    Returns the forward it stopped, if any.
+    """
+    forward = Forward.load()
+    if not (forward and forward.running):
+        return None
+    if only is not None and forward.workspace not in only:
+        return None
+    console.print(f"[dim]Stopping the forward from {forward.description}…")
+    stopped = dc.replace(forward)
+    forward.stop()
+    return stopped
+
+
+class Waiting:
+    """A one-row live view for a slow sequence: a spinner, phase and elapsed time.
+
+    Unlike the start/stop spinners, this one spins on a timer: what it waits
+    on (coder's version check, clyde setting up) is often silent for a while.
+    """
+
+    def __init__(self) -> None:
+        self.phase = ""
+        self.began = time.monotonic()
+        self.spinner = Spinner("dots", style="cyan")
+
+    def __rich__(self) -> Table:
+        seconds = int(time.monotonic() - self.began)
+        table = Table.grid(padding=(0, 1))
+        table.add_row(
+            self.spinner,
+            Text(self.phase + "…"),
+            Text(f"{seconds // 60}:{seconds % 60:02d}", style="dim"),
+        )
+        return table
+
+
+def forward_phase(output: str, workspace: str) -> str:
+    """What the forward is up to, judging by its output so far."""
+    if ports := len(FORWARD_PORT.findall(output)):
+        return f"Forwarding {ports} ports from {workspace}"
+    if "Starting connections" in output:
+        return f"Connecting to {workspace}"
+    return "Starting clyde"
+
+
+def start_forward(workspace: str | None, args: list[str], excludes: list[str]) -> int:
+    """Forward ports from `workspace` in the background, replacing any forward.
+
+    With no workspace, use the last one forwarded, else the most recently used
+    running one.
+    """
+    waiting = Waiting()
+    with Live(waiting, console=console, transient=True, refresh_per_second=12.5):
+        return _start_forward(waiting, workspace, args, excludes)
+
+
+def _start_forward(
+    waiting: Waiting, workspace: str | None, args: list[str], excludes: list[str]
+) -> int:
+    waiting.phase = "Checking workspaces"
+    previous = Forward.load()
+    workspaces = {w["name"]: w for w in list_workspaces()}
+    if workspace is None and previous:
+        workspace = previous.workspace
+    if workspace is None:
+        never = datetime.min.replace(tzinfo=timezone.utc)
+        active = [
+            w
+            for w in workspaces.values()
+            if is_active(w) and not is_excluded(w["name"], excludes)
+        ]
+        if not active:
+            console.print("No running workspaces to forward from.")
+            return 1
+        workspace = max(active, key=lambda w: parse_time(w["last_used_at"]) or never)[
+            "name"
+        ]
+    if workspace not in workspaces:
+        console.print(f"[red]✗[/] No workspace named {escape(workspace)}.")
+        return 1
+
+    if previous and previous.running:
+        if previous.workspace == workspace and previous.args == args:
+            console.print(f"Already forwarding ports from {previous.description}.")
+            return 0
+        waiting.phase = f"Stopping the forward from {previous.workspace}"
+        previous.stop()
+        console.print(f"[dim]Stopped the forward from {previous.description}.")
+
+    forward = Forward(workspace, args)
+    if not is_active(workspaces[workspace]):
+        label = summarize(workspaces[workspace])[1]
+        console.print(f"[dim]{escape(workspace)} is {label}; coder will start it.")
+    waiting.phase = "Starting clyde"
+    FORWARD_LOG.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with FORWARD_LOG.open("wb") as log:
+        # A new session, so it outlives this process and the terminal, and so
+        # stop() can signal clyde and the coder process it runs together.
+        try:
+            proc = subprocess.Popen(
+                ["clyde", "coder", "forward", "start", "-w", workspace, *args],
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        except FileNotFoundError:
+            console.print("[red]✗[/] clyde isn't on PATH.")
+            return 1
+    forward.pid, forward.started = proc.pid, time.time()
+    # Saved before waiting, so Ctrl-C leaves it running and manageable.
+    forward.save()
+
+    # Wait for coder to say it's ready.
+    deadline = time.monotonic() + FORWARD_READY_SECONDS
+    ready = False
+    while proc.poll() is None and time.monotonic() < deadline:
+        output = FORWARD_LOG.read_text(errors="replace")
+        if ready := bool(FORWARD_READY.search(output)):
+            break
+        waiting.phase = forward_phase(output, workspace)
+        time.sleep(0.2)
+
+    if proc.poll() is not None:
+        console.print(
+            f"[red]✗[/] The forward from {forward.description} exited "
+            f"(exit code {proc.returncode}):"
+        )
+        forward_tail()
+        return 1
+    if not ready:
+        console.print(
+            f"[yellow]⚠[/] Still connecting to {forward.description} in the "
+            "background; check on it with `codo forward`."
+        )
+        return 0
+    took = int(time.monotonic() - waiting.began)
+    console.print(
+        f"[green]✓[/] Forwarding ports from {forward.description} in the "
+        f"background [dim](pid {proc.pid}, ready in {took}s)"
+    )
+    return 0
+
+
+FORWARD_USAGE = """\
+usage: codo forward [WORKSPACE] [CLYDE_ARGS...]
+       codo forward {status,stop,restart,log [-f]}
+
+Run `clyde coder forward start` in the background, replacing any forward
+already running (so `codo forward other-workspace` switches workspaces).
+Without a workspace, use the last one forwarded, else the most recently used
+running one. CLYDE_ARGS (like --no-web or -t 1234) go to clyde.
+
+  status   show what's being forwarded (the default)
+  stop     stop forwarding
+  restart  stop, then start the last forward again
+  log      show the end of the forward's output (-f: follow it)
+"""
+
+
+def forward(argv: list[str], excludes: list[str]) -> int:
+    """`codo forward ...`, parsed by hand so clyde's flags pass through."""
+    match argv:
+        case [] | ["status"]:
+            return forward_status()
+        case ["-h" | "--help" | "help"]:
+            console.print(FORWARD_USAGE, markup=False, highlight=False, end="")
+            return 0
+        case ["stop"]:
+            if not ((forward := Forward.load()) and forward.running):
+                console.print("Not forwarding.")
+                return 0
+            forward.stop()
+            console.print(f"[green]✓[/] Stopped forwarding from {forward.description}")
+            return 0
+        case ["restart"]:
+            if not (forward := Forward.load()):
+                console.print("Nothing to restart: no workspace forwarded yet.")
+                return 1
+            stop_forward()
+            return start_forward(forward.workspace, forward.args, excludes)
+        case ["log"]:
+            forward_tail(lines=sys.maxsize)
+            return 0
+        case ["log", "-f"]:
+            os.execvp("tail", ["tail", "-n", str(OUTPUT_LINES), "-F", str(FORWARD_LOG)])
+        case ["start", *rest] | rest:
+            # The workspace is optional, but comes before any clyde flags.
+            if rest and not rest[0].startswith("-"):
+                return start_forward(rest[0], rest[1:], excludes)
+            return start_forward(None, rest, excludes)
+
+
+# `codo tunnel`: clyde's Cloudflare dev tunnel on a workspace. These run under
+# sh in the repo there (see repo_script), so they avoid backslashes.
+TUNNEL_STATE = '"$HOME/.cache/codo"'
+# clyde's process once its launcher has set up (`python -m discord_clyde ...`).
+# The bracket keeps pgrep from matching the script that runs it.
+TUNNEL_PGREP = 'pgrep -f -- "-m discord_clyd[e] tunnels run"'
+# Seconds to wait for cloudflared to connect, after which it's left to it.
+TUNNEL_CONNECT_SECONDS = 120
+# setsid puts it in its own session, so it outlives the ssh connection and
+# can be stopped as a group (clyde and the cloudflared it runs).
+START_TUNNEL = "; ".join(
+    [
+        f"mkdir -p {TUNNEL_STATE}",
+        f"log={TUNNEL_STATE}/tunnel.log",
+        f"if {TUNNEL_PGREP} > /dev/null; then echo codo: tunnel already running; exit 0; fi",
+        'nohup setsid clyde tunnels run > "$log" 2>&1 < /dev/null & pid=$!',
+        "i=0",
+        f"while [ $i -lt {TUNNEL_CONNECT_SECONDS} ]; do "
+        'if grep -q "Registered tunnel connection" "$log"; '
+        "then echo codo: tunnel connected; exit 0; fi; "
+        'if ! kill -0 "$pid" 2> /dev/null; '
+        'then echo codo: the tunnel exited:; cat "$log"; exit 1; fi; '
+        "sleep 1; i=$((i + 1)); done",
+        'echo "codo: tunnel still connecting; its log is $log on the workspace"',
+    ]
+)
+# Signals the whole group if the tunnel leads one (as when codo started it),
+# else just clyde; then waits for it to go.
+STOP_TUNNEL = "; ".join(
+    [
+        f"pid=$({TUNNEL_PGREP} | head -n 1)",
+        'if [ -z "$pid" ]; then echo codo: no tunnel running; exit 0; fi',
+        'pgid=$(ps -o pgid= -p "$pid" | tr -d " ")',
+        'if [ "$pgid" = "$pid" ]; then kill -s TERM -- "-$pid"; '
+        'else kill -s TERM "$pid"; fi',
+        "i=0",
+        'while kill -0 "$pid" 2> /dev/null && [ $i -lt 20 ]; do sleep 0.5; i=$((i + 1)); done',
+        'if kill -0 "$pid" 2> /dev/null; then echo codo: the tunnel did not stop; exit 1; fi',
+        "echo codo: tunnel stopped",
+    ]
+)
+# Prints the addresses: the main one, then clyde's list (dashboard, services).
+TUNNEL_URLS = (
+    'echo "  main:  https://$CLOUDFLARE_TUNNEL_DOMAIN"; exec clyde tunnels list'
+)
+TUNNEL_URL_LINE = re.compile(
+    r"^\s*(?P<name>[^:]+(?:\(:\d+\))?):\s+(?P<url>https://\S+)(?P<rest>.*)$"
+)
+SERVICE_SPEC = re.compile(
+    r"^(?P<name>[A-Za-z0-9][A-Za-z0-9_-]*)(?::(?P<port>\d{1,5}))?$"
+)
+
+
+def tunnel(
+    workspace: str, services: list[str], stop: bool, start: bool, repos: list[str]
+) -> int:
+    """Start (or stop) the dev tunnel on a workspace, with services exposed.
+
+    Each service is a clyde service or tunnel group (like `admin`), which is
+    started with `clyde start` and then exposed; or NAME:PORT, to expose
+    whatever is on that port.
+    """
+    if stop:
+        plan = [RepoStep("stopping tunnel", "stop the tunnel", STOP_TUNNEL)]
+    else:
+        specs = []
+        for service in services:
+            if not (match := SERVICE_SPEC.match(service)):
+                console.print(
+                    f"[red]✗[/] Not a service name or NAME:PORT: {escape(service)}"
+                )
+                return 2
+            specs.append((match["name"], match["port"]))
+        plan = []
+        if start and (names := [name for name, port in specs if port is None]):
+            plan.append(repo_command("starting services", ["clyde", "start", *names]))
+        for name, port in specs:
+            expose = ["clyde", "tunnels", "expose", name, *([port] if port else [])]
+            plan.append(repo_command(f"exposing {name}", expose))
+        plan.append(RepoStep("starting tunnel", "clyde tunnels run", START_TUNNEL))
+        plan.append(RepoStep("listing addresses", "clyde tunnels list", TUNNEL_URLS))
+
+    scripts = [(label, repo_script(snippet, repos)) for label, _, snippet in plan]
+    job = Job(
+        workspace, [(label, sh_command(workspace, s)) for label, s in scripts], "done"
+    )
+    if code := run_jobs([job], "stop the tunnel" if stop else "start the tunnel"):
+        return code
+    # Addresses come from the last step, which starts with the main one;
+    # `clyde tunnels expose` prints some too, which would repeat them.
+    starts = [i for i, line in enumerate(job.output) if line.startswith("  main:")]
+    for i, line in enumerate(job.output):
+        if line.startswith("codo: ") and "connected" not in line:
+            console.print(f"[dim]{escape(line.removeprefix('codo: '))}")
+        elif starts and i >= starts[-1] and (match := TUNNEL_URL_LINE.match(line)):
+            console.print(
+                f"  {escape(match['name'].strip())}: "
+                f"[link={match['url']}]{escape(match['url'])}[/link]"
+                f"[dim]{escape(match['rest'])}"
+            )
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
+    # Shared by start, stop and restart.
+    selection = argparse.ArgumentParser(add_help=False)
+    selection.add_argument(
+        "-w",
+        "--workspace",
+        dest="workspaces",
+        metavar="NAMES",
+        type=workspace_list,
+        action="append",
+        help="act on just these workspaces (comma-separated, or repeat -w), "
+        "even if excluded",
+    )
+    selection.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        help="show which workspaces would change, without changing them",
+    )
     for action in DONE:
-        sub = commands.add_parser(action, help=f"{action} all non-excluded workspaces")
-        sub.add_argument(
-            "-n",
-            "--dry-run",
-            action="store_true",
-            help="show which workspaces would change, without changing them",
+        commands.add_parser(
+            action, parents=[selection], help=f"{action} all non-excluded workspaces"
         )
+    sub = commands.add_parser(
+        "restart",
+        parents=[selection],
+        help="restart all running, non-excluded workspaces, updating any that "
+        "are out of date",
+    )
+    sub.add_argument(
+        "--no-update",
+        dest="update",
+        action="store_false",
+        help="restart outdated workspaces on their current version",
+    )
     commands.add_parser("status", help="show the status of non-excluded workspaces")
     sub = commands.add_parser(
         "login",
@@ -780,6 +1310,32 @@ def main() -> int:
         "clyde", help="run `clyde ARGS...` in the repo on each workspace"
     )
     commands.add_parser(
+        "forward",
+        help="forward ports from a workspace in the background "
+        "(see `codo forward --help`)",
+    )
+    sub = commands.add_parser(
+        "tunnel",
+        aliases=["tun"],
+        help="start the Cloudflare dev tunnel (*.devtun.to) on a workspace, "
+        "with services started and exposed",
+    )
+    sub.add_argument("workspace")
+    sub.add_argument(
+        "services",
+        nargs="*",
+        metavar="SERVICE",
+        help="a clyde service or tunnel group (e.g. admin, discord_api) to "
+        "start and expose, or NAME:PORT to expose a port as NAME",
+    )
+    sub.add_argument(
+        "--no-start",
+        dest="start",
+        action="store_false",
+        help="expose services without running `clyde start` for them",
+    )
+    sub.add_argument("--stop", action="store_true", help="stop the tunnel")
+    commands.add_parser(
         "freshen",
         help="fetch, then start and stop the pytest daemon and admin services, "
         "on each workspace",
@@ -795,6 +1351,8 @@ def main() -> int:
         if len(argv) == 1:
             parser.error("codo clyde needs a clyde command, e.g. `codo clyde start`")
         return run_in_repo([repo_command("running", argv)], repos, excludes)
+    if argv[:1] == ["forward"]:
+        return forward(argv[1:], excludes)
     args = parser.parse_args(argv)
 
     if args.command == "login":
@@ -803,11 +1361,19 @@ def main() -> int:
         return login_everywhere(excludes)
     if args.command == "fetch":
         return run_in_repo([FETCH], repos, excludes)
+    if args.command in ("tunnel", "tun"):
+        return tunnel(args.workspace, args.services, args.stop, args.start, repos)
     if args.command == "freshen":
         return run_in_repo(FRESHEN, repos, excludes)
     if args.command == "status":
         return show_status(excludes)
-    return change(args.command, excludes, args.dry_run)
+    # -w values, each a list of names, flattened in order without repeats.
+    selected = None
+    if getattr(args, "workspaces", None):
+        selected = list(dict.fromkeys(n for names in args.workspaces for n in names))
+    if args.command == "restart":
+        return restart(excludes, args.dry_run, args.update, selected)
+    return change(args.command, excludes, args.dry_run, selected)
 
 
 if __name__ == "__main__":
